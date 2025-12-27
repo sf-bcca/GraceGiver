@@ -215,10 +215,24 @@ RESTful endpoints provided by `server/index.js`:
 - **Validation**: Enforced via `server/validation.js` before database insertion.
 - **RBAC**: All routes protected via `server/rbac.js` middleware.
 
-### Current Credentials
+### Initial Credentials
 
-- **Super Admin**: `admin` / `TestPass123!abc`
-- **Viewer (test)**: `testviewer` / `TestViewer123!abc`
+> [!CAUTION] > **Never commit credentials to version control.** Use the bootstrap mechanism below.
+
+On first startup with a fresh database, the system automatically creates a super admin:
+
+1. **From Environment Variables** (Recommended for Production):
+
+   ```bash
+   INITIAL_ADMIN_USERNAME=superadmin
+   INITIAL_ADMIN_PASSWORD=YourSecurePassword123!
+   ```
+
+2. **Auto-Generated**: If `INITIAL_ADMIN_PASSWORD` is not set, a secure random password is generated and displayed in the console logs **once**.
+
+3. **CLI Tool**: Run `node scripts/create-superadmin.js` for interactive setup.
+
+All methods force a password change on first login.
 
 ---
 
