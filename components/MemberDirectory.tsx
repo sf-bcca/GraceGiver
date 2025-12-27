@@ -1,7 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
-import { Search, UserPlus, Mail, Phone, MoreVertical, Edit2, Trash2, Filter, X } from 'lucide-react';
+import { Search, UserPlus, Mail, Phone, MoreVertical, Edit2, Trash2, Filter, X, AlertCircle } from 'lucide-react';
+
+const REGEX = {
+  EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  ZIP: /^\d{5}(-\d{4})?$/,
+  STATE: /^[A-Z]{2}$/
+};
 
 interface MemberDirectoryProps {
   members: Member[];
@@ -20,6 +26,30 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members, onAddMember 
     state: '',
     zip: ''
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!REGEX.EMAIL.test(newMember.email)) newErrors.email = 'Invalid email format';
+    if (!REGEX.STATE.test(newMember.state)) newErrors.state = 'Must be 2 uppercase letters (e.g., MS)';
+    if (!REGEX.ZIP.test(newMember.zip)) newErrors.zip = 'Invalid Zip (12345 or 12345-6789)';
+    if (!newMember.firstName.trim()) newErrors.firstName = 'Required';
+    if (!newMember.lastName.trim()) newErrors.lastName = 'Required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const cleanInput = (field: string, value: string) => {
+    switch (field) {
+      case 'state':
+        return value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+      case 'zip':
+        return value.replace(/[^\d-]/g, '').slice(0, 10);
+      default:
+        return value;
+    }
+  };
 
   const filteredMembers = members.filter(m => 
     `${m.firstName} ${m.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -28,8 +58,11 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members, onAddMember 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
+    
     onAddMember(newMember);
     setIsModalOpen(false);
+    setErrors({});
     setNewMember({
       firstName: '',
       lastName: '',
@@ -173,20 +206,22 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members, onAddMember 
                   <input 
                     required 
                     type="text" 
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900" 
+                    className={`w-full px-4 py-2 bg-white border ${errors.firstName ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`} 
                     value={newMember.firstName}
                     onChange={(e) => setNewMember({...newMember, firstName: e.target.value})}
                   />
+                  {errors.firstName && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.firstName}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Last Name</label>
                   <input 
                     required 
                     type="text" 
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900" 
+                    className={`w-full px-4 py-2 bg-white border ${errors.lastName ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`} 
                     value={newMember.lastName}
                     onChange={(e) => setNewMember({...newMember, lastName: e.target.value})}
                   />
+                  {errors.lastName && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.lastName}</p>}
                 </div>
               </div>
               <div>
@@ -194,10 +229,11 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members, onAddMember 
                 <input 
                   required 
                   type="email" 
-                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900" 
+                  className={`w-full px-4 py-2 bg-white border ${errors.email ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`} 
                   value={newMember.email}
                   onChange={(e) => setNewMember({...newMember, email: e.target.value})}
                 />
+                {errors.email && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.email}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Home Address</label>
@@ -225,20 +261,24 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members, onAddMember 
                   <input 
                     required 
                     type="text" 
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900" 
+                    placeholder="MS"
+                    className={`w-full px-4 py-2 bg-white border ${errors.state ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`} 
                     value={newMember.state}
-                    onChange={(e) => setNewMember({...newMember, state: e.target.value})}
+                    onChange={(e) => setNewMember({...newMember, state: cleanInput('state', e.target.value)})}
                   />
+                  {errors.state && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.state}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">ZIP</label>
                   <input 
                     required 
                     type="text" 
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900" 
+                    placeholder="38930"
+                    className={`w-full px-4 py-2 bg-white border ${errors.zip ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`} 
                     value={newMember.zip}
-                    onChange={(e) => setNewMember({...newMember, zip: e.target.value})}
+                    onChange={(e) => setNewMember({...newMember, zip: cleanInput('zip', e.target.value)})}
                   />
+                  {errors.zip && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.zip}</p>}
                 </div>
               </div>
               <div className="pt-4 flex gap-3">

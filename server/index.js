@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
+const { validateMember } = require('./validation');
 require('dotenv').config();
 
 const app = express();
@@ -36,6 +37,16 @@ app.get('/api/members', async (req, res) => {
 
 app.post('/api/members', async (req, res) => {
   const { id, firstName, lastName, email, address, city, state, zip, familyId } = req.body;
+  
+  // High-priority validation check
+  const validation = validateMember({ firstName, lastName, email, state, zip });
+  if (!validation.isValid) {
+    return res.status(400).json({ 
+      error: 'VALIDATION_FAILED', 
+      details: validation.errors 
+    });
+  }
+
   try {
     const result = await pool.query(
       'INSERT INTO members (id, first_name, last_name, email, address, city, state, zip, family_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',

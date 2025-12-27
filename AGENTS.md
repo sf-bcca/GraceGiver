@@ -87,20 +87,40 @@ The Test/QA Agent ensures that all changes are verified against the specified re
 
 ---
 
-6:
-7: ## Quick Start: How to Use These Agents
-8:
-9: To interact with or trigger these agents, follow these simple protocols:
-10:
-11: 1. **Antigravity (Coding)**: Simply type your request in the chat interface. For example: _"Add a login page"_ or _"Fix the database connection error"_.
-12: 2. **Architect (Planning)**: Ask for a complex feature or a structural change. I will automatically switch to **Architect** mode and present an `implementation_plan.md` for your approval before I start coding.
-13: 3. **Linter & Security (Guardians)**: These run automatically. When you run `git commit`, our security agent scans for secrets and linting errors. If it finds any, it will prevent the commit to keep the codebase safe.
-14: 4. **Test & QA (Verification)**: After I (Antigravity) finish a task, I will perform verification. You can also explicitly say: _"Verify the latest changes"_ or _"Run the E2E tests"_ to trigger this agent.
-15:
-16: ---
-17:
-18: ## General Interaction Guidelines
-19:
+## 5. Data Integrity Agent (Validation)
+
+**Purpose/Mandate**
+The Data Integrity Agent enforces strict validation rules across all data entry points, ensuring database consistency and preventing malformed data from entering the persistence layer.
+
+- **Key Capabilities/Skills**
+  - Regex-based input validation (Email, Phone, Zip Code, State).
+  - Real-time input masking and sanitization on the frontend.
+  - Server-side validation as the authoritative "last line of defense."
+  - Generation and enforcement of data validation standards documentation.
+- **Interaction Protocols/APIs**
+  - Validation rules defined in `server/validation.js`.
+  - Frontend enforcement integrated into React components.
+- **Expected Inputs and Outputs**
+  - **Inputs**: User-submitted form data (member records, settings).
+  - **Outputs**: Validated, sanitized data or structured error responses (400 Bad Request).
+- **Ownership/Primary Maintainer**
+  - Backend & Data Engineering.
+
+---
+
+## Quick Start: How to Use These Agents
+
+To interact with or trigger these agents, follow these simple protocols:
+
+1. **Antigravity (Coding)**: Simply type your request in the chat interface. For example: _"Add a login page"_ or _"Fix the database connection error"_.
+2. **Architect (Planning)**: Ask for a complex feature or a structural change. I will automatically switch to **Architect** mode and present an `implementation_plan.md` for your approval before I start coding.
+3. **Linter & Security (Guardians)**: These run automatically. When you run `git commit`, our security agent scans for secrets and linting errors. If it finds any, it will prevent the commit to keep the codebase safe.
+4. **Test & QA (Verification)**: After I (Antigravity) finish a task, I will perform verification. You can also explicitly say: _"Verify the latest changes"_ or _"Run the E2E tests"_ to trigger this agent.
+5. **Data Integrity (Validation)**: This runs automatically on form submission. The backend will reject any data that doesn't conform to the standards defined in `validation_standards.md`.
+
+---
+
+## General Interaction Guidelines
 
 To ensure harmonious and efficient collaboration between human developers and AI agents, the following best practices must be observed:
 
