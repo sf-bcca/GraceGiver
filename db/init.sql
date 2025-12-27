@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS members (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT,
+    telephone TEXT,
     address TEXT,
     city TEXT,
     state TEXT,
