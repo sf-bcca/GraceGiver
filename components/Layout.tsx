@@ -29,7 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
     { id: 'MEMBERS' as ViewState, label: 'Members', icon: Users },
     { id: 'ENTRY' as ViewState, label: 'Donation Entry', icon: HandCoins },
     { id: 'REPORTS' as ViewState, label: 'Reports', icon: FileText },
-    { id: 'AUDIT' as ViewState, label: 'Audit Log', icon: ShieldCheck },
+    { id: 'USERS' as ViewState, label: 'User Management', icon: ShieldCheck },
     { id: 'SETTINGS' as ViewState, label: 'Settings', icon: Settings },
   ];
 

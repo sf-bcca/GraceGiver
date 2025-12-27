@@ -2,7 +2,8 @@
 import React, { useState, Suspense } from 'react';
 import Layout from './components/Layout';
 import { Member, Donation, ChurchSettings, ViewState } from './types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
+
 // Lazy load components for performance
 const Login = React.lazy(() => import('./components/Login'));
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
@@ -10,10 +11,15 @@ const MemberDirectory = React.lazy(() => import('./components/MemberDirectory'))
 const DonationEntry = React.lazy(() => import('./components/DonationEntry'));
 const Reports = React.lazy(() => import('./components/Reports'));
 const Settings = React.lazy(() => import('./components/Settings'));
+const PasswordChange = React.lazy(() => import('./components/PasswordChange'));
+const UserManagement = React.lazy(() => import('./components/UserManagement'));
+
 import { fetchMembers, fetchDonations, createMember, createDonation } from './src/lib/api';
 
 const App: React.FC = () => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
+  const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
   const [view, setView] = useState<ViewState>('DASHBOARD');
   const [members, setMembers] = useState<Member[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
@@ -53,6 +59,24 @@ const App: React.FC = () => {
     email: 'office@mthermaname.org',
     taxId: '12-3456789'
   });
+
+  const handleLoginSuccess = (passwordChangeRequired: boolean = false) => {
+    setToken(localStorage.getItem('token'));
+    setMustChangePassword(passwordChangeRequired);
+  };
+
+  const handlePasswordChanged = () => {
+    setMustChangePassword(false);
+    setShowPasswordChange(false);
+  };
+
+  const handleOpenPasswordChange = () => {
+    setShowPasswordChange(true);
+  };
+
+  const handleCancelPasswordChange = () => {
+    setShowPasswordChange(false);
+  };
 
   const handleAddMember = async (newMemberData: Omit<Member, 'id' | 'createdAt'>) => {
     const tempId = `m${Date.now()}`;
@@ -102,6 +126,7 @@ const App: React.FC = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
+    setMustChangePassword(false);
     setView('DASHBOARD');
   };
 
@@ -123,7 +148,7 @@ const App: React.FC = () => {
             case 'REPORTS':
               return <Reports members={members} donations={donations} churchSettings={churchSettings} />;
             case 'SETTINGS':
-              return <Settings settings={churchSettings} onUpdate={setChurchSettings} />;
+              return <Settings settings={churchSettings} onUpdate={setChurchSettings} onChangePassword={handleOpenPasswordChange} />;
             case 'AUDIT':
               return (
                 <div className="animate-in fade-in duration-500">
@@ -139,6 +164,8 @@ const App: React.FC = () => {
                   </div>
                 </div>
               );
+            case 'USERS':
+              return <UserManagement currentUserId={1} currentUserRole="admin" />;
             default:
               return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
           }
@@ -146,22 +173,40 @@ const App: React.FC = () => {
       </Suspense>
     );
   };
+
+  // Not logged in - show login page
   if (!token) {
     return (
       <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>}>
-        <Login onLoginSuccess={() => setToken(localStorage.getItem('token'))} />
+        <Login onLoginSuccess={handleLoginSuccess} />
       </Suspense>
     );
   }
 
+  // Logged in but must change password - show password change page (forced)
+  if (mustChangePassword) {
+    return (
+      <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>}>
+        <PasswordChange onSuccess={handlePasswordChanged} isForced={true} />
+      </Suspense>
+    );
+  }
+
+  // User wants to change password voluntarily from Settings
+  if (showPasswordChange) {
+    return (
+      <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>}>
+        <PasswordChange onSuccess={handlePasswordChanged} onCancel={handleCancelPasswordChange} isForced={false} />
+      </Suspense>
+    );
+  }
+
+  // Logged in and password is OK - show main app
   return (
     <Layout activeView={view} setView={setView} churchName={churchSettings.name} onLogout={handleLogout}>
       {renderView()}
     </Layout>
   );
 };
-
-// Re-import icons just for the AUDIT mock screen in this file
-import { ShieldCheck } from 'lucide-react';
 
 export default App;

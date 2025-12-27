@@ -58,10 +58,18 @@ export async function login(credentials: any) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   });
+  
+  const data = await response.json();
+  
   if (!response.ok) {
-    throw new Error("Invalid credentials");
+    // Throw an error with the full response data for handling account lockout, etc.
+    const error = new Error(data.error || "Invalid credentials") as any;
+    error.response = data;
+    error.status = response.status;
+    throw error;
   }
-  return response.json();
+  
+  return data;
 }
 
 export async function fetchMembers(page = 1, limit = 50, search = "") {

@@ -49,4 +49,4 @@ export interface AuditLog {
   timestamp: string;
 }
 
-export type ViewState = 'DASHBOARD' | 'MEMBERS' | 'ENTRY' | 'REPORTS' | 'AUDIT' | 'SETTINGS';
+export type ViewState = 'DASHBOARD' | 'MEMBERS' | 'ENTRY' | 'REPORTS' | 'AUDIT' | 'SETTINGS' | 'USERS';

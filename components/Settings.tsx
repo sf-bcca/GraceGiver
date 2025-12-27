@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
 import { ChurchSettings } from '../types';
-import { Settings as SettingsIcon, Save, Building2, Phone, Mail, FileCheck, CheckCircle2 } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Building2, Phone, Mail, FileCheck, CheckCircle2, KeyRound, Shield } from 'lucide-react';
 
 interface SettingsProps {
   settings: ChurchSettings;
   onUpdate: (settings: ChurchSettings) => void;
+  onChangePassword?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ settings, onUpdate }) => {
+const Settings: React.FC<SettingsProps> = ({ settings, onUpdate, onChangePassword }) => {
   const [formData, setFormData] = useState<ChurchSettings>(settings);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -26,6 +27,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onUpdate }) => {
         <p className="text-slate-500 mt-1">Configure your church identity and application preferences.</p>
       </header>
 
+      {/* Church Information Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
           <Building2 size={20} className="text-indigo-600" />
@@ -110,6 +112,33 @@ const Settings: React.FC<SettingsProps> = ({ settings, onUpdate }) => {
             </div>
           </div>
         </form>
+      </div>
+
+      {/* Security Settings Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+          <Shield size={20} className="text-amber-600" />
+          <h2 className="font-bold text-slate-800">Security</h2>
+        </div>
+        
+        <div className="p-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-900">Change Password</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Update your password regularly to keep your account secure.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onChangePassword}
+              className="flex items-center gap-2 px-6 py-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl font-bold hover:bg-amber-100 transition-all"
+            >
+              <KeyRound size={18} />
+              Change Password
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

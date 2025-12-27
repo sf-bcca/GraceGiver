@@ -1,28 +1,45 @@
 import React, { useState } from 'react';
 import { login } from '../src/lib/api';
-import { Lock } from 'lucide-react';
+import { Lock, AlertTriangle } from 'lucide-react';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (mustChangePassword: boolean) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setErrorCode(null);
     setIsLoading(true);
     try {
       const data = await login({ username, password });
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      onLoginSuccess();
-    } catch (err) {
-      setError('Invalid username or password');
+      
+      // Check if password change is required
+      const mustChange = data.mustChangePassword || false;
+      onLoginSuccess(mustChange);
+    } catch (err: any) {
+      // Handle different error types
+      if (err.response) {
+        const errorData = err.response;
+        setErrorCode(errorData.code || null);
+        
+        if (errorData.code === 'ACCOUNT_LOCKED') {
+          setError(errorData.message || 'Account is temporarily locked due to too many failed attempts.');
+        } else {
+          setError(errorData.error || 'Invalid username or password');
+        }
+      } else {
+        setError('Invalid username or password');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -40,8 +57,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         </div>
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl font-medium">
-              {error}
+            <div className={`p-4 text-sm rounded-xl font-medium flex items-start gap-3 ${
+              errorCode === 'ACCOUNT_LOCKED' 
+                ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                : 'bg-red-50 text-red-600'
+            }`}>
+              {errorCode === 'ACCOUNT_LOCKED' && <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" />}
+              <span>{error}</span>
             </div>
           )}
           <div>
@@ -66,7 +88,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || errorCode === 'ACCOUNT_LOCKED'}
             className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Signing In...' : 'Sign In'}
