@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS donations (
 CREATE INDEX IF NOT EXISTS idx_members_last_name ON members(last_name);
 CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);
 CREATE INDEX IF NOT EXISTS idx_donations_member_id ON donations(member_id);
+CREATE INDEX IF NOT EXISTS idx_donations_donation_date ON donations(donation_date);
+CREATE INDEX IF NOT EXISTS idx_donations_fund ON donations(fund);
+CREATE INDEX IF NOT EXISTS idx_members_created_at ON members(created_at);
 
 -- Seed initial admin user (password: admin123)
 INSERT INTO users (username, password_hash)

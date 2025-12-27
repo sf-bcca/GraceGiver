@@ -158,6 +158,7 @@ The system uses PostgreSQL with the following core entities (`db/init.sql`):
 - **Donations**: Financial records linked to Members.
   - Columns: `id` (serial), `member_id` (text), `amount` (numeric), `fund` (text), `notes` (text), `entered_by` (text), `donation_date` (timestamptz).
   - _Cascade Delete_: Deleting a Member automatically deletes their Donations.
+  - _Indexes_: `donation_date`, `fund`, `member_id`.
 
 ### API Structure
 
