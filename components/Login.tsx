@@ -67,20 +67,24 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
           )}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Username</label>
+            <label htmlFor="username" className="block text-sm font-bold text-slate-700 mb-2">Username</label>
             <input
+              id="username"
               type="text"
               required
+              data-testid="username-input"
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
+            <label htmlFor="password"className="block text-sm font-bold text-slate-700 mb-2">Password</label>
             <input
+              id="password"
               type="password"
               required
+              data-testid="password-input"
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

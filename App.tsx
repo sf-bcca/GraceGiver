@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('DASHBOARD');
   const [members, setMembers] = useState<Member[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!token);
 
   React.useEffect(() => {
     if (!token) return;
@@ -176,11 +176,7 @@ const App: React.FC = () => {
 
   // Not logged in - show login page
   if (!token) {
-    return (
-      <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>}>
-        <Login onLoginSuccess={handleLoginSuccess} />
-      </Suspense>
-    );
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   // Logged in but must change password - show password change page (forced)

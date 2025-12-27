@@ -25,6 +25,11 @@ function validateMember(member) {
     errors.push('INVALID_EMAIL_LENGTH: Email cannot exceed 254 characters.');
   }
 
+  // Phone validation
+  if (member.phone && !REGEX.PHONE.test(member.phone)) {
+    errors.push('INVALID_PHONE: Phone must be a valid E.164 international format.');
+  }
+
   // Zip Code Validation
   if (!member.zip || !REGEX.ZIP.test(member.zip)) {
     errors.push('INVALID_ZIP: Zip code must be 5 digits (12345) or ZIP+4 (12345-6789).');

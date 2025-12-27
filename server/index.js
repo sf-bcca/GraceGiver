@@ -237,6 +237,7 @@ app.get('/api/members', authenticateToken, requirePermission('members:read'), as
         firstName: row.first_name,
         lastName: row.last_name,
         email: row.email,
+        phone: row.phone,
         address: row.address,
         city: row.city,
         state: row.state,
@@ -270,6 +271,7 @@ app.get('/api/members/:id', authenticateToken, requirePermission('members:read')
       firstName: row.first_name,
       lastName: row.last_name,
       email: row.email,
+      phone: row.phone,
       address: row.address,
       city: row.city,
       state: row.state,
@@ -284,10 +286,10 @@ app.get('/api/members/:id', authenticateToken, requirePermission('members:read')
 });
 
 app.post('/api/members', authenticateToken, requirePermission('members:create'), async (req, res) => {
-  const { id, firstName, lastName, email, address, city, state, zip, familyId } = req.body;
+  const { id, firstName, lastName, email, phone, address, city, state, zip, familyId } = req.body;
   
   // High-priority validation check
-  const validation = validateMember({ firstName, lastName, email, state, zip });
+  const validation = validateMember({ firstName, lastName, email, phone, state, zip });
   if (!validation.isValid) {
     return res.status(400).json({ 
       error: 'VALIDATION_FAILED', 
@@ -299,8 +301,8 @@ app.post('/api/members', authenticateToken, requirePermission('members:create'),
 
   try {
     const result = await pool.query(
-      'INSERT INTO members (id, first_name, last_name, email, address, city, state, zip, family_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [memberId, firstName, lastName, email, address, city, state, zip, familyId]
+      'INSERT INTO members (id, first_name, last_name, email, phone, address, city, state, zip, family_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [memberId, firstName, lastName, email, phone, address, city, state, zip, familyId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -311,9 +313,9 @@ app.post('/api/members', authenticateToken, requirePermission('members:create'),
 
 app.put('/api/members/:id', authenticateToken, requirePermission('members:update'), async (req, res) => {
   const { id } = req.params;
-  const { firstName, lastName, email, address, city, state, zip, familyId } = req.body;
+  const { firstName, lastName, email, phone, address, city, state, zip, familyId } = req.body;
 
-  const validation = validateMember({ firstName, lastName, email, state, zip });
+  const validation = validateMember({ firstName, lastName, email, phone, state, zip });
   if (!validation.isValid) {
     return res.status(400).json({
       error: 'VALIDATION_FAILED',
@@ -323,8 +325,8 @@ app.put('/api/members/:id', authenticateToken, requirePermission('members:update
 
   try {
     const result = await pool.query(
-      'UPDATE members SET first_name = $1, last_name = $2, email = $3, address = $4, city = $5, state = $6, zip = $7, family_id = $8 WHERE id = $9 RETURNING *',
-      [firstName, lastName, email, address, city, state, zip, familyId, id]
+      'UPDATE members SET first_name = $1, last_name = $2, email = $3, phone = $4, address = $5, city = $6, state = $7, zip = $8, family_id = $9 WHERE id = $10 RETURNING *',
+      [firstName, lastName, email, phone, address, city, state, zip, familyId, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Member not found' });

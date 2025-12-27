@@ -6,6 +6,7 @@ import { Search, UserPlus, Mail, Phone, MoreVertical, Edit2, Trash2, Filter, X, 
 
 const REGEX = {
   EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  PHONE: /^\+?[1-9]\d{1,14}$/,
   ZIP: /^\d{5}(-\d{4})?$/,
   STATE: /^[A-Z]{2}$/
 };
@@ -27,6 +28,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     address: '',
     city: '',
     state: '',
@@ -68,6 +70,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!REGEX.EMAIL.test(formData.email)) newErrors.email = 'Invalid email format';
+    if (formData.phone && !REGEX.PHONE.test(formData.phone)) newErrors.phone = 'Invalid phone format (e.g. +14155552671)';
     if (!REGEX.STATE.test(formData.state)) newErrors.state = 'Must be 2 uppercase letters (e.g., MS)';
     if (!REGEX.ZIP.test(formData.zip)) newErrors.zip = 'Invalid Zip (12345 or 12345-6789)';
     if (!formData.firstName.trim()) newErrors.firstName = 'Required';
@@ -83,6 +86,8 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
         return value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
       case 'zip':
         return value.replace(/[^\d-]/g, '').slice(0, 10);
+      case 'phone':
+        return value.replace(/[^\d+]/g, '').slice(0, 15);
       default:
         return value;
     }
@@ -94,6 +99,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       firstName: member.firstName,
       lastName: member.lastName,
       email: member.email,
+      phone: member.phone || '',
       address: member.address,
       city: member.city,
       state: member.state,
@@ -120,6 +126,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       firstName: '',
       lastName: '',
       email: '',
+      phone: '',
       address: '',
       city: '',
       state: '',
@@ -147,6 +154,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
         firstName: '',
         lastName: '',
         email: '',
+        phone: '',
         address: '',
         city: '',
         state: '',
@@ -296,7 +304,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
             </div>
             <div className="space-y-2 text-sm text-slate-600 mb-4">
               <div className="flex items-center gap-2"><Mail size={14} className="text-slate-400" /> {member.email}</div>
-              <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> (555) 000-0000</div>
+              {member.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {member.phone}</div>}
             </div>
             <div className="flex gap-2">
               <button
@@ -348,16 +356,28 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                   {errors.lastName && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.lastName}</p>}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
-                <input 
-                  required 
-                  type="email" 
-                  className={`w-full px-4 py-2 bg-white border ${errors.email ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`} 
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-                {errors.email && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.email}</p>}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                  <input
+                    required
+                    type="email"
+                    className={`w-full px-4 py-2 bg-white border ${errors.email ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`}
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  />
+                  {errors.email && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.email}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    className={`w-full px-4 py-2 bg-white border ${errors.phone ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`}
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: cleanInput('phone', e.target.value)})}
+                  />
+                  {errors.phone && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.phone}</p>}
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Home Address</label>
