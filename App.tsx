@@ -1,41 +1,49 @@
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import MemberDirectory from './components/MemberDirectory';
-import DonationEntry from './components/DonationEntry';
-import Reports from './components/Reports';
-import Settings from './components/Settings';
-import { ViewState, Member, Donation, ChurchSettings } from './types';
-import { INITIAL_MEMBERS as mockMembers, INITIAL_DONATIONS as mockDonations } from './mockData';
+import { Member, Donation, ChurchSettings, ViewState } from './types';
+import { Loader2 } from 'lucide-react';
+// Lazy load components for performance
+const Login = React.lazy(() => import('./components/Login'));
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const MemberDirectory = React.lazy(() => import('./components/MemberDirectory'));
+const DonationEntry = React.lazy(() => import('./components/DonationEntry'));
+const Reports = React.lazy(() => import('./components/Reports'));
+const Settings = React.lazy(() => import('./components/Settings'));
 import { fetchMembers, fetchDonations, createMember, createDonation } from './src/lib/api';
 
 const App: React.FC = () => {
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [view, setView] = useState<ViewState>('DASHBOARD');
   const [members, setMembers] = useState<Member[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
+    if (!token) return;
     async function loadData() {
       try {
-        const [fetchedMembers, fetchedDonations] = await Promise.all([
+        const [fetchedMembersRes, fetchedDonationsRes] = await Promise.all([
           fetchMembers(),
           fetchDonations()
         ]);
-        setMembers(fetchedMembers.length > 0 ? fetchedMembers : mockMembers);
-        setDonations(fetchedDonations.length > 0 ? fetchedDonations : mockDonations);
+        // Handle both array (legacy/mock) and paginated response { data: [] }
+        const membersData = Array.isArray(fetchedMembersRes) ? fetchedMembersRes : (fetchedMembersRes.data || []);
+        const donationsData = Array.isArray(fetchedDonationsRes) ? fetchedDonationsRes : (fetchedDonationsRes.data || []);
+
+        setMembers(membersData);
+        setDonations(donationsData);
       } catch (error) {
         console.error('Failed to load data:', error);
-        // Fallback to mock data on error
-        setMembers(mockMembers);
-        setDonations(mockDonations);
+        // TODO: specific error state UI
+        setMembers([]);
+        setDonations([]);
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, []);
+  }, [token]);
   
   // Initialize with requested church name
   const [churchSettings, setChurchSettings] = useState<ChurchSettings>({
@@ -91,36 +99,53 @@ const App: React.FC = () => {
   };
 
   const renderView = () => {
-    switch (view) {
-      case 'DASHBOARD':
-        return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
-      case 'MEMBERS':
-        return <MemberDirectory members={members} onAddMember={handleAddMember} />;
-      case 'ENTRY':
-        return <DonationEntry members={members} donations={donations} onAddDonation={handleAddDonation} />;
-      case 'REPORTS':
-        return <Reports members={members} donations={donations} churchSettings={churchSettings} />;
-      case 'SETTINGS':
-        return <Settings settings={churchSettings} onUpdate={setChurchSettings} />;
-      case 'AUDIT':
-        return (
-          <div className="animate-in fade-in duration-500">
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-6">Security Audit Logs</h1>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-8">
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                <div className="p-4 bg-slate-50 rounded-full mb-4">
-                  <ShieldCheck size={48} />
+    return (
+      <Suspense fallback={
+        <div className="flex h-full w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        </div>
+      }>
+        {(() => {
+          switch (view) {
+            case 'DASHBOARD':
+              return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
+            case 'MEMBERS':
+              return <MemberDirectory members={members} onAddMember={handleAddMember} />;
+            case 'ENTRY':
+              return <DonationEntry members={members} donations={donations} onAddDonation={handleAddDonation} />;
+            case 'REPORTS':
+              return <Reports members={members} donations={donations} churchSettings={churchSettings} />;
+            case 'SETTINGS':
+              return <Settings settings={churchSettings} onUpdate={setChurchSettings} />;
+            case 'AUDIT':
+              return (
+                <div className="animate-in fade-in duration-500">
+                  <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-6">Security Audit Logs</h1>
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden p-8">
+                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                      <div className="p-4 bg-slate-50 rounded-full mb-4">
+                        <ShieldCheck size={48} />
+                      </div>
+                      <p className="text-lg font-medium">Audit logs are restricted to Super-Admin roles.</p>
+                      <p className="text-sm">Contact your system administrator for access.</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-lg font-medium">Audit logs are restricted to Super-Admin roles.</p>
-                <p className="text-sm">Contact your system administrator for access.</p>
-              </div>
-            </div>
-          </div>
-        );
-      default:
-        return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
-    }
+              );
+            default:
+              return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
+          }
+        })()}
+      </Suspense>
+    );
   };
+  if (!token) {
+    return (
+      <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>}>
+        <Login onLoginSuccess={() => setToken(localStorage.getItem('token'))} />
+      </Suspense>
+    );
+  }
 
   return (
     <Layout activeView={view} setView={setView} churchName={churchSettings.name}>
