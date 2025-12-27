@@ -49,8 +49,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
         <div className="p-8 bg-indigo-900 text-center">
-          <div className="mx-auto w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4 text-white">
-            <Lock size={32} />
+          <div className="mx-auto flex items-center justify-center mb-4">
+            <img src="/favicon.png" alt="GraceGiver Logo" className="w-20 h-20" />
           </div>
           <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
           <p className="text-indigo-200 mt-2">Sign in to access GraceGiver</p>

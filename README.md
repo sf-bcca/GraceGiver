@@ -1,5 +1,5 @@
 <div align="center">
-<img width="1200" height="475" alt="GraceGiver Banner" src="assets/gracegiver_banner.png">
+<img width="150" height="150" alt="GraceGiver Logo" src="public/favicon.png">
 
 # GraceGiver | Secure Church Management & Donation Tracking
 

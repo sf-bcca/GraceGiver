@@ -38,9 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
       {/* Mobile Header */}
       <div className="md:hidden bg-indigo-900 text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold">
-            {churchName.charAt(0)}
-          </div>
+            <img src="/favicon.png" alt="Logo" className="w-8 h-8 rounded-lg" />
           <span className="font-bold text-lg tracking-tight truncate max-w-[200px]">{churchName}</span>
         </div>
         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-indigo-800 rounded-lg transition-colors">
@@ -56,9 +54,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
       `}>
         <div className="flex flex-col h-full">
           <div className="p-6 hidden md:flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center font-bold text-xl shrink-0">
-              {churchName.charAt(0)}
-            </div>
+            <img src="/favicon.png" alt="Logo" className="w-10 h-10 rounded-xl shrink-0" />
             <span className="font-bold text-xl tracking-tight truncate leading-tight">{churchName}</span>
           </div>
 
