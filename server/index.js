@@ -8,9 +8,9 @@ const path = require('path');
 const { validateMember } = require('./validation');
 const { authenticateToken, generateToken } = require('./auth');
 const { bootstrapSuperAdmin } = require('./bootstrap');
+
 const { validatePasswordPolicy, checkPasswordExpiry, getPasswordPolicy } = require('./passwordPolicy');
 const { requirePermission, requireRole, getRoleInfo } = require('./rbac');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const port = process.env.PORT || 3000;

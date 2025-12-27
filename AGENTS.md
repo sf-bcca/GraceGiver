@@ -180,7 +180,7 @@ The system uses PostgreSQL with the following core entities (`db/init.sql`):
   - Columns: `id`, `username`, `password_hash`, `email`, `role`, `must_change_password`, `password_changed_at`, `password_history`, `failed_login_attempts`, `locked_until`, `last_login_at`, `created_at`, `updated_at`.
 - **Roles**: Role definitions with JSON permissions array.
 - **Members**: Parishioner records.
-  - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `created_at` (timestamptz).
+  - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `telephone` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `created_at` (timestamptz).
 - **Donations**: Financial records linked to Members.
   - Columns: `id` (serial), `member_id` (text), `amount` (numeric), `fund` (text), `notes` (text), `entered_by` (text), `donation_date` (timestamptz).
   - _Cascade Delete_: Deleting a Member automatically deletes their Donations.

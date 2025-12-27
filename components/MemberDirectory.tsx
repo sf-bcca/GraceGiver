@@ -11,12 +11,16 @@ const REGEX = {
   STATE: /^[A-Z]{2}$/
 };
 
+import { ViewState } from '../types';
+
 interface MemberDirectoryProps {
   members: Member[];
   onAddMember: (member: Omit<Member, 'id' | 'createdAt'>) => void;
+  setView: (view: ViewState) => void;
+  setSelectedMemberId: (id: string) => void;
 }
 
-const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembers, onAddMember }) => {
+const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembers, onAddMember, setView, setSelectedMemberId }) => {
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -164,6 +168,11 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       console.error('Failed to save member:', error);
       alert('Failed to save member');
     }
+  };
+
+  const handleDonationClick = (member: Member) => {
+    setSelectedMemberId(member.id);
+    setView('ENTRY');
   };
 
   return (
@@ -314,6 +323,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                 Edit Profile
               </button>
               <button
+                onClick={() => handleDonationClick(member)}
                 className="flex-1 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-indigo-100"
               >
                 Donations
