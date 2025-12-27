@@ -1,13 +1,28 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { Donation, Member } from "./types";
 
-// Fixed: Always use process.env.API_KEY directly and ensure proper initialization
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Fixed: Instantiate lazily to prevent boot crash if key is missing
+let genAI: any = null;
+
+const getAIClient = () => {
+  if (genAI) return genAI;
+  
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (!apiKey) {
+    console.warn("Gemini API Key is missing. AI features will be disabled.");
+    return null;
+  }
+  
+  // Use the correct constructor format: { apiKey: string }
+  genAI = new GoogleGenAI({ apiKey });
+  return genAI;
+};
 
 export const getFinancialSummary = async (donations: Donation[], members: Member[]) => {
-  // Fixed: Corrected the syntax error in the template literal interpolation for Unique Donors
-  const prompt = `
+  const ai = getAIClient();
+  if (!ai) return "AI analysis is currently unavailable (missing API Key).";
+
+  const promptText = `
     Analyze the following church donation data and provide a concise strategic summary for the board.
     
     Total Donations: ${donations.reduce((sum, d) => sum + d.amount, 0)}
@@ -30,10 +45,9 @@ export const getFinancialSummary = async (donations: Donation[], members: Member
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
+      model: "gemini-3-flash-preview", 
+      contents: promptText
     });
-    // Fixed: response.text is a property, not a method
     return response.text;
   } catch (error) {
     console.error("Gemini Error:", error);

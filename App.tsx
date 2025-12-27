@@ -8,11 +8,34 @@ import Reports from './components/Reports';
 import Settings from './components/Settings';
 import { ViewState, Member, Donation, ChurchSettings } from './types';
 import { INITIAL_MEMBERS as mockMembers, INITIAL_DONATIONS as mockDonations } from './mockData';
+import { fetchMembers, fetchDonations, createMember, createDonation } from './src/lib/api';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('DASHBOARD');
-  const [members, setMembers] = useState<Member[]>(mockMembers);
-  const [donations, setDonations] = useState<Donation[]>(mockDonations);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const [fetchedMembers, fetchedDonations] = await Promise.all([
+          fetchMembers(),
+          fetchDonations()
+        ]);
+        setMembers(fetchedMembers.length > 0 ? fetchedMembers : mockMembers);
+        setDonations(fetchedDonations.length > 0 ? fetchedDonations : mockDonations);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        // Fallback to mock data on error
+        setMembers(mockMembers);
+        setDonations(mockDonations);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
   
   // Initialize with requested church name
   const [churchSettings, setChurchSettings] = useState<ChurchSettings>({
@@ -23,23 +46,48 @@ const App: React.FC = () => {
     taxId: '12-3456789'
   });
 
-  const handleAddMember = (newMemberData: Omit<Member, 'id' | 'createdAt'>) => {
+  const handleAddMember = async (newMemberData: Omit<Member, 'id' | 'createdAt'>) => {
+    const tempId = `m${Date.now()}`;
     const newMember: Member = {
       ...newMemberData,
-      id: `m${members.length + 1}`,
+      id: tempId,
       createdAt: new Date().toISOString(),
     };
+    
+    // Optimistic update
     setMembers([...members, newMember]);
+    
+    try {
+      await createMember(newMember);
+    } catch (error) {
+      console.error('Failed to save member:', error);
+      // Revert optimization if needed (optional)
+    }
   };
 
-  const handleAddDonation = (newDonationData: Omit<Donation, 'id' | 'timestamp' | 'enteredBy'>) => {
-    const newDonation: Donation = {
+  const handleAddDonation = async (newDonationData: Omit<Donation, 'id' | 'timestamp' | 'enteredBy'>) => {
+    const tempId = `d${Date.now()}`;
+    const newDonation: Omit<Donation, 'id'> = {
       ...newDonationData,
-      id: `d${donations.length + 1}`,
       timestamp: new Date().toISOString(),
       enteredBy: 'Admin',
     };
-    setDonations([...donations, newDonation]);
+    
+    // Optimistic update (adding temporary ID for list rendering)
+    setDonations([{ ...newDonation, id: tempId } as Donation, ...donations]);
+    
+    try {
+      const savedDonation = await createDonation({
+        memberId: newDonation.memberId,
+        amount: newDonation.amount,
+        fund: newDonation.fund,
+        notes: newDonation.notes,
+        enteredBy: newDonation.enteredBy
+      });
+      // Replace temp item with saved item if needed
+    } catch (error) {
+      console.error('Failed to save donation:', error);
+    }
   };
 
   const renderView = () => {
