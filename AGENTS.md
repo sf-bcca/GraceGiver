@@ -131,6 +131,36 @@ To ensure harmonious and efficient collaboration between human developers and AI
 
 ---
 
+## 6. Technical Reference & System Implementation
+
+This section details the concrete implementation of the core systems, serving as a reference for Developers and Agents.
+
+### Authentication
+- **Mechanism**: JWT (JSON Web Tokens) via `server/auth.js`.
+- **Credentials**:
+  - Default Admin User: `admin`
+  - Default Password: `admin123` (defined in `db/init.sql`)
+- **Flow**:
+  1. Client POSTs credentials to `/api/login`.
+  2. Server verifies against `users` table (bcrypt hash).
+  3. Server issues JWT (24h expiry).
+  4. Client stores token in `localStorage` and sends `Authorization: Bearer <token>` header.
+
+### Database Schema
+The system uses PostgreSQL with the following core entities (`db/init.sql`):
+- **Users**: Admin access management (`username`, `password_hash`, `role`).
+- **Members**: Parishioner records (`id` [UUID], `first_name`, `last_name`, `email`, `address`, ...).
+- **Donations**: Financial records linked to Members (`member_id`, `amount`, `fund`, `notes`).
+  - *Cascade Delete*: Deleting a Member automatically deletes their Donations.
+
+### API Structure
+RESTful endpoints provided by `server/index.js`:
+- **Members**: `GET /api/members` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
+- **Donations**: `GET /api/donations` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
+- **Validation**: Enforced via `server/validation.js` before database insertion.
+
+---
+
 ## Future Outlook
 
 The GraceGiver agent ecosystem will continue to evolve towards higher autonomy. Future iterations will include self-healing infrastructure agents and proactive performance optimization agents, further reducing the cognitive load on human contributors while maintaining the highest standards of engineering excellence.

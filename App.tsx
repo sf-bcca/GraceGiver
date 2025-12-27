@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import Layout from './components/Layout';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import MemberDirectory from './components/MemberDirectory';
 import DonationEntry from './components/DonationEntry';
@@ -11,20 +12,26 @@ import { INITIAL_MEMBERS as mockMembers, INITIAL_DONATIONS as mockDonations } fr
 import { fetchMembers, fetchDonations, createMember, createDonation } from './src/lib/api';
 
 const App: React.FC = () => {
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [view, setView] = useState<ViewState>('DASHBOARD');
   const [members, setMembers] = useState<Member[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
+    if (!token) return;
     async function loadData() {
       try {
-        const [fetchedMembers, fetchedDonations] = await Promise.all([
+        const [fetchedMembersRes, fetchedDonationsRes] = await Promise.all([
           fetchMembers(),
           fetchDonations()
         ]);
-        setMembers(fetchedMembers.length > 0 ? fetchedMembers : mockMembers);
-        setDonations(fetchedDonations.length > 0 ? fetchedDonations : mockDonations);
+        // Handle both array (legacy/mock) and paginated response { data: [] }
+        const membersData = Array.isArray(fetchedMembersRes) ? fetchedMembersRes : (fetchedMembersRes.data || []);
+        const donationsData = Array.isArray(fetchedDonationsRes) ? fetchedDonationsRes : (fetchedDonationsRes.data || []);
+
+        setMembers(membersData.length > 0 ? membersData : mockMembers);
+        setDonations(donationsData.length > 0 ? donationsData : mockDonations);
       } catch (error) {
         console.error('Failed to load data:', error);
         // Fallback to mock data on error
@@ -35,7 +42,7 @@ const App: React.FC = () => {
       }
     }
     loadData();
-  }, []);
+  }, [token]);
   
   // Initialize with requested church name
   const [churchSettings, setChurchSettings] = useState<ChurchSettings>({
@@ -121,6 +128,10 @@ const App: React.FC = () => {
         return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
     }
   };
+
+  if (!token) {
+    return <Login onLoginSuccess={() => setToken(localStorage.getItem('token'))} />;
+  }
 
   return (
     <Layout activeView={view} setView={setView} churchName={churchSettings.name}>
