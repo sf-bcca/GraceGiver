@@ -1,20 +1,133 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0a# GraceGiver | Secure Church Management & Donation Tracking
 
-# Run and deploy your AI Studio app
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/your-repo/gracegiver/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](CONTRIBUTING.md)
 
-This contains everything you need to run your app locally.
+GraceGiver is a premium, secure, and intuitive church management platform designed to streamline donation tracking, member directory management, and financial reporting. Built with a focus on security and ease of use, it empowers church administrators to focus on their mission while handling the complexities of financial stewardship with confidence.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1RrcJ9uU1SDx1R9uaizj3UFyRrucwiClZ
+---
 
-## Run Locally
+## 🚀 Features
 
-**Prerequisites:**  Node.js
+- **Dashboard:** Real-time visibility into weekly giving, fund distribution, and recent activity.
+- **Member Directory:** Comprehensive management of church members with contact details and giving history.
+- **Donation Entry:** Fast and secure recording of contributions across multiple funds (General, Building, Missions, etc.).
+- **AI Financial Insights:** Integration with Gemini AI for advanced analysis of giving trends and financial health (requires API key).
+- **Security & Auditing:** Role-based access control and detailed audit logs for compliance and accountability.
+- **Docker Ready:** Containerized architecture for seamless deployment and scalability.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🛠️ Getting Started
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- [Node.js](https://nodejs.org/) (v20+ recommended)
+- `npm` or `yarn`
+
+### Installation & Setup
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/your-username/GraceGiver.git
+   cd GraceGiver
+   ```
+
+2. **Environment Variables:**
+   Create a `.env` file in the root directory and add your Gemini API key:
+
+   ```env
+   VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+3. **Start with Docker (Recommended):**
+
+   ```bash
+   docker-compose up --build
+   ```
+
+   Access the application at [http://localhost:8085](http://localhost:8085).
+
+4. **Local Development (Manual):**
+   - **Frontend:**
+     ```bash
+     npm install
+     npm run dev
+     ```
+   - **Backend:**
+     ```bash
+     cd server
+     npm install
+     node index.js
+     ```
+
+---
+
+## 📖 Usage
+
+### Entering Donations
+
+1. Navigate to the **Donations** tab.
+2. Select a member or search for a name.
+3. Enter the amount, select the fund, and add optional notes.
+4. Click **Record Donation** to save securely.
+
+### Generating Reports
+
+- Visit the **Reports** section to view summaries by date range, fund, or member.
+- Use the **AI Insights** button to generate a narrative summary of trends.
+
+---
+
+## 🔌 API Reference
+
+The backend API runs on port `3000` (by default) and provides the following endpoints:
+
+| Endpoint         | Method | Description                |
+| :--------------- | :----- | :------------------------- |
+| `/api/members`   | `GET`  | Retrieve all members.      |
+| `/api/members`   | `POST` | Create a new member.       |
+| `/api/donations` | `GET`  | Retrieve recent donations. |
+| `/api/donations` | `POST` | Record a new donation.     |
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Please follow these steps:
+
+1. **Fork** the repository.
+2. **Create a branch** for your feature or bugfix (`git checkout -b feature/amazing-feature`).
+3. **Commit** your changes (`git commit -m 'Add some amazing feature'`).
+4. **Push** to the branch (`git push origin feature/amazing-feature`).
+5. **Open a Pull Request**.
+
+### Coding Standards
+
+- We use **TypeScript** for both frontend and backend.
+- Code linting is enforced via **Husky** and **SecretLint**. Ensure all pre-commit hooks pass.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🆘 Support
+
+- **Issues:** Report bugs or request features via [GitHub Issues](https://github.com/your-repo/gracegiver/issues).
+- **Email:** Contact the maintainers at [support@mthermaname.org](mailto:support@mthermaname.org).
+
+---
+
+## 🙏 Acknowledgments
+
+- Inspired by the mission of [Mt. Herman A.M.E. Church](http://mthermaname.org).
+- Powered by [React](https://reactjs.org/), [Vite](https://vitejs.dev/), [Node.js](https://nodejs.org/), and [PostgreSQL](https://www.postgresql.org/).
+- AI insights driven by [Google Gemini SDK](https://ai.google.dev/).
