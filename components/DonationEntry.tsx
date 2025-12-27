@@ -8,9 +8,10 @@ interface DonationEntryProps {
   members: Member[]; // Still passed for initial render or fallback, but we'll rely on async search
   donations: Donation[];
   onAddDonation: (donation: Omit<Donation, 'id' | 'timestamp' | 'enteredBy'>) => void;
+  memberId?: string;
 }
 
-const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers }) => {
+const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, memberId: preselectedMemberId }) => {
   // Form State
   const [memberSearch, setMemberSearch] = useState('');
   const [searchedMembers, setSearchedMembers] = useState<Member[]>([]);
@@ -34,6 +35,20 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers }
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (preselectedMemberId) {
+      const fetchPreselectedMember = async () => {
+        try {
+          const member = await getMember(preselectedMemberId);
+          setSelectedMember(member);
+        } catch (error) {
+          console.error('Failed to fetch preselected member:', error);
+        }
+      };
+      fetchPreselectedMember();
+    }
+  }, [preselectedMemberId]);
 
   // Async Member Search with Debounce
   useEffect(() => {
