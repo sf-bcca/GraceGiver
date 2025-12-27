@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -12,6 +13,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
+app.use(compression());
 app.use(express.json());
 
 const pool = new Pool({
