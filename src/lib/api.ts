@@ -29,6 +29,7 @@ function mapMember(row: any) {
     firstName: row.first_name,
     lastName: row.last_name,
     email: row.email,
+    telephone: row.telephone,
     address: row.address,
     city: row.city,
     state: row.state,

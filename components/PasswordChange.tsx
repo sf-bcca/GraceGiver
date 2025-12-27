@@ -167,11 +167,14 @@ const PasswordChange: React.FC<PasswordChangeProps> = ({ onSuccess, onCancel, is
 
           {/* Current Password */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Current Password</label>
+            <label htmlFor="current-password"
+                   className="block text-sm font-bold text-slate-700 mb-2">Current Password</label>
             <div className="relative">
               <input
+                id="current-password"
                 type={showCurrent ? 'text' : 'password'}
                 required
+                data-testid="current-password-input"
                 className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -188,11 +191,14 @@ const PasswordChange: React.FC<PasswordChangeProps> = ({ onSuccess, onCancel, is
 
           {/* New Password */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
+            <label htmlFor="new-password"
+                   className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
             <div className="relative">
               <input
+                id="new-password"
                 type={showNew ? 'text' : 'password'}
                 required
+                data-testid="new-password-input"
                 className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -228,11 +234,14 @@ const PasswordChange: React.FC<PasswordChangeProps> = ({ onSuccess, onCancel, is
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Confirm New Password</label>
+            <label htmlFor="confirm-password"
+                   className="block text-sm font-bold text-slate-700 mb-2">Confirm New Password</label>
             <div className="relative">
               <input
+                id="confirm-password"
                 type={showConfirm ? 'text' : 'password'}
                 required
+                data-testid="confirm-password-input"
                 className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

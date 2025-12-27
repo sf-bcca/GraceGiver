@@ -21,9 +21,10 @@ const App: React.FC = () => {
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
   const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
   const [view, setView] = useState<ViewState>('DASHBOARD');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!token);
 
   React.useEffect(() => {
     if (!token) return;
@@ -142,9 +143,9 @@ const App: React.FC = () => {
             case 'DASHBOARD':
               return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
             case 'MEMBERS':
-              return <MemberDirectory members={members} onAddMember={handleAddMember} />;
+              return <MemberDirectory members={members} onAddMember={handleAddMember} setView={setView} setSelectedMemberId={setSelectedMemberId} />;
             case 'ENTRY':
-              return <DonationEntry members={members} donations={donations} onAddDonation={handleAddDonation} />;
+              return <DonationEntry members={members} donations={donations} onAddDonation={handleAddDonation} memberId={selectedMemberId || undefined} />;
             case 'REPORTS':
               return <Reports members={members} donations={donations} churchSettings={churchSettings} />;
             case 'SETTINGS':
@@ -176,11 +177,7 @@ const App: React.FC = () => {
 
   // Not logged in - show login page
   if (!token) {
-    return (
-      <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-600" /></div>}>
-        <Login onLoginSuccess={handleLoginSuccess} />
-      </Suspense>
-    );
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   // Logged in but must change password - show password change page (forced)
