@@ -1,38 +1,62 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Member, FundType, Donation } from '../types';
-import { Save, Search, History, CheckCircle2, AlertCircle, Trash2, Edit2, X, Filter } from 'lucide-react';
-import { createDonation, fetchDonations, updateDonation, deleteDonation } from '../src/lib/api';
+import { Save, Search, History, CheckCircle2, AlertCircle, Trash2, Edit2, X, Filter, Loader2 } from 'lucide-react';
+import { createDonation, fetchDonations, updateDonation, deleteDonation, fetchMembers, getMember } from '../src/lib/api';
 
 interface DonationEntryProps {
-  members: Member[];
-  donations: Donation[]; // Keeping prop for compatibility but we will fetch our own history
+  members: Member[]; // Still passed for initial render or fallback, but we'll rely on async search
+  donations: Donation[];
   onAddDonation: (donation: Omit<Donation, 'id' | 'timestamp' | 'enteredBy'>) => void;
 }
 
-const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
+const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers }) => {
   // Form State
   const [memberSearch, setMemberSearch] = useState('');
+  const [searchedMembers, setSearchedMembers] = useState<Member[]>([]);
+  const [isSearchingMember, setIsSearchingMember] = useState(false);
+
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [amount, setAmount] = useState('');
   const [fund, setFund] = useState<FundType>(FundType.GENERAL);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [success, setSuccess] = useState(false);
-  const [isEditing, setIsEditing] = useState<string | null>(null); // ID of donation being edited
+  const [isEditing, setIsEditing] = useState<string | null>(null);
 
   // History State
   const [historyDonations, setHistoryDonations] = useState<Donation[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  // Cache for members resolved from history to avoid repeated fetches
+  const [resolvedMembers, setResolvedMembers] = useState<Record<string, Member>>({});
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredMembers = members.filter(m => 
-    `${m.firstName} ${m.lastName}`.toLowerCase().includes(memberSearch.toLowerCase())
-  ).slice(0, 5);
+  // Async Member Search with Debounce
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (memberSearch.trim().length === 0) {
+        setSearchedMembers([]);
+        return;
+      }
+
+      setIsSearchingMember(true);
+      try {
+        // Search API
+        const result = await fetchMembers(1, 10, memberSearch);
+        setSearchedMembers(result.data);
+      } catch (error) {
+        console.error('Failed to search members:', error);
+      } finally {
+        setIsSearchingMember(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [memberSearch]);
 
   const loadHistory = async () => {
     setLoadingHistory(true);
@@ -40,6 +64,26 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
       const result = await fetchDonations(page, 10);
       setHistoryDonations(result.data);
       setTotalPages(result.pagination.totalPages);
+
+      // Resolve members for history items that aren't in our cache
+      const uniqueMemberIds = [...new Set(result.data.map((d: Donation) => d.memberId))];
+      const missingIds = uniqueMemberIds.filter(id => !resolvedMembers[id]);
+
+      if (missingIds.length > 0) {
+        // Fetch missing members in parallel
+        const newResolved = { ...resolvedMembers };
+        await Promise.all(missingIds.map(async (id) => {
+          try {
+            const member = await getMember(id);
+            newResolved[id] = member;
+          } catch (e) {
+            console.error(`Failed to resolve member ${id}`, e);
+            // Placeholder for unknown/deleted member
+            newResolved[id] = { id, firstName: 'Unknown', lastName: 'Member' } as Member;
+          }
+        }));
+        setResolvedMembers(newResolved);
+      }
     } catch (error) {
       console.error('Failed to load donation history:', error);
     } finally {
@@ -76,7 +120,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-      loadHistory(); // Refresh history
+      loadHistory();
 
       // Reset Form
       if (!isEditing) {
@@ -84,14 +128,14 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
         setMemberSearch('');
         setAmount('');
         setNotes('');
+        setSearchedMembers([]);
         searchInputRef.current?.focus();
       } else {
-        // If editing, clear edit state but maybe keep form open?
-        // For now, reset everything
         setSelectedMember(null);
         setMemberSearch('');
         setAmount('');
         setNotes('');
+        setSearchedMembers([]);
         setIsEditing(null);
       }
     } catch (error) {
@@ -100,14 +144,22 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
     }
   };
 
-  const handleEditClick = (donation: Donation) => {
-    const member = members.find(m => m.id === donation.memberId);
+  const handleEditClick = async (donation: Donation) => {
+    // Try to find member in resolved cache, or fetch it
+    let member = resolvedMembers[donation.memberId];
+    if (!member) {
+      try {
+        member = await getMember(donation.memberId);
+        setResolvedMembers(prev => ({ ...prev, [member.id]: member }));
+      } catch (e) {
+        console.error("Could not fetch member for edit", e);
+        return;
+      }
+    }
+
     if (member) setSelectedMember(member);
     setAmount(donation.amount.toString());
     setFund(donation.fund);
-    // setDate(donation.timestamp); // Keep current date or use timestamp? API doesn't allow updating date in PUT currently, only amount/fund/notes. I should probably fix API if date update is needed.
-    // The current PUT /api/donations/:id updates amount, fund, notes. NOT date.
-    // I'll stick to that for now.
     setNotes(donation.notes || '');
     setIsEditing(donation.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -131,6 +183,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
     setMemberSearch('');
     setAmount('');
     setNotes('');
+    setSearchedMembers([]);
   };
 
   return (
@@ -165,7 +218,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
                   <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Type name..."
+                    placeholder="Search by name..."
                     className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-medium text-slate-900 shadow-sm"
                     value={selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : memberSearch}
                     onChange={(e) => {
@@ -174,10 +227,15 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
                     }}
                     autoComplete="off"
                   />
-                  {selectedMember && (
+                  {isSearchingMember && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      <Loader2 size={16} className="animate-spin text-indigo-500" />
+                    </div>
+                  )}
+                  {selectedMember && !isSearchingMember && (
                     <button
                       type="button"
-                      onClick={() => setSelectedMember(null)}
+                      onClick={() => { setSelectedMember(null); setMemberSearch(''); }}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-indigo-600 hover:text-indigo-800"
                     >
                       CHANGE
@@ -188,8 +246,8 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
               
               {!selectedMember && memberSearch.length > 0 && !isEditing && (
                 <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 max-h-60 overflow-y-auto">
-                  {filteredMembers.length > 0 ? (
-                    filteredMembers.map(m => (
+                  {searchedMembers.length > 0 ? (
+                    searchedMembers.map(m => (
                       <button
                         key={m.id}
                         type="button"
@@ -206,7 +264,9 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
                       </button>
                     ))
                   ) : (
-                    <div className="px-4 py-3 text-slate-400 text-sm italic">No members found.</div>
+                    <div className="px-4 py-3 text-slate-400 text-sm italic">
+                      {isSearchingMember ? 'Searching...' : 'No members found.'}
+                    </div>
                   )}
                 </div>
               )}
@@ -246,7 +306,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-medium text-slate-900 shadow-sm"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                disabled={!!isEditing} // Disable date edit as API doesn't support it
+                disabled={!!isEditing}
               />
             </div>
 
@@ -331,14 +391,14 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members }) => {
                 <tr><td colSpan={5} className="p-8 text-center text-slate-400">No transactions found.</td></tr>
               ) : (
                 historyDonations.map(donation => {
-                  const donor = members.find(m => m.id === donation.memberId);
+                  const donor = resolvedMembers[donation.memberId] || members.find(m => m.id === donation.memberId);
                   return (
                     <tr key={donation.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4 text-sm text-slate-600">
                          {new Date(donation.timestamp || donation.date).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-bold text-slate-900 text-sm">{donor ? `${donor.firstName} ${donor.lastName}` : 'Unknown Member'}</div>
+                        <div className="font-bold text-slate-900 text-sm">{donor ? `${donor.firstName} ${donor.lastName}` : `Member ${donation.memberId}`}</div>
                         <div className="text-xs text-slate-400">ID: {donation.memberId}</div>
                       </td>
                       <td className="px-6 py-4">
