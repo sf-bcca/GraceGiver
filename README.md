@@ -1,11 +1,12 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0a">
+<img width="1200" height="475" alt="GraceGiver Banner" src="assets/gracegiver_banner.png">
 
 # GraceGiver | Secure Church Management & Donation Tracking
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/your-repo/gracegiver/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](CONTRIBUTING.md)
+
 </div>
 
 GraceGiver is a premium, secure, and intuitive church management platform designed to streamline donation tracking, member directory management, and financial reporting. Built with a focus on security and ease of use, it empowers church administrators to focus on their mission while handling the complexities of financial stewardship with confidence.
