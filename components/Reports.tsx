@@ -10,9 +10,16 @@ interface ReportsProps {
 }
 
 const Reports: React.FC<ReportsProps> = ({ members, donations, churchSettings }) => {
-  const [year, setYear] = useState('2024');
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear.toString());
   const [isGenerating, setIsGenerating] = useState(false);
   const [done, setDone] = useState(false);
+
+  // Generate range from 2022 to the current year
+  const reportingYears = Array.from(
+    { length: Math.max(0, currentYear - 2022 + 1) }, 
+    (_, i) => (currentYear - i).toString()
+  );
 
   const handleGenerate = () => {
     setIsGenerating(true);
@@ -49,9 +56,11 @@ const Reports: React.FC<ReportsProps> = ({ members, donations, churchSettings })
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
                   >
-                    <option value="2024">2024 (Current)</option>
-                    <option value="2023">2023 (Closed)</option>
-                    <option value="2022">2022 (Closed)</option>
+                    {reportingYears.map((y) => (
+                      <option key={y} value={y}>
+                        {y} {y === currentYear.toString() ? '(Current)' : '(Closed)'}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex-1">

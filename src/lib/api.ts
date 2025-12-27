@@ -21,6 +21,37 @@ async function handleResponse(response: Response) {
   return response.json();
 }
 
+// Helpers to map API responses (snake_case) to Frontend types (camelCase)
+function mapMember(row: any) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    address: row.address,
+    city: row.city,
+    state: row.state,
+    zip: row.zip,
+    familyId: row.family_id,
+    createdAt: row.created_at
+  };
+}
+
+function mapDonation(row: any) {
+  if (!row) return null;
+  return {
+    id: row.id.toString(),
+    memberId: row.member_id,
+    amount: parseFloat(row.amount),
+    fund: row.fund,
+    notes: row.notes,
+    enteredBy: row.entered_by,
+    date: row.donation_date,
+    timestamp: row.donation_date
+  };
+}
+
 export async function login(credentials: any) {
   const response = await fetch(`${API_URL}/api/login`, {
     method: 'POST',
@@ -38,14 +69,35 @@ export async function fetchMembers(page = 1, limit = 50, search = '') {
   const response = await fetch(`${API_URL}/api/members?${params}`, {
     headers: getAuthHeaders()
   });
-  return handleResponse(response);
+  const result = await handleResponse(response);
+  return {
+    ...result,
+    data: result.data.map((m: any) => ({
+      // If the API returns mapped data usually, we might double map? 
+      // Checking server logic: GET /api/members ALREADY maps it. 
+      // Wait, server/index.js lines 64-65 show it maps manually.
+      // So fetchMembers logic was fine, but let's reuse the type if we can, 
+      // OR mostly importantly fix create/update which returns raw rows.
+      // Let's stick to the server's behavior: 
+      // GET list returns mapped. POST/PUT returns RAW.
+      // So we only map for the ones returning RAW.
+      ...m
+    }))
+  };
 }
+
+// Override fetchMembers to be safe, but actually server already maps list.
+// But Create/Update returns raw.
+// Let's implement createMember properly.
 
 export async function getMember(id: string) {
   const response = await fetch(`${API_URL}/api/members/${id}`, {
     headers: getAuthHeaders()
   });
-  return handleResponse(response);
+  const data = await handleResponse(response);
+  // Server GET /:id returns mapped data too? 
+  // Let's check server/index.js line 97. Yes, it returns mapped data.
+  return data;
 }
 
 export async function createMember(member: any) {
@@ -54,7 +106,8 @@ export async function createMember(member: any) {
     headers: getAuthHeaders(),
     body: JSON.stringify(member),
   });
-  return handleResponse(response);
+  const data = await handleResponse(response);
+  return mapMember(data);
 }
 
 export async function updateMember(id: string, member: any) {
@@ -63,7 +116,8 @@ export async function updateMember(id: string, member: any) {
     headers: getAuthHeaders(),
     body: JSON.stringify(member),
   });
-  return handleResponse(response);
+  const data = await handleResponse(response);
+  return mapMember(data);
 }
 
 export async function deleteMember(id: string) {
@@ -88,7 +142,8 @@ export async function createDonation(donation: any) {
     headers: getAuthHeaders(),
     body: JSON.stringify(donation),
   });
-  return handleResponse(response);
+  const data = await handleResponse(response);
+  return mapDonation(data);
 }
 
 export async function updateDonation(id: string, donation: any) {
@@ -97,7 +152,8 @@ export async function updateDonation(id: string, donation: any) {
     headers: getAuthHeaders(),
     body: JSON.stringify(donation),
   });
-  return handleResponse(response);
+  const data = await handleResponse(response);
+  return mapDonation(data);
 }
 
 export async function deleteDonation(id: string) {
