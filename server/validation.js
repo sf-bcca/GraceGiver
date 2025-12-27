@@ -30,6 +30,11 @@ function validateMember(member) {
     errors.push('INVALID_ZIP: Zip code must be 5 digits (12345) or ZIP+4 (12345-6789).');
   }
 
+  // Telephone Validation (optional)
+  if (member.telephone && !REGEX.PHONE.test(member.telephone)) {
+    errors.push('INVALID_TELEPHONE: Must be a valid E.164 format phone number.');
+  }
+
   // State Validation
   if (!member.state || !REGEX.STATE.test(member.state)) {
     errors.push('INVALID_STATE: State must be a 2-character uppercase abbreviation.');

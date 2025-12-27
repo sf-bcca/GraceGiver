@@ -4,6 +4,7 @@ export interface Member {
   firstName: string;
   lastName: string;
   email: string;
+  telephone?: string;
   address: string;
   city: string;
   state: string;

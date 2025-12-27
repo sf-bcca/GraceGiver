@@ -31,6 +31,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
     firstName: '',
     lastName: '',
     email: '',
+    telephone: '',
     address: '',
     city: '',
     state: '',
@@ -98,6 +99,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       firstName: member.firstName,
       lastName: member.lastName,
       email: member.email,
+      telephone: member.telephone || '',
       address: member.address,
       city: member.city,
       state: member.state,
@@ -124,6 +126,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       firstName: '',
       lastName: '',
       email: '',
+      telephone: '',
       address: '',
       city: '',
       state: '',
@@ -151,6 +154,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
         firstName: '',
         lastName: '',
         email: '',
+        telephone: '',
         address: '',
         city: '',
         state: '',
@@ -305,7 +309,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
             </div>
             <div className="space-y-2 text-sm text-slate-600 mb-4">
               <div className="flex items-center gap-2"><Mail size={14} className="text-slate-400" /> {member.email}</div>
-              <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> (555) 000-0000</div>
+              <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {member.telephone || 'N/A'}</div>
             </div>
             <div className="flex gap-2">
               <button
@@ -368,6 +372,15 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                 />
                 {errors.email && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.email}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Telephone</label>
+                <input
+                  type="tel"
+                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  value={formData.telephone}
+                  onChange={(e) => setFormData({...formData, telephone: e.target.value})}
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Home Address</label>
