@@ -13,11 +13,14 @@ export interface Member {
 }
 
 export enum FundType {
-  GENERAL = "General Fund",
-  BUILDING = "Building Fund",
-  MISSIONS = "Missions",
-  YOUTH = "Youth Ministry",
   BENEVOLENCE = "Benevolence",
+  CHURCH_SCHOOL = "Church School",
+  LAY = "Lay",
+  OFFERING = "Offering",
+  OTHER = "Other",
+  REVIVAL = "Revival",
+  TITHES = "Tithes",
+  UPKEEP = "Upkeep",
 }
 
 export interface Donation {

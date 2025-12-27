@@ -9,11 +9,11 @@ export const INITIAL_MEMBERS: Member[] = [
 ];
 
 export const INITIAL_DONATIONS: Donation[] = [
-  { id: 'd1', memberId: '1', amount: 500, fund: FundType.GENERAL, date: '2024-05-01', timestamp: '2024-05-01T10:00:00Z', enteredBy: 'Admin' },
-  { id: 'd2', memberId: '2', amount: 250, fund: FundType.BUILDING, date: '2024-05-02', timestamp: '2024-05-02T11:30:00Z', enteredBy: 'Admin' },
-  { id: 'd3', memberId: '1', amount: 100, fund: FundType.MISSIONS, date: '2024-05-15', timestamp: '2024-05-15T09:15:00Z', enteredBy: 'Admin' },
-  { id: 'd4', memberId: '3', amount: 1000, fund: FundType.GENERAL, date: '2024-05-20', timestamp: '2024-05-20T14:45:00Z', enteredBy: 'Admin' },
-  { id: 'd5', memberId: '4', amount: 50, fund: FundType.YOUTH, date: '2024-05-25', timestamp: '2024-05-25T16:20:00Z', enteredBy: 'Admin' },
+  { id: 'd1', memberId: '1', amount: 500, fund: FundType.TITHES, date: '2024-05-01', timestamp: '2024-05-01T10:00:00Z', enteredBy: 'Admin' },
+  { id: 'd2', memberId: '2', amount: 250, fund: FundType.UPKEEP, date: '2024-05-02', timestamp: '2024-05-02T11:30:00Z', enteredBy: 'Admin' },
+  { id: 'd3', memberId: '1', amount: 100, fund: FundType.BENEVOLENCE, date: '2024-05-15', timestamp: '2024-05-15T09:15:00Z', enteredBy: 'Admin' },
+  { id: 'd4', memberId: '3', amount: 1000, fund: FundType.TITHES, date: '2024-05-20', timestamp: '2024-05-20T14:45:00Z', enteredBy: 'Admin' },
+  { id: 'd5', memberId: '4', amount: 50, fund: FundType.CHURCH_SCHOOL, date: '2024-05-25', timestamp: '2024-05-25T16:20:00Z', enteredBy: 'Admin' },
 ];
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [

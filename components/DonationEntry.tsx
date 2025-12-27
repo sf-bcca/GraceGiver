@@ -19,7 +19,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, 
 
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [amount, setAmount] = useState('');
-  const [fund, setFund] = useState<FundType>(FundType.GENERAL);
+  const [fund, setFund] = useState<FundType>(FundType.TITHES);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [success, setSuccess] = useState(false);
@@ -406,7 +406,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, 
                 <tr><td colSpan={5} className="p-8 text-center text-slate-400">No transactions found.</td></tr>
               ) : (
                 historyDonations.map(donation => {
-                  const donor = resolvedMembers[donation.memberId] || members.find(m => m.id === donation.memberId);
+                  const donor = resolvedMembers[donation.memberId] || initialMembers.find(m => m.id === donation.memberId);
                   return (
                     <tr key={donation.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4 text-sm text-slate-600">
