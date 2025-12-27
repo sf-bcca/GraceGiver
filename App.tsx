@@ -7,8 +7,7 @@ import MemberDirectory from './components/MemberDirectory';
 import DonationEntry from './components/DonationEntry';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
-import { ViewState, Member, Donation, ChurchSettings } from './types';
-import { INITIAL_MEMBERS as mockMembers, INITIAL_DONATIONS as mockDonations } from './mockData';
+import { Member, Donation, ChurchSettings, ViewState } from './types';
 import { fetchMembers, fetchDonations, createMember, createDonation } from './src/lib/api';
 
 const App: React.FC = () => {
@@ -30,13 +29,13 @@ const App: React.FC = () => {
         const membersData = Array.isArray(fetchedMembersRes) ? fetchedMembersRes : (fetchedMembersRes.data || []);
         const donationsData = Array.isArray(fetchedDonationsRes) ? fetchedDonationsRes : (fetchedDonationsRes.data || []);
 
-        setMembers(membersData.length > 0 ? membersData : mockMembers);
-        setDonations(donationsData.length > 0 ? donationsData : mockDonations);
+        setMembers(membersData);
+        setDonations(donationsData);
       } catch (error) {
         console.error('Failed to load data:', error);
-        // Fallback to mock data on error
-        setMembers(mockMembers);
-        setDonations(mockDonations);
+        // TODO: specific error state UI
+        setMembers([]);
+        setDonations([]);
       } finally {
         setLoading(false);
       }

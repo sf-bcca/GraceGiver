@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('token');
@@ -162,4 +162,96 @@ export async function deleteDonation(id: string) {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
+}
+
+export async function downloadBatchStatement(year: string) {
+  const response = await fetch(`${API_URL}/api/reports/statements?year=${year}`, {
+    headers: getAuthHeaders()
+  });
+  
+  if (!response.ok) {
+     const error = await response.json().catch(() => ({}));
+     throw new Error(error.error || 'Failed to generate PDF');
+  }
+  
+  return response.blob();
+}
+
+export async function exportTransactions(year: string) {
+  const response = await fetch(`${API_URL}/api/reports/export?year=${year}`, {
+    headers: getAuthHeaders()
+  });
+  
+  if (!response.ok) {
+     const error = await response.json().catch(() => ({}));
+     throw new Error(error.error || 'Failed to export CSV');
+  }
+  
+  return response.blob();
+}
+
+export async function getMissingEmailsReport() {
+  const response = await fetch(`${API_URL}/api/reports/missing-emails`, {
+    headers: getAuthHeaders()
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to fetch missing emails report');
+  }
+  
+  return response.json();
+}
+
+export async function getNewDonorsReport() {
+  const response = await fetch(`${API_URL}/api/reports/new-donors`, {
+    headers: getAuthHeaders()
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to fetch new donors report');
+  }
+  
+  return response.json();
+}
+
+// Phase 3: Chart APIs
+export async function getFundDistribution(year: string) {
+  const response = await fetch(`${API_URL}/api/reports/fund-distribution?year=${year}`, {
+    headers: getAuthHeaders()
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to fetch fund distribution');
+  }
+  
+  return response.json();
+}
+
+export async function getQuarterlyProgress(year: string) {
+  const response = await fetch(`${API_URL}/api/reports/quarterly-progress?year=${year}`, {
+    headers: getAuthHeaders()
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to fetch quarterly progress');
+  }
+  
+  return response.json();
+}
+
+export async function getTrendAnalysis() {
+  const response = await fetch(`${API_URL}/api/reports/trend-analysis`, {
+    headers: getAuthHeaders()
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to fetch trend analysis');
+  }
+  
+  return response.json();
 }

@@ -14,7 +14,8 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 - **Dashboard:** Real-time visibility into weekly giving, fund distribution, and recent activity.
 - **Member Directory:** Comprehensive management of church members with contact details and giving history.
 - **Donation Entry:** Fast and secure recording of contributions across multiple funds (General, Building, Missions, etc.).
-- **AI Financial Insights:** Integration with Gemini AI for advanced analysis of giving trends and financial health (requires API key).
+- **Advanced Reporting:** Three-phased reporting suite including IRS-compliant PDF statements, CSV exports, operational health reports, and financial intelligence charts (powered by Recharts).
+- **AI Financial Insights:** Integration with Gemini AI for advanced narrative analysis of giving trends and financial health (requires API key).
 - **Security & Auditing:** Role-based access control and detailed audit logs for compliance and accountability.
 - **Docker Ready:** Containerized architecture for seamless deployment and scalability.
 
@@ -78,8 +79,10 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 ### Generating Reports
 
-- Visit the **Reports** section to view summaries by date range, fund, or member.
-- Use the **AI Insights** button to generate a narrative summary of trends.
+- **Compliance:** Generate batch IRS-compliant PDF statements for any tax year.
+- **Operational Health:** Access "Quick Reports" for missing emails (with inline editing) and new donor lists.
+- **Financial Intelligence:** View interactive Pie, Line, and Bar charts for fund distribution, quarterly progress, and 3-year trends.
+- **AI Insights:** Use the AI button to generate a narrative summary of financial health.
 
 ---
 
@@ -93,6 +96,7 @@ The backend API runs on port `3000` (by default) and provides the following endp
 | `/api/members`   | `POST` | Create a new member.       |
 | `/api/donations` | `GET`  | Retrieve recent donations. |
 | `/api/donations` | `POST` | Record a new donation.     |
+| `/api/reports/*` | `GET`  | PDF, CSV, and Chart data.  |
 
 ---
 

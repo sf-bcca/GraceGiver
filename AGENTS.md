@@ -15,6 +15,7 @@ Antigravity is the primary execution agent responsible for high-fidelity code im
   - Postgres database management (Self-hosted/SQL).
   - Nginx reverse proxy configuration.
   - Complex codebase navigation and semantic search.
+  - Advanced Financial Reporting (IRS Compliance, Operational Health, Financial Intelligence).
   - Integration with Gemini AI SDK for advanced financial analysis.
   - Environment management and secure credential handling.
   - Integration with local development environments and CLI tools.
@@ -136,6 +137,7 @@ To ensure harmonious and efficient collaboration between human developers and AI
 This section details the concrete implementation of the core systems, serving as a reference for Developers and Agents.
 
 ### Authentication
+
 - **Mechanism**: JWT (JSON Web Tokens) via `server/auth.js`.
 - **Credentials**:
   - Default Admin User: `admin`
@@ -147,16 +149,30 @@ This section details the concrete implementation of the core systems, serving as
   4. Client stores token in `localStorage` and sends `Authorization: Bearer <token>` header.
 
 ### Database Schema
+
 The system uses PostgreSQL with the following core entities (`db/init.sql`):
+
 - **Users**: Admin access management (`username`, `password_hash`, `role`).
-- **Members**: Parishioner records (`id` [UUID], `first_name`, `last_name`, `email`, `address`, ...).
-- **Donations**: Financial records linked to Members (`member_id`, `amount`, `fund`, `notes`).
-  - *Cascade Delete*: Deleting a Member automatically deletes their Donations.
+- **Members**: Parishioner records.
+  - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `created_at` (timestamptz).
+- **Donations**: Financial records linked to Members.
+  - Columns: `id` (serial), `member_id` (text), `amount` (numeric), `fund` (text), `notes` (text), `entered_by` (text), `donation_date` (timestamptz).
+  - _Cascade Delete_: Deleting a Member automatically deletes their Donations.
 
 ### API Structure
+
 RESTful endpoints provided by `server/index.js`:
+
 - **Members**: `GET /api/members` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
 - **Donations**: `GET /api/donations` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
+- **Reporting**:
+  - `GET /api/reports/statements?year=YYYY`: Batch PDF Annual Statements.
+  - `GET /api/reports/export?year=YYYY`: Full Transaction Log (CSV).
+  - `GET /api/reports/missing-emails`: Members without email addresses.
+  - `GET /api/reports/new-donors`: Last 30-day donor activity.
+  - `GET /api/reports/fund-distribution?year=YYYY`: Pie chart data for fund allocation.
+  - `GET /api/reports/quarterly-progress?year=YYYY`: Year-over-year quarterly trends.
+  - `GET /api/reports/trend-analysis`: 3-year historical bar chart data.
 - **Validation**: Enforced via `server/validation.js` before database insertion.
 
 ---

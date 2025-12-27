@@ -3,9 +3,10 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const path = require('path');
 const { validateMember } = require('./validation');
 const { authenticateToken, generateToken } = require('./auth');
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,6 +16,20 @@ app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+});
+
+// Log pool errors
+pool.on('error', (err) => {
+  console.error('Database pool error:', err);
+});
+
+// Catch unhandled errors to prevent silent exit
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
 });
 
 app.post('/api/login', async (req, res) => {
@@ -286,6 +301,178 @@ app.delete('/api/donations/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const { generateBatchStatement, exportTransactions } = require('./reports');
+
+console.log('--- REPORT HANDLER TYPES ---');
+console.log('generateBatchStatement:', typeof generateBatchStatement);
+console.log('exportTransactions:', typeof exportTransactions);
+
+app.get('/api/reports/statements', authenticateToken, async (req, res) => {
+  console.log('GET /api/reports/statements hit');
+
+  const { year } = req.query;
+  if (!year) return res.status(400).json({ error: 'Year is required' });
+
+  try {
+    // Set headers first, assuming success. If DB fails, we try to send JSON error but it might fail if headers sent?
+    // Actually, `generateBatchStatement` does DB query FIRST, then pipes. 
+    // Wait, if I set headers here, and DB fails in `generateBatchStatement` before piping, can I overwrite headers?
+    // Express allows `res.status(500)` even if `res.setHeader()` was called but body not sent.
+    // However, if we pipe, headers are sent.
+    
+    // We will let generateBatchStatement handle piping. 
+    // Ideally we set headers only after DB query succeeds inside `generateBatchStatement`.
+    // But `generateBatchStatement` as refactored does query -> pipe.
+    // So we can set headers here.
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=statements-${year}.pdf`);
+
+    await generateBatchStatement(pool, year, res);
+  } catch (err) {
+    console.error('PDF Generation Error:', err);
+    console.error('Stack:', err.stack);
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Server Error: ${err.message}`, stack: err.stack });
+    } else {
+        // If headers sent, we can't send JSON. End the stream to prevent hang.
+        res.end();
+    }
+  }
+});
+
+app.get('/api/reports/export', authenticateToken, async (req, res) => {
+  const { year } = req.query;
+  if (!year) return res.status(400).json({ error: 'Year is required' });
+
+  try {
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=donations-${year}.csv`);
+    
+    await exportTransactions(pool, year, res);
+  } catch (err) {
+    console.error(err);
+    // Note: If headers are already sent (streaming started), this might fail to send JSON error.
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error generating CSV' });
+    }
+  }
+});
+
+// Phase 2: Missing Email Report
+app.get('/api/reports/missing-emails', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, first_name, last_name, address, city, state, created_at
+      FROM members
+      WHERE email IS NULL OR email = ''
+      ORDER BY last_name, first_name
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Missing emails report error:', err);
+    res.status(500).json({ error: 'Failed to fetch missing emails report' });
+  }
+});
+
+// Phase 2: New Donor List (Last 30 Days)
+app.get('/api/reports/new-donors', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        m.id, m.first_name, m.last_name, m.email, m.address, m.created_at,
+        COALESCE(SUM(d.amount), 0) as total_donated,
+        COUNT(d.id) as donation_count
+      FROM members m
+      LEFT JOIN donations d ON m.id = d.member_id
+      WHERE m.created_at > NOW() - INTERVAL '30 days'
+      GROUP BY m.id
+      ORDER BY m.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('New donors report error:', err);
+    res.status(500).json({ error: 'Failed to fetch new donors report' });
+  }
+});
+
+// Phase 3: Top 10 Fund Distributions
+app.get('/api/reports/fund-distribution', authenticateToken, async (req, res) => {
+  const { year } = req.query;
+  if (!year) return res.status(400).json({ error: 'Year is required' });
+  
+  try {
+    const result = await pool.query(`
+      SELECT fund, SUM(amount) as total
+      FROM donations
+      WHERE EXTRACT(YEAR FROM donation_date) = $1
+      GROUP BY fund
+      ORDER BY total DESC
+      LIMIT 10
+    `, [year]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Fund distribution error:', err);
+    res.status(500).json({ error: 'Failed to fetch fund distribution' });
+  }
+});
+
+// Phase 3: Quarterly Progress Summary
+app.get('/api/reports/quarterly-progress', authenticateToken, async (req, res) => {
+  const { year } = req.query;
+  if (!year) return res.status(400).json({ error: 'Year is required' });
+  
+  try {
+    const currentYear = parseInt(year);
+    const previousYear = currentYear - 1;
+    const result = await pool.query(`
+      SELECT 
+        EXTRACT(QUARTER FROM donation_date)::int as quarter,
+        EXTRACT(YEAR FROM donation_date)::int as year,
+        SUM(amount) as total
+      FROM donations
+      WHERE EXTRACT(YEAR FROM donation_date)::int IN ($1, $2)
+      GROUP BY year, quarter
+      ORDER BY year, quarter
+    `, [currentYear, previousYear]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Quarterly progress error:', err);
+    res.status(500).json({ error: 'Failed to fetch quarterly progress' });
+  }
+});
+
+// Phase 3: Trend Analysis (3 Year)
+app.get('/api/reports/trend-analysis', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        EXTRACT(YEAR FROM donation_date)::int as year,
+        SUM(amount) as total
+      FROM donations
+      WHERE donation_date > NOW() - INTERVAL '3 years'
+      GROUP BY year
+      ORDER BY year
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Trend analysis error:', err);
+    res.status(500).json({ error: 'Failed to fetch trend analysis' });
+  }
+});
+
+// Simple test route to verify routing works
+app.get('/api/test', (req, res) => {
+  res.json({ status: 'ok', routes: 'working' });
+});
+
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+server.on('close', () => {
+  console.log('Server closed');
+});
+
+// Keep-alive interval to prevent premature exit
+setInterval(() => {}, 1000 * 60 * 60); // 1 hour interval
