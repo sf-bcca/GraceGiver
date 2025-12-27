@@ -32,7 +32,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
+    telephone: '',
     address: '',
     city: '',
     state: '',
@@ -74,7 +74,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!REGEX.EMAIL.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (formData.phone && !REGEX.PHONE.test(formData.phone)) newErrors.phone = 'Invalid phone format (e.g. +14155552671)';
+    if (formData.telephone && !REGEX.PHONE.test(formData.telephone)) newErrors.telephone = 'Invalid phone format (e.g. +14155552671)';
     if (!REGEX.STATE.test(formData.state)) newErrors.state = 'Must be 2 uppercase letters (e.g., MS)';
     if (!REGEX.ZIP.test(formData.zip)) newErrors.zip = 'Invalid Zip (12345 or 12345-6789)';
     if (!formData.firstName.trim()) newErrors.firstName = 'Required';
@@ -90,7 +90,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
         return value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
       case 'zip':
         return value.replace(/[^\d-]/g, '').slice(0, 10);
-      case 'phone':
+      case 'telephone':
         return value.replace(/[^\d+]/g, '').slice(0, 15);
       default:
         return value;
@@ -103,7 +103,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       firstName: member.firstName,
       lastName: member.lastName,
       email: member.email,
-      phone: member.phone || '',
+      telephone: member.telephone || '',
       address: member.address,
       city: member.city,
       state: member.state,
@@ -130,7 +130,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       firstName: '',
       lastName: '',
       email: '',
-      phone: '',
+      telephone: '',
       address: '',
       city: '',
       state: '',
@@ -158,7 +158,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
         firstName: '',
         lastName: '',
         email: '',
-        phone: '',
+        telephone: '',
         address: '',
         city: '',
         state: '',
@@ -313,7 +313,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
             </div>
             <div className="space-y-2 text-sm text-slate-600 mb-4">
               <div className="flex items-center gap-2"><Mail size={14} className="text-slate-400" /> {member.email}</div>
-              {member.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {member.phone}</div>}
+              {member.telephone && <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {member.telephone}</div>}
             </div>
             <div className="flex gap-2">
               <button
@@ -382,11 +382,11 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
                   <input
                     type="tel"
-                    className={`w-full px-4 py-2 bg-white border ${errors.phone ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`}
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: cleanInput('phone', e.target.value)})}
+                    className={`w-full px-4 py-2 bg-white border ${errors.telephone ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`}
+                    value={formData.telephone}
+                    onChange={(e) => setFormData({...formData, telephone: cleanInput('telephone', e.target.value)})}
                   />
-                  {errors.phone && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.phone}</p>}
+                  {errors.telephone && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.telephone}</p>}
                 </div>
               </div>
               <div>

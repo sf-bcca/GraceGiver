@@ -1,10 +1,9 @@
-
 export interface Member {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
+  telephone?: string;
   address: string;
   city: string;
   state: string;
@@ -14,11 +13,11 @@ export interface Member {
 }
 
 export enum FundType {
-  GENERAL = 'General Fund',
-  BUILDING = 'Building Fund',
-  MISSIONS = 'Missions',
-  YOUTH = 'Youth Ministry',
-  BENEVOLENCE = 'Benevolence',
+  GENERAL = "General Fund",
+  BUILDING = "Building Fund",
+  MISSIONS = "Missions",
+  YOUTH = "Youth Ministry",
+  BENEVOLENCE = "Benevolence",
 }
 
 export interface Donation {
@@ -50,4 +49,11 @@ export interface AuditLog {
   timestamp: string;
 }
 
-export type ViewState = 'DASHBOARD' | 'MEMBERS' | 'ENTRY' | 'REPORTS' | 'AUDIT' | 'SETTINGS' | 'USERS';
+export type ViewState =
+  | "DASHBOARD"
+  | "MEMBERS"
+  | "ENTRY"
+  | "REPORTS"
+  | "AUDIT"
+  | "SETTINGS"
+  | "USERS";
