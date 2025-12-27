@@ -41,5 +41,5 @@ CREATE INDEX IF NOT EXISTS idx_members_created_at ON members(created_at);
 
 -- Seed initial admin user (password: admin123)
 INSERT INTO users (username, password_hash)
-VALUES ('admin', '$2a$10$DYM11byUyWEmug5lXHFBo.pPUF/TzC3FwucwNXSeUBnoZ6uayeFGG')
+VALUES ('admin', '$2a$10$EKmjE.vVsHCrnVXrzAy2Q.c.VKjlk6gNZJrciCc7V5wCahejg5QWS')
 ON CONFLICT (username) DO NOTHING;

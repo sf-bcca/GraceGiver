@@ -98,6 +98,13 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken(null);
+    setView('DASHBOARD');
+  };
+
   const renderView = () => {
     return (
       <Suspense fallback={
@@ -148,7 +155,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout activeView={view} setView={setView} churchName={churchSettings.name}>
+    <Layout activeView={view} setView={setView} churchName={churchSettings.name} onLogout={handleLogout}>
       {renderView()}
     </Layout>
   );

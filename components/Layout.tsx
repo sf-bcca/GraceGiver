@@ -18,9 +18,10 @@ interface LayoutProps {
   activeView: ViewState;
   setView: (view: ViewState) => void;
   churchName: string;
+  onLogout: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchName }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchName, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   const navItems = [
@@ -90,7 +91,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
                 <span className="text-xs text-indigo-300 truncate">Secretary</span>
               </div>
             </div>
-            <button className="flex items-center gap-2 text-indigo-300 hover:text-white transition-colors w-full px-2 py-1">
+            <button 
+              onClick={onLogout}
+              className="flex items-center gap-2 text-indigo-300 hover:text-white transition-colors w-full px-2 py-1"
+            >
               <LogOut size={16} />
               <span className="text-sm font-medium">Log Out</span>
             </button>
