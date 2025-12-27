@@ -34,12 +34,18 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/your-username/GraceGiver.git
+   git clone https://github.com/sf-bcca/GraceGiver.git
    cd GraceGiver
    ```
 
 2. **Environment Variables:**
-   Create a `.env` file in the root directory and add your Gemini API key:
+   Create a `.env` file in the root directory by copying the example file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Then open `.env` and add your Gemini API key:
 
    ```env
    VITE_GEMINI_API_KEY=your_gemini_api_key_here
@@ -60,6 +66,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
      npm run dev
      ```
    - **Backend:**
+     Ensure you have a PostgreSQL database running. Update your `.env` file with the following database credentials (see `.env.example`):
      ```bash
      cd server
      npm install
