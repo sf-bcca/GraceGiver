@@ -87,7 +87,20 @@ The Test/QA Agent ensures that all changes are verified against the specified re
 
 ---
 
-## General Interaction Guidelines
+6:
+7: ## Quick Start: How to Use These Agents
+8:
+9: To interact with or trigger these agents, follow these simple protocols:
+10:
+11: 1. **Antigravity (Coding)**: Simply type your request in the chat interface. For example: _"Add a login page"_ or _"Fix the database connection error"_.
+12: 2. **Architect (Planning)**: Ask for a complex feature or a structural change. I will automatically switch to **Architect** mode and present an `implementation_plan.md` for your approval before I start coding.
+13: 3. **Linter & Security (Guardians)**: These run automatically. When you run `git commit`, our security agent scans for secrets and linting errors. If it finds any, it will prevent the commit to keep the codebase safe.
+14: 4. **Test & QA (Verification)**: After I (Antigravity) finish a task, I will perform verification. You can also explicitly say: _"Verify the latest changes"_ or _"Run the E2E tests"_ to trigger this agent.
+15:
+16: ---
+17:
+18: ## General Interaction Guidelines
+19:
 
 To ensure harmonious and efficient collaboration between human developers and AI agents, the following best practices must be observed:
 
