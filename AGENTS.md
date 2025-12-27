@@ -139,20 +139,46 @@ This section details the concrete implementation of the core systems, serving as
 ### Authentication
 
 - **Mechanism**: JWT (JSON Web Tokens) via `server/auth.js`.
-- **Credentials**:
-  - Default Admin User: `admin`
-  - Default Password: `admin123` (defined in `db/init.sql`)
+- **Initial Admin Setup**:
+  - On first startup (fresh database), the system automatically creates a super admin user.
+  - **Option A**: Set `INITIAL_ADMIN_USERNAME` and `INITIAL_ADMIN_PASSWORD` in `.env`
+  - **Option B**: Leave password unset; a random password is generated and displayed in console logs **once**
+  - **Option C**: Run the CLI tool: `node scripts/create-superadmin.js`
+  - All methods force password change on first login.
+- **Security Features**:
+  - Environment-based JWT secret (required in production)
+  - Account lockout after 5 failed attempts
+  - Password policy enforcement (12+ chars, complexity requirements)
+  - Password history tracking (prevents reuse of last 5 passwords)
 - **Flow**:
   1. Client POSTs credentials to `/api/login`.
-  2. Server verifies against `users` table (bcrypt hash).
-  3. Server issues JWT (24h expiry).
-  4. Client stores token in `localStorage` and sends `Authorization: Bearer <token>` header.
+  2. Server verifies against `users` table (bcrypt hash, work factor 12).
+  3. Server checks for account lockout and failed attempt limits.
+  4. Server issues JWT (24h expiry by default, configurable via `JWT_EXPIRY`).
+  5. Client stores token in `localStorage` and sends `Authorization: Bearer <token>` header.
+  6. If `mustChangePassword` is true in response, client must call `/api/users/change-password`.
+
+### Role-Based Access Control (RBAC)
+
+The system implements a 5-tier role hierarchy:
+
+| Role          | Description                                  |
+| ------------- | -------------------------------------------- |
+| `super_admin` | Full system access including user management |
+| `admin`       | User management and all data operations      |
+| `manager`     | Reports and member/donation management       |
+| `data_entry`  | Create and edit members and donations        |
+| `viewer`      | Read-only access                             |
+
+Roles are seeded in `db/init.sql` and enforced via `server/rbac.js` middleware.
 
 ### Database Schema
 
 The system uses PostgreSQL with the following core entities (`db/init.sql`):
 
-- **Users**: Admin access management (`username`, `password_hash`, `role`).
+- **Users**: Admin access management with security fields.
+  - Columns: `id`, `username`, `password_hash`, `email`, `role`, `must_change_password`, `password_changed_at`, `password_history`, `failed_login_attempts`, `locked_until`, `last_login_at`, `created_at`, `updated_at`.
+- **Roles**: Role definitions with JSON permissions array.
 - **Members**: Parishioner records.
   - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `created_at` (timestamptz).
 - **Donations**: Financial records linked to Members.
@@ -164,8 +190,20 @@ The system uses PostgreSQL with the following core entities (`db/init.sql`):
 
 RESTful endpoints provided by `server/index.js`:
 
+- **Auth**:
+  - `POST /api/login`: Authenticate user, returns JWT with role permissions.
+  - `POST /api/users/change-password`: Change own password.
+  - `GET /api/auth/password-policy`: Get password requirements.
 - **Members**: `GET /api/members` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
 - **Donations**: `GET /api/donations` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
+- **User Management** (admin+ only):
+  - `GET /api/users`: List all users.
+  - `POST /api/users`: Create new user.
+  - `PUT /api/users/:id`: Update user role/email.
+  - `DELETE /api/users/:id`: Delete user.
+  - `POST /api/users/:id/unlock`: Unlock locked account.
+  - `POST /api/users/:id/reset-password`: Force password reset.
+  - `GET /api/roles`: Get assignable roles for current user.
 - **Reporting**:
   - `GET /api/reports/statements?year=YYYY`: Batch PDF Annual Statements.
   - `GET /api/reports/export?year=YYYY`: Full Transaction Log (CSV).
@@ -175,6 +213,12 @@ RESTful endpoints provided by `server/index.js`:
   - `GET /api/reports/quarterly-progress?year=YYYY`: Year-over-year quarterly trends.
   - `GET /api/reports/trend-analysis`: 3-year historical bar chart data.
 - **Validation**: Enforced via `server/validation.js` before database insertion.
+- **RBAC**: All routes protected via `server/rbac.js` middleware.
+
+### Current Credentials
+
+- **Super Admin**: `admin` / `TestPass123!abc`
+- **Viewer (test)**: `testviewer` / `TestViewer123!abc`
 
 ---
 

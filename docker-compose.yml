@@ -4,9 +4,9 @@ services:
     container_name: gracegiver-db
     restart: always
     environment:
-      POSTGRES_DB: gracegiver
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123 
+      POSTGRES_DB: ${DB_NAME:-gracegiver}
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password is required}
     ports:
       - "5432:5432"
     volumes:
@@ -21,11 +21,23 @@ services:
     ports:
       - "3000:3000"
     environment:
+      # Database configuration
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: admin
-      DB_PASSWORD: password123
-      DB_NAME: gracegiver
+      DB_USER: ${DB_USER:-admin}
+      DB_PASSWORD: ${DB_PASSWORD:?Database password is required}
+      DB_NAME: ${DB_NAME:-gracegiver}
+      
+      # Security configuration
+      JWT_SECRET: ${JWT_SECRET:?JWT secret is required}
+      JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      
+      # Initial admin setup (only used on first run)
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-superadmin}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      
+      # Node environment
+      NODE_ENV: ${NODE_ENV:-production}
     depends_on:
       - db
 

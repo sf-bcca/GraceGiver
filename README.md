@@ -20,7 +20,12 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 - **Donation Entry:** Fast and secure recording of contributions across multiple funds (General, Building, Missions, etc.).
 - **Advanced Reporting:** Three-phased reporting suite including IRS-compliant PDF statements, CSV exports, operational health reports, and financial intelligence charts (powered by Recharts).
 - **AI Financial Insights:** Integration with Gemini AI for advanced narrative analysis of giving trends and financial health (requires API key).
-- **Security & Auditing:** Role-based access control and detailed audit logs for compliance and accountability.
+- **Enterprise Security:**
+  - 🔐 JWT-based authentication with configurable expiry
+  - 🛡️ 5-tier Role-Based Access Control (RBAC)
+  - 🔒 Account lockout after failed login attempts
+  - 📋 Password policy enforcement with strength meter
+  - 👤 Full user management UI (admin only)
 - **Docker Ready:** Containerized architecture for seamless deployment and scalability.
 
 ---
@@ -101,13 +106,26 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 The backend API runs on port `3000` (by default) and provides the following endpoints:
 
-| Endpoint         | Method | Description                |
-| :--------------- | :----- | :------------------------- |
-| `/api/members`   | `GET`  | Retrieve all members.      |
-| `/api/members`   | `POST` | Create a new member.       |
-| `/api/donations` | `GET`  | Retrieve recent donations. |
-| `/api/donations` | `POST` | Record a new donation.     |
-| `/api/reports/*` | `GET`  | PDF, CSV, and Chart data.  |
+| Endpoint                     | Method                | Description                    | Auth Required     |
+| :--------------------------- | :-------------------- | :----------------------------- | :---------------- |
+| `/api/login`                 | `POST`                | Authenticate user, returns JWT | No                |
+| `/api/users/change-password` | `POST`                | Change own password            | Yes               |
+| `/api/members`               | `GET`                 | Retrieve all members           | Yes               |
+| `/api/members`               | `POST`                | Create a new member            | Yes (data_entry+) |
+| `/api/donations`             | `GET`                 | Retrieve recent donations      | Yes               |
+| `/api/donations`             | `POST`                | Record a new donation          | Yes (data_entry+) |
+| `/api/users`                 | `GET/POST/PUT/DELETE` | User management                | Yes (admin+)      |
+| `/api/reports/*`             | `GET`                 | PDF, CSV, and Chart data       | Yes (manager+)    |
+
+### Role Hierarchy
+
+| Role          | Permissions                           |
+| :------------ | :------------------------------------ |
+| `super_admin` | Full system access, cannot be deleted |
+| `admin`       | User management + all data operations |
+| `manager`     | Reports + member/donation management  |
+| `data_entry`  | Create/edit members and donations     |
+| `viewer`      | Read-only access                      |
 
 ---
 

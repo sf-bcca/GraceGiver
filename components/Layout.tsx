@@ -18,9 +18,10 @@ interface LayoutProps {
   activeView: ViewState;
   setView: (view: ViewState) => void;
   churchName: string;
+  onLogout: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchName }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchName, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   const navItems = [
@@ -28,7 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
     { id: 'MEMBERS' as ViewState, label: 'Members', icon: Users },
     { id: 'ENTRY' as ViewState, label: 'Donation Entry', icon: HandCoins },
     { id: 'REPORTS' as ViewState, label: 'Reports', icon: FileText },
-    { id: 'AUDIT' as ViewState, label: 'Audit Log', icon: ShieldCheck },
+    { id: 'USERS' as ViewState, label: 'User Management', icon: ShieldCheck },
     { id: 'SETTINGS' as ViewState, label: 'Settings', icon: Settings },
   ];
 
@@ -90,7 +91,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
                 <span className="text-xs text-indigo-300 truncate">Secretary</span>
               </div>
             </div>
-            <button className="flex items-center gap-2 text-indigo-300 hover:text-white transition-colors w-full px-2 py-1">
+            <button 
+              onClick={onLogout}
+              className="flex items-center gap-2 text-indigo-300 hover:text-white transition-colors w-full px-2 py-1"
+            >
               <LogOut size={16} />
               <span className="text-sm font-medium">Log Out</span>
             </button>
