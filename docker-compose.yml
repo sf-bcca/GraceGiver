@@ -38,6 +38,8 @@ services:
       
       # Node environment
       NODE_ENV: ${NODE_ENV:-production}
+    volumes:
+      - ./db:/db
     depends_on:
       - db
 
