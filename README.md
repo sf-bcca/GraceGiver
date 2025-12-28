@@ -104,18 +104,23 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 ## 🔌 API Reference
 
-The backend API runs on port `3000` (by default) and provides the following endpoints:
+The backend API runs on port `3000` internally. When running via Docker Compose, it is mapped to host port `3001` to avoid conflicts.
 
-| Endpoint                     | Method                | Description                    | Auth Required     |
-| :--------------------------- | :-------------------- | :----------------------------- | :---------------- |
-| `/api/login`                 | `POST`                | Authenticate user, returns JWT | No                |
-| `/api/users/change-password` | `POST`                | Change own password            | Yes               |
-| `/api/members`               | `GET`                 | Retrieve all members           | Yes               |
-| `/api/members`               | `POST`                | Create a new member            | Yes (data_entry+) |
-| `/api/donations`             | `GET`                 | Retrieve recent donations      | Yes               |
-| `/api/donations`             | `POST`                | Record a new donation          | Yes (data_entry+) |
-| `/api/users`                 | `GET/POST/PUT/DELETE` | User management                | Yes (admin+)      |
-| `/api/reports/*`             | `GET`                 | PDF, CSV, and Chart data       | Yes (manager+)    |
+| Endpoint                     | Method       | Description                    | Auth Required     |
+| :--------------------------- | :----------- | :----------------------------- | :---------------- |
+| `/api/login`                 | `POST`       | Authenticate user, returns JWT | No                |
+| `/api/users/change-password` | `POST`       | Change own password            | Yes               |
+| `/api/auth/password-policy`  | `GET`        | Get password requirements      | No                |
+| `/api/members`               | `GET`        | Retrieve all members           | Yes               |
+| `/api/members`               | `POST`       | Create a new member            | Yes (data_entry+) |
+| `/api/donations`             | `GET`        | Retrieve recent donations      | Yes               |
+| `/api/donations`             | `POST`       | Record a new donation          | Yes (data_entry+) |
+| `/api/users`                 | `GET`        | List all users                 | Yes (admin+)      |
+| `/api/users`                 | `POST`       | Create new user                | Yes (admin+)      |
+| `/api/users/:id`             | `PUT/DELETE` | Update or delete user          | Yes (admin+)      |
+| `/api/users/:id/unlock`      | `POST`       | Unlock account                 | Yes (admin+)      |
+| `/api/roles`                 | `GET`        | Get assignable roles           | Yes               |
+| `/api/reports/*`             | `GET`        | PDF, CSV, and Chart data       | Yes (manager+)    |
 
 ### Role Hierarchy
 
