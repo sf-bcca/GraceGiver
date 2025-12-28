@@ -459,6 +459,35 @@ app.delete('/api/donations/:id', authenticateToken, requirePermission('donations
   }
 });
 
+app.get('/api/donations/summary', authenticateToken, requirePermission('donations:read'), async (req, res) => {
+  try {
+    const summaryQuery = `
+      SELECT
+        SUM(amount) as total,
+        COUNT(*) as count,
+        COUNT(DISTINCT member_id) as donor_count
+      FROM donations
+    `;
+    const { rows } = await pool.query(summaryQuery);
+    const { total, count, donor_count } = rows[0];
+
+    const totalDonations = parseFloat(total) || 0;
+    const donationCount = parseInt(count) || 0;
+    const donorCount = parseInt(donor_count) || 0;
+    const avgDonation = totalDonations / (donationCount || 1);
+
+    res.json({
+      totalDonations,
+      donationCount,
+      donorCount,
+      avgDonation,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const { generateBatchStatement, exportTransactions } = require('./reports');
 
 console.log('--- REPORT HANDLER TYPES ---');

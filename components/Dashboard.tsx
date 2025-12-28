@@ -28,18 +28,19 @@ interface DashboardProps {
   members: Member[];
   donations: Donation[];
   churchSettings: ChurchSettings;
+  summary: {
+    totalDonations: number;
+    donationCount: number;
+    avgDonation: number;
+    donorCount: number;
+  };
 }
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'];
 
-const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSettings }) => {
+const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSettings, summary }) => {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
-
-  const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
-  const donationCount = donations.length;
-  const avgDonation = totalDonations / (donationCount || 1);
-  const donorCount = new Set(donations.map(d => d.memberId)).size;
 
   // Data for Charts
   const fundData = Object.values(FundType).map((fund) => ({
@@ -76,10 +77,10 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Giving', value: `$${totalDonations.toLocaleString()}`, sub: '+12% from last month', icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Total Giving', value: `$${summary.totalDonations.toLocaleString()}`, sub: '+12% from last month', icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600' },
           { label: 'Total Members', value: members.length, sub: '2 new this week', icon: Users, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Active Donors', value: donorCount, sub: '75% of membership', icon: HeartHandshake, color: 'bg-purple-50 text-purple-600' },
-          { label: 'Avg. Donation', value: `$${avgDonation.toFixed(0)}`, sub: 'Up $15 recently', icon: ArrowUpRight, color: 'bg-amber-50 text-amber-600' },
+          { label: 'Active Donors', value: summary.donorCount, sub: '75% of membership', icon: HeartHandshake, color: 'bg-purple-50 text-purple-600' },
+          { label: 'Avg. Donation', value: `$${summary.avgDonation.toFixed(0)}`, sub: 'Up $15 recently', icon: ArrowUpRight, color: 'bg-amber-50 text-amber-600' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
@@ -158,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute flex flex-col items-center">
-              <span className="text-2xl font-bold text-slate-800">${totalDonations.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-slate-800">${summary.totalDonations.toLocaleString()}</span>
               <span className="text-xs text-slate-400 font-medium">TOTAL GIFTS</span>
             </div>
           </div>

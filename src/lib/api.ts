@@ -180,6 +180,13 @@ export async function deleteDonation(id: string) {
   return handleResponse(response);
 }
 
+export async function fetchDonationSummary() {
+  const response = await fetch(`${API_URL}/api/donations/summary`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
 export async function downloadBatchStatement(year: string) {
   const response = await fetch(
     `${API_URL}/api/reports/statements?year=${year}`,
