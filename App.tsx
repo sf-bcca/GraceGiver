@@ -32,11 +32,10 @@ const App: React.FC = () => {
       try {
         const [fetchedMembersRes, fetchedDonationsRes] = await Promise.all([
           fetchMembers(),
-          fetchDonations()
+          fetchDonations(),
         ]);
-        // Handle both array (legacy/mock) and paginated response { data: [] }
-        const membersData = Array.isArray(fetchedMembersRes) ? fetchedMembersRes : (fetchedMembersRes.data || []);
-        const donationsData = Array.isArray(fetchedDonationsRes) ? fetchedDonationsRes : (fetchedDonationsRes.data || []);
+        const membersData = fetchedMembersRes.data || [];
+        const donationsData = fetchedDonationsRes.data || [];
 
         setMembers(membersData);
         setDonations(donationsData);

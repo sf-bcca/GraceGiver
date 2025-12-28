@@ -353,17 +353,41 @@ app.delete('/api/members/:id', authenticateToken, requirePermission('members:del
 });
 
 app.get('/api/donations', authenticateToken, requirePermission('donations:read'), async (req, res) => {
-  const { page = 1, limit = 50 } = req.query;
-  const offset = (page - 1) * limit;
+  const { page, limit } = req.query;
 
   try {
-    const countQuery = 'SELECT COUNT(*) FROM donations';
-    const query = 'SELECT * FROM donations ORDER BY donation_date DESC LIMIT $1 OFFSET $2';
+    if (page && limit) {
+      const offset = (page - 1) * limit;
+      const countQuery = 'SELECT COUNT(*) FROM donations';
+      const query = 'SELECT * FROM donations ORDER BY donation_date DESC LIMIT $1 OFFSET $2';
 
-    const countResult = await pool.query(countQuery);
-    const total = parseInt(countResult.rows[0].count);
+      const countResult = await pool.query(countQuery);
+      const total = parseInt(countResult.rows[0].count);
 
-    const result = await pool.query(query, [limit, offset]);
+      const result = await pool.query(query, [limit, offset]);
+
+      return res.json({
+        data: result.rows.map(row => ({
+          id: row.id.toString(),
+          memberId: row.member_id,
+          amount: parseFloat(row.amount),
+          fund: row.fund,
+          notes: row.notes,
+          enteredBy: row.entered_by,
+          date: row.donation_date,
+          timestamp: row.donation_date
+        })),
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    }
+
+    const query = 'SELECT * FROM donations ORDER BY donation_date DESC';
+    const result = await pool.query(query);
 
     res.json({
       data: result.rows.map(row => ({
@@ -376,12 +400,6 @@ app.get('/api/donations', authenticateToken, requirePermission('donations:read')
         date: row.donation_date,
         timestamp: row.donation_date
       })),
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit)
-      }
     });
   } catch (err) {
     console.error(err);

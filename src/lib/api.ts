@@ -141,12 +141,15 @@ export async function deleteMember(id: string) {
   return handleResponse(response);
 }
 
-export async function fetchDonations(page = 1, limit = 50) {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-  });
-  const response = await fetch(`${API_URL}/api/donations?${params}`, {
+export async function fetchDonations(page?: number, limit?: number) {
+  const params = new URLSearchParams();
+  if (page) params.append('page', page.toString());
+  if (limit) params.append('limit', limit.toString());
+
+  const queryString = params.toString();
+  const url = queryString ? `${API_URL}/api/donations?${queryString}` : `${API_URL}/api/donations`;
+
+  const response = await fetch(url, {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
