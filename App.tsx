@@ -41,31 +41,34 @@ const App: React.FC = () => {
     }
   }
 
-  React.useEffect(() => {
+  const loadData = React.useCallback(async () => {
     if (!token) return;
-    async function loadData() {
-      try {
-        const [fetchedMembersRes, fetchedDonationsRes] = await Promise.all([
-          fetchMembers(),
-          fetchDonations(),
-        ]);
-        const membersData = fetchedMembersRes.data || [];
-        const donationsData = fetchedDonationsRes.data || [];
+    try {
+      setLoading(true);
+      const [fetchedMembersRes, fetchedDonationsRes, summaryData] = await Promise.all([
+        fetchMembers(),
+        fetchDonations(),
+        fetchDonationSummary(),
+      ]);
+      const membersData = fetchedMembersRes.data || [];
+      const donationsData = fetchedDonationsRes.data || [];
 
-        setMembers(membersData);
-        setDonations(donationsData);
-        loadDonationSummary();
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        // TODO: specific error state UI
-        setMembers([]);
-        setDonations([]);
-      } finally {
-        setLoading(false);
-      }
+      setMembers(membersData);
+      setDonations(donationsData);
+      setDonationSummary(summaryData);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      // TODO: specific error state UI
+      setMembers([]);
+      setDonations([]);
+    } finally {
+      setLoading(false);
     }
-    loadData();
   }, [token]);
+
+  React.useEffect(() => {
+    loadData();
+  }, [loadData, token]);
   
   // Initialize with requested church name
   const [churchSettings, setChurchSettings] = useState<ChurchSettings>({
@@ -114,31 +117,15 @@ const App: React.FC = () => {
   };
 
   const handleAddDonation = async (newDonationData: Omit<Donation, 'id' | 'timestamp' | 'enteredBy'>) => {
-    const tempId = `d${Date.now()}`;
-    const newDonation: Omit<Donation, 'id'> = {
-      ...newDonationData,
-      timestamp: new Date().toISOString(),
-      enteredBy: 'Admin',
-    };
-    
-    const tempDonation = { ...newDonation, id: tempId } as Donation;
-    setDonations([tempDonation, ...donations]);
-    
     try {
-      const savedDonation = await createDonation({
-        memberId: newDonation.memberId,
-        amount: newDonation.amount,
-        fund: newDonation.fund,
-        notes: newDonation.notes,
-        enteredBy: newDonation.enteredBy
+      await createDonation({
+        ...newDonationData,
+        enteredBy: 'Admin',
       });
-      setDonations(prevDonations =>
-        prevDonations.map(d => (d.id === tempId ? savedDonation : d))
-      );
-      loadDonationSummary();
+      await loadData(); // Reload all data
     } catch (error) {
       console.error('Failed to save donation:', error);
-      setDonations(prevDonations => prevDonations.filter(d => d.id !== tempId));
+      // Optional: show an error message to the user
     }
   };
 
