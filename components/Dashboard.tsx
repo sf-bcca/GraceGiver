@@ -8,7 +8,9 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   Sparkles,
-  Loader2
+  Loader2,
+  AlertCircle,
+  ChevronRight
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -41,6 +43,29 @@ const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'];
 const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSettings, summary }) => {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [atRiskDonors, setAtRiskDonors] = useState<any[]>([]);
+  const [loadingForecast, setLoadingForecast] = useState(false);
+
+  useEffect(() => {
+    const fetchForecast = async () => {
+      setLoadingForecast(true);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/forecast/at-risk`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAtRiskDonors(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch forecast:", error);
+      } finally {
+        setLoadingForecast(false);
+      }
+    };
+    fetchForecast();
+  }, []);
 
   // Data for Charts
   const fundData = Object.values(FundType).map((fund) => ({
@@ -110,6 +135,50 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
           </div>
         </div>
       )}
+
+      {/* GraceForecast Integration */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
+            <TrendingUp size={20} className="text-indigo-600" />
+            <span>GraceForecast Retention Watchlist</span>
+          </div>
+          <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100">
+            PREDICTIVE ANALYSIS
+          </span>
+        </div>
+
+        {loadingForecast ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="animate-spin text-indigo-600" size={32} />
+          </div>
+        ) : atRiskDonors.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {atRiskDonors.map((donor, idx) => (
+              <div key={idx} className="p-4 rounded-xl border border-rose-100 bg-rose-50/30 hover:shadow-md transition-shadow group">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">{donor.name}</h4>
+                  <div className="flex items-center gap-1 text-rose-600 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold">
+                    <AlertCircle size={10} />
+                    {donor.status.toUpperCase()}
+                  </div>
+                </div>
+                <p className="text-slate-600 text-xs mb-3 italic">"{donor.recommendation}"</p>
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 border-t border-rose-100/50 pt-2">
+                  <span>LAST GIFT: ${donor.history[0].amount.toFixed(0)}</span>
+                  <button className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+                    DETAILS <ChevronRight size={10} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <p className="text-slate-400 text-sm">All donor patterns currently stable. Good job stewardship team!</p>
+          </div>
+        )}
+      </div>
 
       {/* Charts Section */}
       <div className="flex flex-col lg:flex-row gap-8">

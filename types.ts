@@ -59,4 +59,6 @@ export type ViewState =
   | "REPORTS"
   | "AUDIT"
   | "SETTINGS"
-  | "USERS";
+  | "USERS"
+  | "VOLUNTEER"
+  | "STEWARDSHIP";

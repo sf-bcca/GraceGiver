@@ -287,3 +287,58 @@ export async function getTrendAnalysis() {
 
   return response.json();
 }
+
+export async function fetchOpportunities() {
+  const response = await fetch(`${API_URL}/api/opportunities`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function createOpportunity(opportunity: any) {
+  const response = await fetch(`${API_URL}/api/opportunities`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(opportunity),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchMemberSkills(id: string) {
+  const response = await fetch(`${API_URL}/api/members/${id}/skills`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function updateMemberSkills(id: string, skills: string[], interests: string[]) {
+  const response = await fetch(`${API_URL}/api/members/${id}/skills`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ skills, interests }),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchOpportunityMatches(id: string) {
+  const response = await fetch(`${API_URL}/api/opportunities/${id}/matches`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchCampaigns() {
+  const response = await fetch(`${API_URL}/api/stewardship/campaigns`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function createCampaign(campaign: any) {
+  const response = await fetch(`${API_URL}/api/stewardship/campaigns`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(campaign),
+  });
+  return handleResponse(response);
+}

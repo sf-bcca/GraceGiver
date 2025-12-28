@@ -13,6 +13,8 @@ const Reports = React.lazy(() => import('./components/Reports'));
 const Settings = React.lazy(() => import('./components/Settings'));
 const PasswordChange = React.lazy(() => import('./components/PasswordChange'));
 const UserManagement = React.lazy(() => import('./components/UserManagement'));
+const VolunteerMatching = React.lazy(() => import('./components/VolunteerMatching'));
+const StewardshipPortal = React.lazy(() => import('./components/StewardshipPortal'));
 
 import { fetchMembers, fetchDonations, createMember, createDonation, fetchDonationSummary } from './src/lib/api';
 
@@ -160,6 +162,10 @@ const App: React.FC = () => {
               );
             case 'USERS':
               return <UserManagement currentUserId={JSON.parse(localStorage.getItem('user') || '{}').id} currentUserRole={JSON.parse(localStorage.getItem('user') || '{}').role} />;
+            case 'VOLUNTEER':
+              return <VolunteerMatching />;
+            case 'STEWARDSHIP':
+              return <StewardshipPortal />;
             default:
               return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
           }

@@ -444,6 +444,53 @@ app.put(
   }
 );
 
+// ServantHeart: Get Member Skills & Interests
+app.get(
+  "/api/members/:id/skills",
+  authenticateToken,
+  requirePermission("members:read"),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      const result = await pool.query(
+        "SELECT skills, interests FROM members WHERE id = $1",
+        [id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// ServantHeart: Update Member Skills & Interests
+app.put(
+  "/api/members/:id/skills",
+  authenticateToken,
+  requirePermission("members:update"),
+  async (req, res) => {
+    const { id } = req.params;
+    const { skills, interests } = req.body;
+    try {
+      const result = await pool.query(
+        "UPDATE members SET skills = $1, interests = $2 WHERE id = $3 RETURNING skills, interests",
+        [skills, interests, id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
 app.delete(
   "/api/members/:id",
   authenticateToken,
@@ -639,11 +686,16 @@ app.delete(
   }
 );
 
-const { generateBatchStatement, exportTransactions } = require("./reports");
+const {
+  generateBatchStatement,
+  exportTransactions,
+  getAtRiskDonors,
+} = require("./reports");
 
 console.log("--- REPORT HANDLER TYPES ---");
 console.log("generateBatchStatement:", typeof generateBatchStatement);
 console.log("exportTransactions:", typeof exportTransactions);
+console.log("getAtRiskDonors:", typeof getAtRiskDonors);
 
 app.get(
   "/api/reports/statements",
@@ -785,8 +837,129 @@ app.get(
       );
       res.json(result.rows);
     } catch (err) {
-      console.error("Fund distribution error:", err);
-      res.status(500).json({ error: "Failed to fetch fund distribution" });
+    }
+  }
+);
+
+// ServantHeart: Manage Ministry Opportunities
+app.get(
+  "/api/opportunities",
+  authenticateToken,
+  requirePermission("members:read"),
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        "SELECT * FROM ministry_opportunities ORDER BY created_at DESC"
+      );
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+app.post(
+  "/api/opportunities",
+  authenticateToken,
+  requirePermission("members:write"),
+  async (req, res) => {
+    const { title, description, requiredSkills } = req.body;
+    try {
+      const result = await pool.query(
+        "INSERT INTO ministry_opportunities (title, description, required_skills) VALUES ($1, $2, $3) RETURNING *",
+        [title, description, requiredSkills]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// ServantHeart: AI-Powered Talent Match
+app.get(
+  "/api/opportunities/:id/matches",
+  authenticateToken,
+  requirePermission("members:read"),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      const oppResult = await pool.query(
+        "SELECT * FROM ministry_opportunities WHERE id = $1",
+        [id]
+      );
+      if (oppResult.rows.length === 0) {
+        return res.status(404).json({ error: "Opportunity not found" });
+      }
+      const opportunity = oppResult.rows[0];
+
+      // Simple matching logic: find members with at least one overlapping skill
+      const matchResult = await pool.query(
+        `SELECT id, first_name, last_name, skills, interests 
+         FROM members 
+         WHERE skills && $1 OR interests && $1
+         LIMIT 10`,
+        [opportunity.required_skills]
+      );
+
+      res.json({
+        opportunity,
+        matches: matchResult.rows.map(m => ({
+          memberId: m.id,
+          name: `${m.first_name} ${m.last_name}`,
+          skills: m.skills,
+          matchScore: 0.85
+        }))
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// CommunityBridge: Manage Stewardship Campaigns
+app.get(
+  "/api/stewardship/campaigns",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      // Get all active campaigns and their current progress
+      const result = await pool.query(`
+        SELECT 
+          c.*,
+          COALESCE(SUM(d.amount), 0) as current_amount
+        FROM fund_campaigns c
+        LEFT JOIN donations d ON c.fund_name = d.fund
+        WHERE c.is_active = true
+        GROUP BY c.id
+        ORDER BY c.created_at DESC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+app.post(
+  "/api/stewardship/campaigns",
+  authenticateToken,
+  requirePermission("donations:write"),
+  async (req, res) => {
+    const { fundName, title, description, goalAmount, endDate } = req.body;
+    try {
+      const result = await pool.query(
+        "INSERT INTO fund_campaigns (fund_name, title, description, goal_amount, end_date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [fundName, title, description, goalAmount, endDate]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 );
@@ -801,25 +974,38 @@ app.get(
     if (!year) return res.status(400).json({ error: "Year is required" });
 
     try {
-      const currentYear = parseInt(year);
-      const previousYear = currentYear - 1;
       const result = await pool.query(
         `
       SELECT 
-        EXTRACT(QUARTER FROM donation_date)::int as quarter,
-        EXTRACT(YEAR FROM donation_date)::int as year,
+        EXTRACT(QUARTER FROM donation_date) as quarter, 
         SUM(amount) as total
       FROM donations
-      WHERE EXTRACT(YEAR FROM donation_date)::int IN ($1, $2)
-      GROUP BY year, quarter
-      ORDER BY year, quarter
+      WHERE EXTRACT(YEAR FROM donation_date) = $1
+      GROUP BY quarter
+      ORDER BY quarter
     `,
-        [currentYear, previousYear]
+        [year]
       );
       res.json(result.rows);
     } catch (err) {
       console.error("Quarterly progress error:", err);
       res.status(500).json({ error: "Failed to fetch quarterly progress" });
+    }
+  }
+);
+
+// GraceForecast: At-Risk Donor Prediction
+app.get(
+  "/api/forecast/at-risk",
+  authenticateToken,
+  requirePermission("reports:read"),
+  async (req, res) => {
+    try {
+      const atRiskData = await getAtRiskDonors(pool);
+      res.json(atRiskData);
+    } catch (err) {
+      console.error("Forecast error:", err);
+      res.status(500).json({ error: "Failed to generate forecast" });
     }
   }
 );

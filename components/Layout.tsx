@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  Settings
+  Settings,
+  Target
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -27,6 +28,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
   const navItems = [
     { id: 'DASHBOARD' as ViewState, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'MEMBERS' as ViewState, label: 'Members', icon: Users },
+    { id: 'VOLUNTEER' as ViewState, label: 'Volunteers', icon: ShieldCheck },
+    { id: 'STEWARDSHIP' as ViewState, label: 'Stewardship', icon: Target },
     { id: 'ENTRY' as ViewState, label: 'Donation Entry', icon: HandCoins },
     { id: 'REPORTS' as ViewState, label: 'Reports', icon: FileText },
     { id: 'USERS' as ViewState, label: 'User Management', icon: ShieldCheck },
