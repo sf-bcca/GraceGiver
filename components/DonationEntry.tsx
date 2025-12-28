@@ -367,25 +367,27 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, 
             <History size={20} className="text-slate-400" />
             Transaction History
           </h3>
-          <div className="flex gap-2">
-             <button
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50"
-             >
-               Prev
-             </button>
-             <span className="px-3 py-1 text-xs font-bold text-slate-500 flex items-center">
-               Page {page} of {totalPages}
-             </span>
-             <button
-                disabled={page === totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50"
-             >
-               Next
-             </button>
-          </div>
+          {totalPages > 0 && (
+            <div className="flex gap-2">
+               <button
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50"
+               >
+                 Prev
+               </button>
+               <span className="px-3 py-1 text-xs font-bold text-slate-500 flex items-center">
+                 Page {page} of {totalPages}
+               </span>
+               <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50"
+               >
+                 Next
+               </button>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -401,9 +403,14 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, 
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loadingHistory ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-400">Loading history...</td></tr>
+                <tr><td colSpan={5} className="text-center py-16 text-slate-500"><Loader2 className="mx-auto animate-spin" /></td></tr>
               ) : historyDonations.length === 0 ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-400">No transactions found.</td></tr>
+                <tr>
+                  <td colSpan={5} className="text-center py-16 text-slate-500">
+                    <AlertCircle className="mx-auto mb-2" size={32} />
+                    No transactions found.
+                  </td>
+                </tr>
               ) : (
                 historyDonations.map(donation => {
                   const donor = resolvedMembers[donation.memberId] || initialMembers.find(m => m.id === donation.memberId);

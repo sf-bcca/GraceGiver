@@ -210,27 +210,29 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex justify-between items-center px-2">
-         <span className="text-sm font-bold text-slate-500">
-           Page {page} of {totalPages}
-         </span>
-         <div className="flex gap-2">
-           <button
-              disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-           >
-             Previous
-           </button>
-           <button
-              disabled={page === totalPages}
-              onClick={() => setPage(p => p + 1)}
-              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-           >
-             Next
-           </button>
-         </div>
-      </div>
+      {totalPages > 0 && (
+        <div className="flex justify-between items-center px-2">
+          <span className="text-sm font-bold text-slate-500">
+            Page {page} of {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
+            >
+              Previous
+            </button>
+            <button
+                disabled={page === totalPages}
+                onClick={() => setPage(p => p + 1)}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table - Desktop View */}
       <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -245,57 +247,72 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {members.map(member => (
-              <tr key={member.id} className="hover:bg-slate-50/50 transition-colors group">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
-                      {member.firstName[0]}{member.lastName[0]}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-900">{member.firstName} {member.lastName}</div>
-                      <div className="text-xs text-slate-500">ID: {member.id}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-slate-600 text-sm">
-                    <Mail size={14} />
-                    {member.email}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-slate-600 leading-tight">
-                    {member.address}<br />
-                    <span className="text-slate-400">{member.city}, {member.state} {member.zip}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
-                  {new Date(member.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleEditClick(member)}
-                      className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(member.id)}
-                      className="p-2 text-slate-400 hover:text-red-600 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+            {members.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-16 text-slate-500">
+                  <AlertCircle className="mx-auto mb-2" size={32} />
+                  No members found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              members.map(member => (
+                <tr key={member.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                        {member.firstName[0]}{member.lastName[0]}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900">{member.firstName} {member.lastName}</div>
+                        <div className="text-xs text-slate-500">ID: {member.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                      <Mail size={14} />
+                      {member.email}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-slate-600 leading-tight">
+                      {member.address}<br />
+                      <span className="text-slate-400">{member.city}, {member.state} {member.zip}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {new Date(member.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleEditClick(member)}
+                        className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(member.id)}
+                        className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Card - Mobile View */}
+      {members.length === 0 && (
+         <div className="lg:hidden text-center py-16 text-slate-500">
+            <AlertCircle className="mx-auto mb-2" size={32} />
+            No members found.
+         </div>
+      )}
       <div className="lg:hidden grid grid-cols-1 gap-4">
         {members.map(member => (
           <div key={member.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
