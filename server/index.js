@@ -353,41 +353,17 @@ app.delete('/api/members/:id', authenticateToken, requirePermission('members:del
 });
 
 app.get('/api/donations', authenticateToken, requirePermission('donations:read'), async (req, res) => {
-  const { page, limit } = req.query;
+  const { page = 1, limit = 50 } = req.query;
+  const offset = (page - 1) * limit;
 
   try {
-    if (page && limit) {
-      const offset = (page - 1) * limit;
-      const countQuery = 'SELECT COUNT(*) FROM donations';
-      const query = 'SELECT * FROM donations ORDER BY donation_date DESC LIMIT $1 OFFSET $2';
+    const countQuery = 'SELECT COUNT(*) FROM donations';
+    const query = 'SELECT * FROM donations ORDER BY donation_date DESC LIMIT $1 OFFSET $2';
 
-      const countResult = await pool.query(countQuery);
-      const total = parseInt(countResult.rows[0].count);
+    const countResult = await pool.query(countQuery);
+    const total = parseInt(countResult.rows[0].count);
 
-      const result = await pool.query(query, [limit, offset]);
-
-      return res.json({
-        data: result.rows.map(row => ({
-          id: row.id.toString(),
-          memberId: row.member_id,
-          amount: parseFloat(row.amount),
-          fund: row.fund,
-          notes: row.notes,
-          enteredBy: row.entered_by,
-          date: row.donation_date,
-          timestamp: row.donation_date
-        })),
-        pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(total / limit)
-        }
-      });
-    }
-
-    const query = 'SELECT * FROM donations ORDER BY donation_date DESC';
-    const result = await pool.query(query);
+    const result = await pool.query(query, [limit, offset]);
 
     res.json({
       data: result.rows.map(row => ({
@@ -400,6 +376,12 @@ app.get('/api/donations', authenticateToken, requirePermission('donations:read')
         date: row.donation_date,
         timestamp: row.donation_date
       })),
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
     });
   } catch (err) {
     console.error(err);
@@ -471,6 +453,35 @@ app.delete('/api/donations/:id', authenticateToken, requirePermission('donations
       return res.status(404).json({ error: 'Donation not found' });
     }
     res.json({ message: 'Donation deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/donations/summary', authenticateToken, requirePermission('donations:read'), async (req, res) => {
+  try {
+    const summaryQuery = `
+      SELECT
+        SUM(amount) as total,
+        COUNT(*) as count,
+        COUNT(DISTINCT member_id) as donor_count
+      FROM donations
+    `;
+    const { rows } = await pool.query(summaryQuery);
+    const { total, count, donor_count } = rows[0];
+
+    const totalDonations = parseFloat(total) || 0;
+    const donationCount = parseInt(count) || 0;
+    const donorCount = parseInt(donor_count) || 0;
+    const avgDonation = totalDonations / (donationCount || 1);
+
+    res.json({
+      totalDonations,
+      donationCount,
+      donorCount,
+      avgDonation,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

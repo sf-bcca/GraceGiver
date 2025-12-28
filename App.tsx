@@ -14,7 +14,7 @@ const Settings = React.lazy(() => import('./components/Settings'));
 const PasswordChange = React.lazy(() => import('./components/PasswordChange'));
 const UserManagement = React.lazy(() => import('./components/UserManagement'));
 
-import { fetchMembers, fetchDonations, createMember, createDonation } from './src/lib/api';
+import { fetchMembers, fetchDonations, createMember, createDonation, fetchDonationSummary } from './src/lib/api';
 
 const App: React.FC = () => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -24,7 +24,22 @@ const App: React.FC = () => {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
+  const [donationSummary, setDonationSummary] = useState({
+    totalDonations: 0,
+    donationCount: 0,
+    avgDonation: 0,
+    donorCount: 0,
+  });
   const [loading, setLoading] = useState(!!token);
+
+  async function loadDonationSummary() {
+    try {
+      const summaryData = await fetchDonationSummary();
+      setDonationSummary(summaryData);
+    } catch (error) {
+      console.error('Failed to load donation summary:', error);
+    }
+  }
 
   React.useEffect(() => {
     if (!token) return;
@@ -39,6 +54,7 @@ const App: React.FC = () => {
 
         setMembers(membersData);
         setDonations(donationsData);
+        loadDonationSummary();
       } catch (error) {
         console.error('Failed to load data:', error);
         // TODO: specific error state UI
@@ -105,8 +121,8 @@ const App: React.FC = () => {
       enteredBy: 'Admin',
     };
     
-    // Optimistic update (adding temporary ID for list rendering)
-    setDonations([{ ...newDonation, id: tempId } as Donation, ...donations]);
+    const tempDonation = { ...newDonation, id: tempId } as Donation;
+    setDonations([tempDonation, ...donations]);
     
     try {
       const savedDonation = await createDonation({
@@ -116,9 +132,13 @@ const App: React.FC = () => {
         notes: newDonation.notes,
         enteredBy: newDonation.enteredBy
       });
-      // Replace temp item with saved item if needed
+      setDonations(prevDonations =>
+        prevDonations.map(d => (d.id === tempId ? savedDonation : d))
+      );
+      loadDonationSummary();
     } catch (error) {
       console.error('Failed to save donation:', error);
+      setDonations(prevDonations => prevDonations.filter(d => d.id !== tempId));
     }
   };
 
@@ -140,7 +160,7 @@ const App: React.FC = () => {
         {(() => {
           switch (view) {
             case 'DASHBOARD':
-              return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
+              return <Dashboard members={members} donations={donations} churchSettings={churchSettings} summary={donationSummary} />;
             case 'MEMBERS':
               return <MemberDirectory members={members} onAddMember={handleAddMember} setView={setView} setSelectedMemberId={setSelectedMemberId} />;
             case 'ENTRY':
