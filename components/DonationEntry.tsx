@@ -11,7 +11,7 @@ interface DonationEntryProps {
   memberId?: string;
 }
 
-const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, memberId: preselectedMemberId }) => {
+const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: initialMembers, memberId: preselectedMemberId }) => {
   // Form State
   const [memberSearch, setMemberSearch] = useState('');
   const [searchedMembers, setSearchedMembers] = useState<Member[]>([]);
@@ -136,6 +136,14 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       loadHistory();
+      
+      // Notify parent to refresh global state (Dashboard)
+      onAddDonation({
+        memberId: selectedMember.id,
+        amount: parseFloat(amount),
+        fund,
+        notes,
+      });
 
       // Reset Form
       if (!isEditing) {
@@ -185,6 +193,8 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ members: initialMembers, 
       try {
         await deleteDonation(id);
         loadHistory();
+        // Notify parent to refresh global state (Dashboard)
+        onAddDonation({} as any); // Trigger refresh even without full data
       } catch (error) {
         console.error('Failed to delete donation:', error);
         alert('Failed to delete donation');

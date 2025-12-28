@@ -69,6 +69,13 @@ const App: React.FC = () => {
   React.useEffect(() => {
     loadData();
   }, [loadData, token]);
+
+  // Background refresh when switching to Dashboard to ensure real-time data
+  React.useEffect(() => {
+    if (view === 'DASHBOARD' && token) {
+      loadData();
+    }
+  }, [view, token, loadData]);
   
   // Initialize with requested church name
   const [churchSettings, setChurchSettings] = useState<ChurchSettings>({

@@ -117,6 +117,8 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       try {
         await deleteMember(id);
         setMembers(members.filter(m => m.id !== id));
+        // Notify parent to refresh global state
+        onAddMember({} as any);
       } catch (error) {
         console.error('Failed to delete member:', error);
         alert('Failed to delete member');
@@ -147,10 +149,13 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       if (editingMember) {
         const updated = await updateMember(editingMember.id, { ...formData, familyId: editingMember.familyId });
         setMembers(members.map(m => m.id === editingMember.id ? updated : m));
+        // Notify parent to refresh global state
+        onAddMember(updated);
       } else {
         const created = await createMember({ ...formData, familyId: 'f' + Date.now() }); // Mock familyId
         setMembers([...members, created]);
-        // Also call parent onAddMember if needed for global state, but local state is enough here
+        // Notify parent to refresh global state
+        onAddMember(created);
       }
       setIsModalOpen(false);
       setErrors({});
