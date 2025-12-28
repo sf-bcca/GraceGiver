@@ -26,6 +26,9 @@ GraceGiver is a premium, secure, and intuitive church management platform design
   - 🔒 Account lockout after failed login attempts
   - 📋 Password policy enforcement with strength meter
   - 👤 Full user management UI (admin only)
+- **GraceForecast:** Predictive retention engine that identifies at-risk donors using AI-powered "Nudge" interventions.
+- **ServantHeart:** Volunteer and talent matching system that connects member skills to ministry needs using GraceAI.
+- **CommunityBridge:** Transparent stewardship portals that visualize progress toward specific financial goals and mission milestones.
 - **Docker Ready:** Containerized architecture for seamless deployment and scalability.
 
 ---
@@ -106,21 +109,24 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 The backend API runs on port `3000` internally. When running via Docker Compose, it is mapped to host port `3001` to avoid conflicts.
 
-| Endpoint                     | Method       | Description                    | Auth Required     |
-| :--------------------------- | :----------- | :----------------------------- | :---------------- |
-| `/api/login`                 | `POST`       | Authenticate user, returns JWT | No                |
-| `/api/users/change-password` | `POST`       | Change own password            | Yes               |
-| `/api/auth/password-policy`  | `GET`        | Get password requirements      | No                |
-| `/api/members`               | `GET`        | Retrieve all members           | Yes               |
-| `/api/members`               | `POST`       | Create a new member            | Yes (data_entry+) |
-| `/api/donations`             | `GET`        | Retrieve recent donations      | Yes               |
-| `/api/donations`             | `POST`       | Record a new donation          | Yes (data_entry+) |
-| `/api/users`                 | `GET`        | List all users                 | Yes (admin+)      |
-| `/api/users`                 | `POST`       | Create new user                | Yes (admin+)      |
-| `/api/users/:id`             | `PUT/DELETE` | Update or delete user          | Yes (admin+)      |
-| `/api/users/:id/unlock`      | `POST`       | Unlock account                 | Yes (admin+)      |
-| `/api/roles`                 | `GET`        | Get assignable roles           | Yes               |
-| `/api/reports/*`             | `GET`        | PDF, CSV, and Chart data       | Yes (manager+)    |
+| Endpoint                     | Method       | Description                    | Auth Required      |
+| :--------------------------- | :----------- | :----------------------------- | :----------------- |
+| `/api/login`                 | `POST`       | Authenticate user, returns JWT | No                 |
+| `/api/users/change-password` | `POST`       | Change own password            | Yes                |
+| `/api/auth/password-policy`  | `GET`        | Get password requirements      | No                 |
+| `/api/members`               | `GET`        | Retrieve all members           | Yes                |
+| `/api/members`               | `POST`       | Create a new member            | Yes (data_entry+)  |
+| `/api/donations`             | `GET`        | Retrieve recent donations      | Yes                |
+| `/api/donations`             | `POST`       | Record a new donation          | Yes (data_entry+)  |
+| `/api/users`                 | `GET`        | List all users                 | Yes (admin+)       |
+| `/api/users`                 | `POST`       | Create new user                | Yes (admin+)       |
+| `/api/users/:id`             | `PUT/DELETE` | Update or delete user          | Yes (admin+)       |
+| `/api/users/:id/unlock`      | `POST`       | Unlock account                 | Yes (admin+)       |
+| `/api/roles`                 | `GET`        | Get assignable roles           | Yes                |
+| `/api/forecast/at-risk`      | `GET`        | Get at-risk donors summary     | Yes (reports:read) |
+| `/api/opportunities`         | `GET/POST`   | List/Create ministry roles     | Yes                |
+| `/api/stewardship/campaigns` | `GET/POST`   | Manage Stewardship goals       | Yes                |
+| `/api/reports/*`             | `GET`        | PDF, CSV, and Chart data       | Yes (manager+)     |
 
 ### Role Hierarchy
 
