@@ -105,35 +105,15 @@ const App: React.FC = () => {
   };
 
   const handleAddMember = async (newMemberData: Omit<Member, 'id' | 'createdAt'>) => {
-    const tempId = `m${Date.now()}`;
-    const newMember: Member = {
-      ...newMemberData,
-      id: tempId,
-      createdAt: new Date().toISOString(),
-    };
-    
-    // Optimistic update
-    setMembers([...members, newMember]);
-    
-    try {
-      await createMember(newMember);
-    } catch (error) {
-      console.error('Failed to save member:', error);
-      // Revert optimization if needed (optional)
-    }
+    // MemberDirectory already handles the mutation and local state
+    // We just need to refresh global state for Dashboard/Donation lists
+    await loadData();
   };
 
   const handleAddDonation = async (newDonationData: Omit<Donation, 'id' | 'timestamp' | 'enteredBy'>) => {
-    try {
-      await createDonation({
-        ...newDonationData,
-        enteredBy: 'Admin',
-      });
-      await loadData(); // Reload all data
-    } catch (error) {
-      console.error('Failed to save donation:', error);
-      // Optional: show an error message to the user
-    }
+    // DonationEntry already handles the mutation and local history
+    // We just need to refresh global state for Dashboard summary
+    await loadData();
   };
 
   const handleLogout = () => {

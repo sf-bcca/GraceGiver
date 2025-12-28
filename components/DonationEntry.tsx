@@ -138,12 +138,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
       loadHistory();
       
       // Notify parent to refresh global state (Dashboard)
-      onAddDonation({
-        memberId: selectedMember.id,
-        amount: parseFloat(amount),
-        fund,
-        notes,
-      });
+      onAddDonation({} as any);
 
       // Reset Form
       if (!isEditing) {
