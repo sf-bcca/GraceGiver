@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, setView, churchNa
             <span className="font-bold text-xl tracking-tight truncate leading-tight">{churchName}</span>
           </div>
 
-          <nav className="flex-1 mt-20 md:mt-4 px-4 space-y-2">
+          <nav className="flex-1 mt-16 md:mt-4 px-4 space-y-2">
             {navItems.map((item) => (
               <button
                 key={item.id}
