@@ -166,7 +166,7 @@ const App: React.FC = () => {
                 </div>
               );
             case 'USERS':
-              return <UserManagement currentUserId={1} currentUserRole="admin" />;
+              return <UserManagement currentUserId={JSON.parse(localStorage.getItem('user') || '{}').id} currentUserRole={JSON.parse(localStorage.getItem('user') || '{}').role} />;
             default:
               return <Dashboard members={members} donations={donations} churchSettings={churchSettings} />;
           }
