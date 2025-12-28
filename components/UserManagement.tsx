@@ -42,6 +42,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   
@@ -111,22 +112,32 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
     }
   };
 
-  const handleUpdateRole = async (userId: number, newRole: string) => {
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
     try {
-      const res = await fetch(`/api/users/${userId}`, {
+      const { id, username, email, role } = editingUser;
+      const res = await fetch(`/api/users/${id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}` 
+          Authorization: `Bearer ${getToken()}`
         },
-        body: JSON.stringify({ role: newRole })
+        body: JSON.stringify({ username, email, role })
       });
-      
+
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to update user');
       }
-      
+
+      setShowEditModal(false);
       setEditingUser(null);
       fetchUsers();
     } catch (err: any) {
@@ -278,22 +289,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {editingUser?.id === user.id ? (
-                      <select
-                        value={editingUser.role}
-                        onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                        className="px-3 py-1 border border-slate-200 rounded-lg text-sm"
-                      >
-                        {roles.map(role => (
-                          <option key={role.name} value={role.name}>{role.label}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${ROLE_COLORS[user.role] || ROLE_COLORS.viewer}`}>
-                        <Shield size={12} />
-                        {user.role.replace('_', ' ').toUpperCase()}
-                      </span>
-                    )}
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${ROLE_COLORS[user.role] || ROLE_COLORS.viewer}`}>
+                      <Shield size={12} />
+                      {user.role.replace('_', ' ').toUpperCase()}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
@@ -323,63 +322,42 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
-                      {editingUser?.id === user.id ? (
+                      {canManageUser(user) && (
                         <>
                           <button
-                            onClick={() => handleUpdateRole(user.id, editingUser.role)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Save"
+                            onClick={() => handleEditUser(user)}
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Edit User"
                           >
-                            <Check size={16} />
+                            <Edit2 size={16} />
                           </button>
                           <button
-                            onClick={() => setEditingUser(null)}
-                            className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors"
-                            title="Cancel"
+                            onClick={() => setResetPasswordUser(user)}
+                            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Reset Password"
                           >
-                            <X size={16} />
+                            <Key size={16} />
+                          </button>
+                          {user.isLocked && (
+                            <button
+                              onClick={() => handleUnlockUser(user.id)}
+                              className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Unlock Account"
+                            >
+                              <Unlock size={16} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeleteUser(user)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete User"
+                          >
+                            <Trash2 size={16} />
                           </button>
                         </>
-                      ) : (
-                        <>
-                          {canManageUser(user) && (
-                            <>
-                              <button
-                                onClick={() => setEditingUser(user)}
-                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                title="Edit Role"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={() => setResetPasswordUser(user)}
-                                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                                title="Reset Password"
-                              >
-                                <Key size={16} />
-                              </button>
-                              {user.isLocked && (
-                                <button
-                                  onClick={() => handleUnlockUser(user.id)}
-                                  className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                  title="Unlock Account"
-                                >
-                                  <Unlock size={16} />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleDeleteUser(user)}
-                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete User"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </>
-                          )}
-                          {user.id === currentUserId && (
-                            <span className="text-xs text-slate-400 italic">You</span>
-                          )}
-                        </>
+                      )}
+                      {user.id === currentUserId && (
+                        <span className="text-xs text-slate-400 italic">You</span>
                       )}
                     </div>
                   </td>
@@ -459,6 +437,68 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
                   className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
                 >
                   Create User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Edit User: {editingUser.username}</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Username</label>
+                <input
+                  type="text"
+                  required
+                  value={editingUser.username}
+                  onChange={(e) => setEditingUser({ ...editingUser, username: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email (optional)</label>
+                <input
+                  type="email"
+                  value={editingUser.email || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Role</label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  {roles.map(role => (
+                    <option key={role.name} value={role.name}>{role.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

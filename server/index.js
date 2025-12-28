@@ -713,15 +713,15 @@ app.post('/api/users', authenticateToken, requirePermission('users:write'), asyn
   }
 });
 
-// Update user (role, email) - admin+
+// Update user (username, role, email) - admin+
 app.put('/api/users/:id', authenticateToken, requirePermission('users:write'), async (req, res) => {
   const { id } = req.params;
-  const { role, email } = req.body;
+  const { username, role, email } = req.body;
   
-  // Prevent self-demotion
-  if (parseInt(id) === req.user.id && role && role !== req.user.role) {
+  // Prevent self-demotion or changing own username in this endpoint
+  if (parseInt(id) === req.user.id && (role && role !== req.user.role || username)) {
     return res.status(403).json({ 
-      error: 'Cannot change your own role',
+      error: 'Cannot change your own role or username. Please use account settings.',
       code: 'SELF_MODIFICATION'
     });
   }
@@ -748,11 +748,23 @@ app.put('/api/users/:id', authenticateToken, requirePermission('users:write'), a
         code: 'ROLE_ESCALATION'
       });
     }
+
+    // If username is being changed, check for conflicts
+    if (username) {
+      const existing = await pool.query('SELECT id FROM users WHERE username = $1 AND id != $2', [username, id]);
+      if (existing.rows.length > 0) {
+        return res.status(409).json({ error: 'Username already exists' });
+      }
+    }
     
     const updates = [];
     const values = [];
     let paramCount = 1;
     
+    if (username) {
+        updates.push(`username = $${paramCount++}`);
+        values.push(username);
+    }
     if (role) {
       updates.push(`role = $${paramCount++}`);
       values.push(role);
@@ -773,10 +785,13 @@ app.put('/api/users/:id', authenticateToken, requirePermission('users:write'), a
       RETURNING id, username, role, email
     `, values);
     
-    console.log(`[AUDIT] User ${id} updated by ${req.user.username}: ${JSON.stringify({ role, email })}`);
+    console.log(`[AUDIT] User ${id} updated by ${req.user.username}: ${JSON.stringify({ username, role, email })}`);
     
     res.json(result.rows[0]);
   } catch (err) {
+    if (err.code === '23505') { // unique_violation for username
+        return res.status(409).json({ error: 'Username already exists.' });
+    }
     console.error('Update user error:', err);
     res.status(500).json({ error: 'Failed to update user' });
   }
