@@ -15,8 +15,9 @@ Antigravity is the primary execution agent responsible for high-fidelity code im
   - Postgres database management (Self-hosted/SQL).
   - Nginx reverse proxy configuration.
   - Complex codebase navigation and semantic search.
-  - Advanced Financial Reporting (IRS Compliance, Operational Health, Financial Intelligence).
-  - Integration with Gemini AI SDK for advanced financial analysis.
+  - **Custom Branding**: Implementation of the new GraceGiver logo and favicon system.
+  - **Advanced Financial Reporting**: IRS Compliance, Operational Health, Financial Intelligence.
+  - **Gemini AI Integration**: Advanced financial analysis via the Gemini AI SDK.
   - Environment management and secure credential handling.
   - Integration with local development environments and CLI tools.
 - **Interaction Protocols/APIs**
@@ -117,7 +118,7 @@ To interact with or trigger these agents, follow these simple protocols:
 2. **Architect (Planning)**: Ask for a complex feature or a structural change. I will automatically switch to **Architect** mode and present an `implementation_plan.md` for your approval before I start coding.
 3. **Linter & Security (Guardians)**: These run automatically. When you run `git commit`, our security agent scans for secrets and linting errors. If it finds any, it will prevent the commit to keep the codebase safe.
 4. **Test & QA (Verification)**: After I (Antigravity) finish a task, I will perform verification. You can also explicitly say: _"Verify the latest changes"_ or _"Run the E2E tests"_ to trigger this agent.
-5. **Data Integrity (Validation)**: This runs automatically on form submission. The backend will reject any data that doesn't conform to the standards defined in `validation_standards.md`.
+5. **Data Integrity (Validation)**: This runs automatically on form submission. The backend will reject any data that doesn't conform to the standards defined in `server/validation.js`.
 
 ---
 
