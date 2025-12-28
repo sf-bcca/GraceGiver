@@ -74,7 +74,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: 'Total Giving', value: `$${totalDonations.toLocaleString()}`, sub: '+12% from last month', icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600' },
           { label: 'Total Members', value: members.length, sub: '2 new this week', icon: Users, color: 'bg-blue-50 text-blue-600' },
@@ -111,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
       )}
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h3 className="text-lg font-bold text-slate-800 mb-6">Giving by Fund</h3>
           <div className="h-[300px] w-full">
