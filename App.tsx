@@ -16,7 +16,7 @@ const UserManagement = React.lazy(() => import('./components/UserManagement'));
 const VolunteerMatching = React.lazy(() => import('./components/VolunteerMatching'));
 const StewardshipPortal = React.lazy(() => import('./components/StewardshipPortal'));
 
-import { fetchMembers, fetchDonations, createMember, createDonation, fetchDonationSummary } from './src/lib/api';
+import { fetchMembers, fetchDonations, createMember, createDonation, fetchDonationSummary, fetchSettings, updateSettings } from './src/lib/api';
 
 const App: React.FC = () => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -85,15 +85,38 @@ const App: React.FC = () => {
       loadData();
     }
   }, [view, token, loadData]);
-  
-  // Initialize with requested church name
+
   const [churchSettings, setChurchSettings] = useState<ChurchSettings>({
-    name: 'Mt. Herman A.M.E. Church',
-    address: '123 Main St, Anytown, ST 12345',
-    phone: '(555) 123-4567',
-    email: 'office@mthermaname.org',
-    taxId: '12-3456789'
+    name: 'GraceGiver',
+    address: '',
+    phone: '',
+    email: '',
+    taxId: ''
   });
+
+  const loadSettings = React.useCallback(async () => {
+    try {
+      const settingsData = await fetchSettings();
+      setChurchSettings(settingsData);
+    } catch (error) {
+      console.error('Failed to load church settings:', error);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const handleUpdateSettings = async (newSettings: ChurchSettings) => {
+    try {
+      const updatedSettings = await updateSettings(newSettings);
+      setChurchSettings(updatedSettings);
+      // Optionally, show a success message to the user
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      // Optionally, show an error message to the user
+    }
+  };
 
   const handleLoginSuccess = (passwordChangeRequired: boolean = false) => {
     setToken(localStorage.getItem('token'));
@@ -151,7 +174,7 @@ const App: React.FC = () => {
             case 'REPORTS':
               return <Reports members={members} donations={donations} churchSettings={churchSettings} />;
             case 'SETTINGS':
-              return <Settings settings={churchSettings} onUpdate={setChurchSettings} onChangePassword={handleOpenPasswordChange} />;
+              return <Settings settings={churchSettings} onUpdate={handleUpdateSettings} onChangePassword={handleOpenPasswordChange} />;
             case 'AUDIT':
               return (
                 <div className="animate-in fade-in duration-500">

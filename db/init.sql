@@ -98,6 +98,26 @@ CREATE INDEX IF NOT EXISTS idx_donations_fund ON donations(fund);
 -- NOTE: Initial Admin User
 -- -----------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------
+-- Settings Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS settings (
+    singleton_id BOOLEAN PRIMARY KEY DEFAULT TRUE,
+    name TEXT NOT NULL,
+    address TEXT,
+    phone TEXT,
+    email TEXT,
+    tax_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT single_row CHECK (singleton_id)
+);
+
+-- Seed initial settings
+INSERT INTO settings (name, address, phone, email, tax_id)
+VALUES ('Mt. Herman A.M.E. Church', '123 Main St, Anytown, ST 12345', '(555) 123-4567', 'office@mthermaname.org', '12-3456789')
+ON CONFLICT (singleton_id) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
 -- Export Logs Table
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS export_logs (

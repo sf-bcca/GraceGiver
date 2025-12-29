@@ -382,11 +382,29 @@ export async function fetchCampaigns() {
   return handleResponse(response);
 }
 
+import { ChurchSettings } from "../../types";
+
 export async function createCampaign(campaign: any) {
   const response = await fetch(`${API_URL}/api/stewardship/campaigns`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(campaign),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchSettings() {
+  const response = await fetch(`${API_URL}/api/settings`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return handleResponse(response);
+}
+
+export async function updateSettings(settings: ChurchSettings) {
+  const response = await fetch(`${API_URL}/api/settings`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(settings),
   });
   return handleResponse(response);
 }

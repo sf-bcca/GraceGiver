@@ -17,7 +17,8 @@ const PERMISSION_HIERARCHY = {
     'members:*',
     'donations:*',
     'reports:*',
-    'settings:read'
+    'settings:read',
+    'settings:write'
   ],
   manager: [
     'members:*',
