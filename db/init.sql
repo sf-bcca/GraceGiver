@@ -97,6 +97,16 @@ CREATE INDEX IF NOT EXISTS idx_donations_fund ON donations(fund);
 -- -----------------------------------------------------------------------------
 -- NOTE: Initial Admin User
 -- -----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
+-- Export Logs Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS export_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    export_type TEXT NOT NULL,
+    filters JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 -- The initial super admin user is NOT created here.
 -- It is automatically created on first application startup via the
 -- bootstrap mechanism in server/bootstrap.js

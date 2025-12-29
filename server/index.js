@@ -292,6 +292,99 @@ app.get(
   }
 );
 
+// ==========================================
+// DATA EXPORT API
+// ==========================================
+const rateLimit = require('express-rate-limit');
+const { Parser } = require("@json2csv/node");
+
+const exportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: 'Too many export requests from this IP, please try again after 15 minutes',
+});
+
+// Helper for streaming data
+const streamData = (res, data, format, filename) => {
+  if (format === 'json') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}.json`);
+    res.send(JSON.stringify(data, null, 2));
+  } else { // csv
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(data);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}.csv`);
+    res.send(csv);
+  }
+};
+
+// Export Donations
+app.get(
+  "/api/export/donations",
+  exportLimiter,
+  authenticateToken,
+  requirePermission("reports:export"),
+  async (req, res) => {
+    const { format = 'csv', startDate, endDate, fund } = req.query;
+    try {
+      let query = "SELECT d.id, m.first_name, m.last_name, m.email, d.amount, d.fund, d.donation_date, d.notes FROM donations d JOIN members m ON d.member_id = m.id";
+      const params = [];
+      const conditions = [];
+      if (startDate && endDate) {
+        conditions.push(`d.donation_date BETWEEN $${params.length + 1} AND $${params.length + 2}`);
+        params.push(startDate, endDate);
+      }
+      if (fund) {
+        conditions.push(`d.fund = $${params.length + 1}`);
+        params.push(fund);
+      }
+      if (conditions.length > 0) {
+        query += " WHERE " + conditions.join(" AND ");
+      }
+      query += " ORDER BY d.donation_date DESC";
+
+      const { rows } = await pool.query(query, params);
+
+      // Audit logging
+      await pool.query(
+        "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
+        [req.user.id, 'donations', { format, startDate, endDate, fund }]
+      );
+
+      streamData(res, rows, format, 'donations_export');
+    } catch (err) {
+      console.error("Donation export error:", err);
+      res.status(500).json({ error: "Failed to export donations" });
+    }
+  }
+);
+
+// Export Members
+app.get(
+  "/api/export/members",
+  exportLimiter,
+  authenticateToken,
+  requirePermission("reports:export"),
+  async (req, res) => {
+    const { format = 'csv' } = req.query;
+    try {
+      const { rows } = await pool.query("SELECT id, first_name, last_name, email, telephone, address, city, state, zip, joined_at FROM members ORDER BY last_name, first_name");
+
+      // Audit logging
+      await pool.query(
+        "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
+        [req.user.id, 'members', { format }]
+      );
+
+      streamData(res, rows, format, 'members_export');
+    } catch (err) {
+      console.error("Member export error:", err);
+      res.status(500).json({ error: "Failed to export members" });
+    }
+  }
+);
+
 app.get(
   "/api/members/:id",
   authenticateToken,
