@@ -26,9 +26,20 @@ const Reports: React.FC<ReportsProps> = ({ members, donations, churchSettings })
   const [modalLoading, setModalLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editEmail, setEditEmail] = useState('');
+  const [exportType, setExportType] = useState<'donations' | 'members'>('donations');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportFund, setExportFund] = useState('');
 
   // Chart colors for Recharts
   const COLORS = ['#4f46e5', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1'];
+
+  const getUniqueFunds = () => {
+    const funds = new Set(donations.map(d => d.fund));
+    return Array.from(funds);
+  };
 
   // Generate range from 2022 to the current year
   const reportingYears = Array.from(
@@ -155,6 +166,18 @@ const Reports: React.FC<ReportsProps> = ({ members, donations, churchSettings })
       }
     } else {
       alert(`${reportName} is not yet implemented.`);
+    }
+  };
+
+  const handleDataExport = async () => {
+    setIsExporting(true);
+    try {
+      await api.exportData(exportType, exportFormat, exportStartDate, exportEndDate, exportFund);
+    } catch (err: any) {
+      console.error('Export error:', err);
+      alert(err.message || 'Failed to export data');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -287,6 +310,53 @@ const Reports: React.FC<ReportsProps> = ({ members, donations, churchSettings })
                   <Download size={16} className="text-slate-400" />
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 className="font-bold text-slate-800 mb-4">Export Data</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Report Type</label>
+                <select value={exportType} onChange={(e) => setExportType(e.target.value as any)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900">
+                  <option value="donations">Donation History</option>
+                  <option value="members">Member List</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Format</label>
+                <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value as any)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900">
+                  <option value="csv">CSV</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Fund</label>
+                <select value={exportFund} onChange={(e) => setExportFund(e.target.value)} disabled={exportType === 'members'} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900">
+                  <option value="">All Funds</option>
+                  {getUniqueFunds().map(fund => (
+                    <option key={fund} value={fund}>{fund}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Start Date</label>
+                  <input type="date" value={exportStartDate} onChange={(e) => setExportStartDate(e.target.value)} disabled={exportType === 'members'} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">End Date</label>
+                  <input type="date" value={exportEndDate} onChange={(e) => setExportEndDate(e.target.value)} disabled={exportType === 'members'} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900" />
+                </div>
+              </div>
+              <button onClick={handleDataExport} disabled={isExporting} className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50">
+                {isExporting ? 'Exporting...' : (
+                  <>
+                    <Download size={16} />
+                    Download Export
+                  </>
+                )}
+              </button>
             </div>
           </div>
 

@@ -10,19 +10,19 @@ This document outlines the roles, responsibilities, and interaction protocols fo
 Antigravity is the primary execution agent responsible for high-fidelity code implementation, refactoring, and real-time debugging within the workspace.
 
 - **Key Capabilities/Skills**
+
   - Full-stack development (TypeScript, React, Node.js).
   - Docker & Docker Compose orchestration.
   - Postgres database management (Self-hosted/SQL).
   - Nginx reverse proxy configuration.
   - Complex codebase navigation and semantic search.
   - **Custom Branding**: Implementation of the new GraceGiver logo and favicon system.
-  - **Advanced Financial Reporting**: IRS Compliance, Operational Health, Financial Intelligence.
-  - **GraceForecast**: Predictive retention engine with AI-powered "Nudge" interventions.
-  - **ServantHeart**: AI-integrated volunteer and talent matching registry.
-  - **CommunityBridge**: Transparent stewardship portals and campaign tracking.
-  - **Gemini AI Integration**: Advanced narrative financial analysis and talent matching.
+  - **Stewardship Intelligence**: AI-powered financial narrative analysis (Gemini), retention enginge (GraceForecast), and historical stewardship tracking.
+  - **Secure AI Integration**: Backend-only Gemini API handling for enhanced credential safety.
+
   - Environment management and secure credential handling.
   - Integration with local development environments and CLI tools.
+
 - **Interaction Protocols/APIs**
   - Directly interacts via the agentic toolset (file I/O, shell execution, browser automation).
 - **Expected Inputs and Outputs**
@@ -169,30 +169,35 @@ The system implements a 5-tier role hierarchy:
 | Role          | Description                                  |
 | ------------- | -------------------------------------------- |
 | `super_admin` | Full system access including user management |
-| `admin`       | User management and all data operations      |
-| `manager`     | Reports and member/donation management       |
+| `admin`       | User management, settings, data operations   |
+| `manager`     | Reports, member/donation management, export  |
+| `auditor`     | Global read-only access (all data)           |
 | `data_entry`  | Create and edit members and donations        |
-| `viewer`      | Read-only access                             |
+| `viewer`      | **Self-Service**: Personal read-only access  |
 
-Roles are seeded in `db/init.sql` and enforced via `server/rbac.js` middleware.
+Roles are seeded in `db/init.sql` and enforced via `server/rbac.js` middleware. Permissions include `settings:read`, `settings:write`, and `reports:export` for authorized roles.
 
 ### Database Schema
 
 The system uses PostgreSQL with the following core entities (`db/init.sql`):
 
 - **Users**: Admin access management with security fields.
-  - Columns: `id`, `username`, `password_hash`, `email`, `role`, `must_change_password`, `password_changed_at`, `password_history`, `failed_login_attempts`, `locked_until`, `last_login_at`, `created_at`, `updated_at`.
+  - Columns: `id`, `username`, `password_hash`, `email`, `role`, `member_id`, `must_change_password`, `password_changed_at`, `password_history`, `failed_login_attempts`, `locked_until`, `last_login_at`, `created_at`, `updated_at`.
 - **Roles**: Role definitions with JSON permissions array.
 - **Members**: Parishioner records.
-  - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `telephone` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `skills` (text[]), `interests` (text[]), `created_at` (timestamptz).
+  - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `telephone` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `skills` (text[]), `interests` (text[]), `joined_at` (timestamptz), `created_at` (timestamptz).
 - **Donations**: Financial records linked to Members.
   - Columns: `id` (serial), `member_id` (text), `amount` (numeric), `fund` (text), `notes` (text), `entered_by` (text), `donation_date` (timestamptz).
+- **Settings**: Global application settings.
+  - Columns: `singleton_id` (boolean), `name`, `address`, `phone`, `email`, `tax_id`.
+- **Export Logs**: Audit trail for data exports.
+  - Columns: `id` (serial), `user_id`, `export_type`, `filters` (jsonb), `created_at`.
 - **Ministry Opportunities**: Roles for volunteers (`ServantHeart`).
-  - Columns: `id` (serial), `title`, `description`, `required_skills` (text[]), `status` (active/filled).
+  - Columns: `id` (serial), `title`, `description`, `required_skills` (text[]), `status` (open/filled/closed).
 - **Fund Campaigns**: Stewardship goals (`CommunityBridge`).
   - Columns: `id` (serial), `fund_name`, `title`, `description`, `goal_amount`, `current_amount`, `is_active`.
   - _Cascade Delete_: Deleting a Member automatically deletes their Donations.
-  - _Indexes_: `donation_date`, `fund`, `member_id`.
+  - _Indexes_: `donation_date`, `fund`, `member_id`, `skills`, `interests`.
 
 ### API Structure
 
@@ -214,21 +219,26 @@ RESTful endpoints provided by `server/index.js`:
   - `GET /api/roles`: Get assignable roles for current user.
 - **Reporting & Intelligence**:
   - `GET /api/reports/statements?year=YYYY`: Batch PDF Annual Statements.
-  - `GET /api/reports/export?year=YYYY`: Full Transaction Log (CSV).
+  - `GET /api/export/donations?format=csv|json`: Secure transaction export with audit logging.
+  - `GET /api/export/members?format=csv|json`: Secure member list export with audit logging.
   - `GET /api/reports/missing-emails`: Members without email addresses.
   - `GET /api/reports/fund-distribution?year=YYYY`: Pie chart data for fund allocation.
   - `GET /api/reports/quarterly-progress?year=YYYY`: Year-over-year quarterly trends.
   - `GET /api/reports/trend-analysis`: 3-year historical bar chart data.
-  - `GET /api/forecast/at-risk`: AI retention engine data.
+  - `GET /api/members/:id/report`: Individual Member Report (JSON).
+  - `GET /api/members/:id/report/pdf`: Individual Member Report (PDF).
+- **Settings** (admin+ only):
+  - `GET /api/settings`: Fetch application-wide settings.
+  - `PUT /api/settings`: Update church information (name, address, tax_id, etc.).
 - **ServantHeart (Volunteers)**:
-  - `GET /api/members/:id/skills`: Get/Update member skills/interests.
-  - `GET /api/opportunities`: List/Create ministry roles.
+  - `GET /api/members/:id/skills`: Get member skills/interests.
+  - `PUT /api/members/:id/skills`: Update member skills/interests.
+  - `GET /api/opportunities`: List ministry roles.
   - `GET /api/opportunities/:id/matches`: AI-powered volunteer matching.
-- **CommunityBridge (Stewardship)**:
-  - `GET /api/stewardship/campaigns`: Public goal progress and campaign lists.
-  - `POST /api/stewardship/campaigns`: Admin management for campaigns.
-- **Validation**: Enforced via `server/validation.js` before database insertion.
-- **RBAC**: All routes protected via `server/rbac.js` middleware.
+- **Intelligence & AI**:
+  - `POST /api/ai/stewardship-insight`: Secure backend Gemini analysis.
+  - `GET /api/donations/summary`: Real-time dashboard stats with historical growth metrics (MoM, WoW).
+  - `GET /api/forecast/at-risk`: AI retention engine data.
 
 ### Initial Credentials
 

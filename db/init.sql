@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS members (
     state TEXT,
     zip TEXT,
     family_id TEXT,
+    joined_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -96,6 +97,36 @@ CREATE INDEX IF NOT EXISTS idx_donations_fund ON donations(fund);
 -- -----------------------------------------------------------------------------
 -- NOTE: Initial Admin User
 -- -----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
+-- Settings Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS settings (
+    singleton_id BOOLEAN PRIMARY KEY DEFAULT TRUE,
+    name TEXT NOT NULL,
+    address TEXT,
+    phone TEXT,
+    email TEXT,
+    tax_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT single_row CHECK (singleton_id)
+);
+
+-- Seed initial settings
+INSERT INTO settings (name, address, phone, email, tax_id)
+VALUES ('Mt. Herman A.M.E. Church', '123 Main St, Anytown, ST 12345', '(555) 123-4567', 'office@mthermaname.org', '12-3456789')
+ON CONFLICT (singleton_id) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
+-- Export Logs Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS export_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    export_type TEXT NOT NULL,
+    filters JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 -- The initial super admin user is NOT created here.
 -- It is automatically created on first application startup via the
 -- bootstrap mechanism in server/bootstrap.js

@@ -35,6 +35,7 @@ function mapMember(row: any) {
     state: row.state,
     zip: row.zip,
     familyId: row.family_id,
+    joinedAt: row.joined_at,
     createdAt: row.created_at,
   };
 }
@@ -139,6 +140,53 @@ export async function deleteMember(id: string) {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
+}
+
+export async function exportData(type: 'donations' | 'members', format: 'csv' | 'json', startDate?: string, endDate?: string, fund?: string) {
+  let url = `${API_URL}/api/export/${type}?format=${format}`;
+  if (type === 'donations' && startDate && endDate) {
+    url += `&startDate=${startDate}&endDate=${endDate}`;
+  }
+  if (type === 'donations' && fund) {
+    url += `&fund=${fund}`;
+  }
+  const response = await fetch(url, { headers: getAuthHeaders() });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || `Failed to export ${type}`);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `${type}_export_${new Date().toISOString().split('T')[0]}.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  a.remove();
+}
+
+export async function fetchMemberReport(id: string) {
+  const response = await fetch(`${API_URL}/api/members/${id}/report`, {
+    headers: getAuthHeaders(),
+  });
+  const data = await handleResponse(response);
+  return data;
+}
+
+export async function downloadMemberReportPDF(id: string) {
+  const response = await fetch(`${API_URL}/api/members/${id}/report/pdf`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to generate PDF");
+  }
+
+  return response.blob();
 }
 
 export async function fetchDonations(page = 1, limit = 50) {
@@ -334,11 +382,29 @@ export async function fetchCampaigns() {
   return handleResponse(response);
 }
 
+import { ChurchSettings } from "../../types";
+
 export async function createCampaign(campaign: any) {
   const response = await fetch(`${API_URL}/api/stewardship/campaigns`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(campaign),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchSettings() {
+  const response = await fetch(`${API_URL}/api/settings`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return handleResponse(response);
+}
+
+export async function updateSettings(settings: ChurchSettings) {
+  const response = await fetch(`${API_URL}/api/settings`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(settings),
   });
   return handleResponse(response);
 }

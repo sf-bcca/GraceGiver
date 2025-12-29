@@ -2,13 +2,14 @@ export interface Member {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   telephone?: string;
   address: string;
   city: string;
   state: string;
   zip: string;
   familyId?: string;
+  joinedAt?: string;
   createdAt: string;
 }
 

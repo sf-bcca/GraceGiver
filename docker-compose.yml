@@ -38,6 +38,11 @@ services:
       
       # Node environment
       NODE_ENV: ${NODE_ENV:-production}
+      
+      # AI Features (Gemini)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - ./db:/db
     depends_on:
       - db
 

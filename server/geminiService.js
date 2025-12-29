@@ -1,8 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
-import { Donation, Member } from "./types";
+const { GoogleGenAI } = require("@google/genai");
 
-// Fixed: Instantiate lazily to prevent boot crash if key is missing
-let genAI: any = null;
+// Instantiate lazily to prevent boot crash if key is missing
+let genAI = null;
 
 const getAIClient = () => {
   if (genAI) return genAI;
@@ -13,27 +12,30 @@ const getAIClient = () => {
     return null;
   }
   
-  // Use the correct constructor format: { apiKey: string }
   genAI = new GoogleGenAI({ apiKey });
   return genAI;
 };
 
-export const getFinancialSummary = async (donations: Donation[], members: Member[]) => {
+const getFinancialSummary = async (donations, members) => {
   const ai = getAIClient();
   if (!ai) return "AI analysis is currently unavailable (missing API Key).";
+
+  const totalAmount = donations.reduce((sum, d) => sum + parseFloat(d.amount), 0);
+  const donorCount = new Set(donations.map(d => d.member_id || d.memberId)).size;
 
   const promptText = `
     Analyze the following church donation data and provide a concise strategic summary for the board.
     
-    Total Donations: ${donations.reduce((sum, d) => sum + d.amount, 0)}
+    Total Donations: $${totalAmount.toLocaleString()}
     Donation Count: ${donations.length}
-    Unique Donors: ${new Set(donations.map(d => d.memberId)).size}
+    Unique Donors: ${donorCount}
     
     Funds breakdown:
-    ${JSON.stringify(donations.reduce((acc: any, d) => {
-      acc[d.fund] = (acc[d.fund] || 0) + d.amount;
+    ${JSON.stringify(donations.reduce((acc, d) => {
+      const fund = d.fund;
+      acc[fund] = (acc[fund] || 0) + parseFloat(d.amount);
       return acc;
-    }, {}))}
+    }, {}), null, 2)}
 
     Please provide:
     1. A brief executive summary.
@@ -53,4 +55,8 @@ export const getFinancialSummary = async (donations: Donation[], members: Member
     console.error("Gemini Error:", error);
     return "Error generating analysis. Please try again later.";
   }
+};
+
+module.exports = {
+  getFinancialSummary
 };
