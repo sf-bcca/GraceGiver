@@ -2,7 +2,7 @@ export interface Member {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   telephone?: string;
   address: string;
   city: string;
