@@ -15,11 +15,12 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 ## 🚀 Features
 
-- **Dashboard:** Real-time visibility into weekly giving, fund distribution, and recent activity.
+- **Dashboard:** Real-time visibility into totals, fund distribution, and **historical growth metrics** (MoM and weekly trends).
 - **Member Directory:** Comprehensive management of church members with contact details and giving history.
 - **Donation Entry:** Fast and secure recording of contributions across multiple funds (General, Building, Missions, etc.).
 - **Advanced Reporting:** Three-phased reporting suite including IRS-compliant PDF statements, CSV exports, operational health reports, and financial intelligence charts (powered by Recharts).
-- **AI Financial Insights:** Integration with Gemini AI for advanced narrative analysis of giving trends and financial health (requires API key).
+- **AI Financial Insights:** Secure integration with Gemini AI for advanced narrative analysis of giving trends and financial health (backend-processed for security).
+
 - **Enterprise Security:**
   - 🔐 JWT-based authentication with configurable expiry
   - 🛡️ 6-tier Role-Based Access Control (RBAC)
@@ -167,7 +168,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ## 🆘 Support
 
 - **Issues:** Report bugs or request features via [GitHub Issues](https://github.com/your-repo/gracegiver/issues).
-- **Email:** Contact the maintainers at [support@mthermaname.org](mailto:support@mthermaname.org).
+- **Email:** Contact the maintainers at [shedrick@shedrickflowers.com](mailto:shedrick@shedrickflowers.com).
 
 ---
 
