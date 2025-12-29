@@ -94,7 +94,8 @@ function generateToken(user) {
   const payload = {
     id: user.id,
     username: user.username,
-    role: user.role || 'viewer' // Default to least privilege
+    role: user.role || 'viewer', // Default to least privilege
+    memberId: user.member_id // Include member linkage if available
   };
 
   return jwt.sign(payload, SECRET, { expiresIn: JWT_EXPIRY });

@@ -171,8 +171,9 @@ The system implements a 5-tier role hierarchy:
 | `super_admin` | Full system access including user management |
 | `admin`       | User management and all data operations      |
 | `manager`     | Reports and member/donation management       |
+| `auditor`     | Global read-only access (all data)           |
 | `data_entry`  | Create and edit members and donations        |
-| `viewer`      | Read-only access                             |
+| `viewer`      | **Self-Service**: Personal read-only access  |
 
 Roles are seeded in `db/init.sql` and enforced via `server/rbac.js` middleware.
 
@@ -181,7 +182,7 @@ Roles are seeded in `db/init.sql` and enforced via `server/rbac.js` middleware.
 The system uses PostgreSQL with the following core entities (`db/init.sql`):
 
 - **Users**: Admin access management with security fields.
-  - Columns: `id`, `username`, `password_hash`, `email`, `role`, `must_change_password`, `password_changed_at`, `password_history`, `failed_login_attempts`, `locked_until`, `last_login_at`, `created_at`, `updated_at`.
+  - Columns: `id`, `username`, `password_hash`, `email`, `role`, `member_id`, `must_change_password`, `password_changed_at`, `password_history`, `failed_login_attempts`, `locked_until`, `last_login_at`, `created_at`, `updated_at`.
 - **Roles**: Role definitions with JSON permissions array.
 - **Members**: Parishioner records.
   - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `telephone` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `skills` (text[]), `interests` (text[]), `joined_at` (timestamptz), `created_at` (timestamptz).
@@ -230,7 +231,7 @@ RESTful endpoints provided by `server/index.js`:
   - `GET /api/stewardship/campaigns`: Public goal progress and campaign lists.
   - `POST /api/stewardship/campaigns`: Admin management for campaigns.
 - **Validation**: Enforced via `server/validation.js` before database insertion.
-- **RBAC**: All routes protected via `server/rbac.js` middleware.
+- **RBAC**: Enforced via `server/rbac.js`. Sensitive routes use `requireScopedPermission` to restrict `viewer` roles to their own records via the `member_id` linkage.
 
 ### Initial Credentials
 

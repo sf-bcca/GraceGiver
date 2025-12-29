@@ -15,6 +15,7 @@ interface User {
   lockedUntil: string | null;
   failedAttempts: number;
   mustChangePassword: boolean;
+  memberId: string | null;
 }
 
 interface Role {
@@ -47,7 +48,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   
   // Form states
-  const [newUser, setNewUser] = useState({ username: '', password: '', email: '', role: 'viewer' });
+  const [newUser, setNewUser] = useState({ username: '', password: '', email: '', role: 'viewer', memberId: '' });
   const [newPassword, setNewPassword] = useState('');
 
   const getToken = () => localStorage.getItem('token');
@@ -105,7 +106,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
       }
       
       setShowCreateModal(false);
-      setNewUser({ username: '', password: '', email: '', role: 'viewer' });
+      setNewUser({ username: '', password: '', email: '', role: 'viewer', memberId: '' });
       fetchUsers();
     } catch (err: any) {
       setError(err.message);
@@ -122,14 +123,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
     if (!editingUser) return;
 
     try {
-      const { id, username, email, role } = editingUser;
+      const { id, username, email, role, memberId } = editingUser;
       const res = await fetch(`/api/users/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getToken()}`
         },
-        body: JSON.stringify({ username, email, role })
+        body: JSON.stringify({ username, email, role, memberId })
       });
 
       if (!res.ok) {
@@ -424,6 +425,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
                   ))}
                 </select>
               </div>
+              {newUser.role === 'viewer' && (
+                <div className="animate-in slide-in-from-top-2 duration-200">
+                  <label className="block text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Linked Member ID</label>
+                  <input
+                    type="text"
+                    value={newUser.memberId}
+                    onChange={(e) => setNewUser({ ...newUser, memberId: e.target.value })}
+                    className="w-full px-4 py-3 border border-indigo-200 bg-indigo-50/30 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="e.g. mb-123"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Required for Viewers to see their own records.</p>
+                </div>
+              )}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -486,6 +500,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
                   ))}
                 </select>
               </div>
+              {editingUser.role === 'viewer' && (
+                <div className="animate-in slide-in-from-top-2 duration-200">
+                  <label className="block text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Linked Member ID</label>
+                  <input
+                    type="text"
+                    value={editingUser.memberId || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, memberId: e.target.value })}
+                    className="w-full px-4 py-3 border border-indigo-200 bg-indigo-50/30 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="e.g. mb-123"
+                  />
+                </div>
+              )}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"

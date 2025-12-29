@@ -14,7 +14,7 @@ const {
   checkPasswordExpiry,
   getPasswordPolicy,
 } = require("./passwordPolicy");
-const { requirePermission, requireRole, getRoleInfo } = require("./rbac");
+const { requirePermission, requireScopedPermission, requireRole, getRoleInfo } = require("./rbac");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -234,7 +234,7 @@ app.post("/api/auth/validate-password", (req, res) => {
 app.get(
   "/api/members",
   authenticateToken,
-  requirePermission("members:read"),
+  requireScopedPermission("members:read", "member"),
   async (req, res) => {
     const { page = 1, limit = 50, search = "" } = req.query;
     const offset = (page - 1) * limit;
@@ -244,13 +244,22 @@ app.get(
       let query = "SELECT * FROM members";
       let countQuery = "SELECT COUNT(*) FROM members";
       const params = [];
+      const whereClauses = [];
 
       if (search) {
-        query +=
-          " WHERE first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1";
-        countQuery +=
-          " WHERE first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1";
+        whereClauses.push(`(first_name ILIKE $${params.length + 1} OR last_name ILIKE $${params.length + 1} OR email ILIKE $${params.length + 1})`);
         params.push(`%${search}%`);
+      }
+
+      if (req.scopedToOwn && req.user.memberId) {
+        whereClauses.push(`id = $${params.length + 1}`);
+        params.push(req.user.memberId);
+      }
+
+      if (whereClauses.length > 0) {
+        const whereString = " WHERE " + whereClauses.join(" AND ");
+        query += whereString;
+        countQuery += whereString;
       }
 
       query += ` ORDER BY last_name, first_name LIMIT $${
@@ -433,7 +442,7 @@ app.get(
 app.get(
   "/api/members/:id",
   authenticateToken,
-  requirePermission("members:read"),
+  requireScopedPermission("members:read", "member", (req) => req.params.id),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -593,7 +602,7 @@ app.put(
 app.get(
   "/api/members/:id/skills",
   authenticateToken,
-  requirePermission("members:read"),
+  requireScopedPermission("members:read", "member", (req) => req.params.id),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -661,20 +670,35 @@ app.delete(
 app.get(
   "/api/donations",
   authenticateToken,
-  requirePermission("donations:read"),
+  requireScopedPermission("donations:read", "donation"),
   async (req, res) => {
     const { page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
 
     try {
-      const countQuery = "SELECT COUNT(*) FROM donations";
-      const query =
-        "SELECT * FROM donations ORDER BY donation_date DESC LIMIT $1 OFFSET $2";
+      let countQuery = "SELECT COUNT(*) FROM donations";
+      let query = "SELECT * FROM donations";
+      const params = [];
+      const whereClauses = [];
 
-      const countResult = await pool.query(countQuery);
+      if (req.scopedToOwn && req.user.memberId) {
+        whereClauses.push(`member_id = $${params.length + 1}`);
+        params.push(req.user.memberId);
+      }
+
+      if (whereClauses.length > 0) {
+        const whereString = " WHERE " + whereClauses.join(" AND ");
+        query += whereString;
+        countQuery += whereString;
+      }
+
+      query += ` ORDER BY donation_date DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+      const countResult = await pool.query(countQuery, params);
       const total = parseInt(countResult.rows[0].count);
 
-      const result = await pool.query(query, [limit, offset]);
+      params.push(limit, offset);
+      const result = await pool.query(query, params);
 
       res.json({
         data: result.rows.map((row) => ({
@@ -705,17 +729,22 @@ app.get(
 app.get(
   "/api/donations/summary",
   authenticateToken,
-  requirePermission("donations:read"),
+  requireScopedPermission("donations:read", "donation"),
   async (req, res) => {
     try {
-      const summaryQuery = `
+      let summaryQuery = `
       SELECT
         SUM(amount) as total,
         COUNT(*) as count,
         COUNT(DISTINCT member_id) as donor_count
       FROM donations
     `;
-      const { rows } = await pool.query(summaryQuery);
+      const params = [];
+      if (req.scopedToOwn && req.user.memberId) {
+        summaryQuery += " WHERE member_id = $1";
+        params.push(req.user.memberId);
+      }
+      const { rows } = await pool.query(summaryQuery, params);
       const { total, count, donor_count } = rows[0];
 
       const totalDonations = parseFloat(total) || 0;
@@ -750,6 +779,13 @@ app.get(
         return res.status(404).json({ error: "Donation not found" });
       }
       const row = result.rows[0];
+
+      // Ownership check for non-global actors
+      if (!hasPermission(req.user.role, "donations:read") && 
+          hasPermission(req.user.role, "donations:read:own") &&
+          row.member_id !== req.user.memberId) {
+        return res.status(403).json({ error: "Access denied to this donation" });
+      }
       res.json({
         id: row.id.toString(),
         memberId: row.member_id,
@@ -1192,7 +1228,7 @@ const { canManageRole } = require("./rbac");
 app.get(
   "/api/members/:id/report",
   authenticateToken,
-  requirePermission("reports:read"),
+  requireScopedPermission("reports:read", "member", (req) => req.params.id),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -1275,7 +1311,7 @@ app.get(
 app.get(
   "/api/members/:id/report/pdf",
   authenticateToken,
-  requirePermission("reports:read"),
+  requireScopedPermission("reports:read", "member", (req) => req.params.id),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -1304,7 +1340,7 @@ app.get(
     try {
       const result = await pool.query(`
       SELECT 
-        id, username, role, email,
+        id, username, role, email, member_id,
         created_at, last_login_at,
         failed_login_attempts, locked_until,
         must_change_password
@@ -1318,6 +1354,7 @@ app.get(
           username: user.username,
           role: user.role,
           email: user.email,
+          memberId: user.member_id,
           createdAt: user.created_at,
           lastLoginAt: user.last_login_at,
           isLocked:
@@ -1340,7 +1377,7 @@ app.post(
   authenticateToken,
   requirePermission("users:write"),
   async (req, res) => {
-    const { username, password, role, email } = req.body;
+    const { username, password, role, email, memberId } = req.body;
 
     if (!username || !password) {
       return res
@@ -1380,11 +1417,11 @@ app.post(
 
       const result = await pool.query(
         `
-      INSERT INTO users (username, password_hash, role, email, must_change_password)
-      VALUES ($1, $2, $3, $4, true)
-      RETURNING id, username, role, email, created_at, must_change_password
+      INSERT INTO users (username, password_hash, role, email, must_change_password, member_id)
+      VALUES ($1, $2, $3, $4, true, $5)
+      RETURNING id, username, role, email, created_at, must_change_password, member_id
     `,
-        [username, passwordHash, requestedRole, email || null]
+        [username, passwordHash, requestedRole, email || null, memberId || null]
       );
 
       console.log(
@@ -1413,7 +1450,7 @@ app.put(
   requirePermission("users:write"),
   async (req, res) => {
     const { id } = req.params;
-    const { username, role, email } = req.body;
+    const { username, role, email, memberId } = req.body;
 
     // Prevent self-demotion or changing own username in this endpoint
     if (
@@ -1479,6 +1516,10 @@ app.put(
       if (email !== undefined) {
         updates.push(`email = $${paramCount++}`);
         values.push(email || null);
+      }
+      if (memberId !== undefined) {
+        updates.push(`member_id = $${paramCount++}`);
+        values.push(memberId || null);
       }
 
       if (updates.length === 0) {
