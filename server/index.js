@@ -296,7 +296,6 @@ app.get(
 // DATA EXPORT API
 // ==========================================
 const rateLimit = require('express-rate-limit');
-const { Parser } = require("@json2csv/node");
 
 const exportLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -304,20 +303,9 @@ const exportLimiter = rateLimit({
   message: 'Too many export requests from this IP, please try again after 15 minutes',
 });
 
-// Helper for streaming data
-const streamData = (res, data, format, filename) => {
-  if (format === 'json') {
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}.json`);
-    res.send(JSON.stringify(data, null, 2));
-  } else { // csv
-    const json2csvParser = new Parser();
-    const csv = json2csvParser.parse(data);
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}.csv`);
-    res.send(csv);
-  }
-};
+const { stringify } = require('csv-stringify');
+
+const QueryStream = require('pg-query-stream');
 
 // Export Donations
 app.get(
@@ -327,8 +315,9 @@ app.get(
   requirePermission("reports:export"),
   async (req, res) => {
     const { format = 'csv', startDate, endDate, fund } = req.query;
+
     try {
-      let query = "SELECT d.id, m.first_name, m.last_name, m.email, d.amount, d.fund, d.donation_date, d.notes FROM donations d JOIN members m ON d.member_id = m.id";
+      let queryText = "SELECT d.id, m.first_name, m.last_name, m.email, d.amount, d.fund, d.donation_date, d.notes FROM donations d JOIN members m ON d.member_id = m.id";
       const params = [];
       const conditions = [];
       if (startDate && endDate) {
@@ -340,22 +329,50 @@ app.get(
         params.push(fund);
       }
       if (conditions.length > 0) {
-        query += " WHERE " + conditions.join(" AND ");
+        queryText += " WHERE " + conditions.join(" AND ");
       }
-      query += " ORDER BY d.donation_date DESC";
-
-      const { rows } = await pool.query(query, params);
+      queryText += " ORDER BY d.donation_date DESC";
 
       // Audit logging
-      await pool.query(
+      pool.query(
         "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
         [req.user.id, 'donations', { format, startDate, endDate, fund }]
-      );
+      ).catch(err => console.error("Audit log failed:", err));
 
-      streamData(res, rows, format, 'donations_export');
+      if (format === 'json') {
+        const { rows } = await pool.query(queryText, params);
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=donations_export.json');
+        return res.json(rows);
+      }
+
+      // Handle CSV streaming
+      const client = await pool.connect();
+      const queryStream = new QueryStream(queryText, params);
+      const stream = client.query(queryStream);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=donations_export.csv');
+
+      const stringifier = stringify({ header: true });
+      stream.pipe(stringifier).pipe(res);
+
+      stream.on('end', () => client.release());
+      stream.on('error', (err) => {
+        console.error("Donation export stream error:", err);
+        client.release();
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to export donations" });
+        } else {
+          res.end();
+        }
+      });
+
     } catch (err) {
-      console.error("Donation export error:", err);
-      res.status(500).json({ error: "Failed to export donations" });
+      console.error("Donation export setup error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to export donations" });
+      }
     }
   }
 );
@@ -368,19 +385,47 @@ app.get(
   requirePermission("reports:export"),
   async (req, res) => {
     const { format = 'csv' } = req.query;
-    try {
-      const { rows } = await pool.query("SELECT id, first_name, last_name, email, telephone, address, city, state, zip, joined_at FROM members ORDER BY last_name, first_name");
+    const queryText = "SELECT id, first_name, last_name, email, telephone, address, city, state, zip, joined_at FROM members ORDER BY last_name, first_name";
 
+    try {
       // Audit logging
-      await pool.query(
+      pool.query(
         "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
         [req.user.id, 'members', { format }]
-      );
+      ).catch(err => console.error("Audit log for member export failed:", err));
 
-      streamData(res, rows, format, 'members_export');
+      if (format === 'json') {
+        const { rows } = await pool.query(queryText);
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=members_export.json');
+        return res.json(rows);
+      }
+
+      const client = await pool.connect();
+      const queryStream = new QueryStream(queryText);
+      const stream = client.query(queryStream);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=members_export.csv');
+
+      const stringifier = stringify({ header: true });
+      stream.pipe(stringifier).pipe(res);
+
+      stream.on('end', () => client.release());
+      stream.on('error', (err) => {
+        console.error("Member export stream error:", err);
+        client.release();
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to export members" });
+        } else {
+          res.end();
+        }
+      });
     } catch (err) {
-      console.error("Member export error:", err);
-      res.status(500).json({ error: "Failed to export members" });
+      console.error("Member export setup error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to export members" });
+      }
     }
   }
 );
