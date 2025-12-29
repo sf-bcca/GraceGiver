@@ -15,6 +15,8 @@ const {
   getPasswordPolicy,
 } = require("./passwordPolicy");
 const { requirePermission, requireScopedPermission, requireRole, getRoleInfo } = require("./rbac");
+const { getFinancialSummary } = require("./geminiService");
+
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -764,6 +766,28 @@ app.get(
     }
   }
 );
+
+// stewardship insight
+app.post(
+  "/api/ai/stewardship-insight",
+  authenticateToken,
+  requirePermission("reports:read"),
+  async (req, res) => {
+    try {
+      const { donations, members } = req.body;
+      if (!donations || !members) {
+        return res.status(400).json({ error: "Donations and members are required" });
+      }
+
+      const insight = await getFinancialSummary(donations, members);
+      res.json({ insight });
+    } catch (err) {
+      console.error("AI Insight error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
 
 app.get(
   "/api/donations/:id",

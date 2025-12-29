@@ -24,7 +24,7 @@ import {
   PieChart,
   Pie
 } from 'recharts';
-import { getFinancialSummary } from '../geminiService';
+
 
 interface DashboardProps {
   members: Member[];
@@ -75,10 +75,32 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
 
   const handleGenerateInsight = async () => {
     setLoadingAi(true);
-    const insight = await getFinancialSummary(donations, members);
-    setAiInsight(insight);
-    setLoadingAi(false);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/ai/stewardship-insight`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ donations, members })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAiInsight(data.insight);
+      } else {
+        const errorData = await response.json();
+        setAiInsight(`Error: ${errorData.error || 'Failed to generate insight'}`);
+      }
+    } catch (error) {
+      console.error("AI Insight Error:", error);
+      setAiInsight("AI analysis is currently unavailable. Please try again later.");
+    } finally {
+      setLoadingAi(false);
+    }
   };
+
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
