@@ -20,6 +20,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import MemberReportModal from "./MemberReportModal";
+import { formatPhoneNumber, cleanInput } from "../src/lib/utils";
 
 const REGEX = {
   EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -114,22 +115,6 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const cleanInput = (field: string, value: string) => {
-    switch (field) {
-      case "state":
-        return value
-          .toUpperCase()
-          .replace(/[^A-Z]/g, "")
-          .slice(0, 2);
-      case "zip":
-        return value.replace(/[^\d-]/g, "").slice(0, 10);
-      case "telephone":
-        return value.replace(/[^\d+]/g, "").slice(0, 15);
-      default:
-        return value;
-    }
   };
 
   const handleEditClick = (member: Member) => {
@@ -307,7 +292,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 Name
               </th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Email
+                Contact
               </th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Address
@@ -351,10 +336,16 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                    <div className="flex items-center gap-2 text-slate-600 text-sm mb-1">
                       <Mail size={14} />
                       {member.email}
                     </div>
+                    {member.telephone && (
+                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                      <Phone size={14} />
+                        {formatPhoneNumber(member.telephone)}
+                    </div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-slate-600 leading-tight">
@@ -444,7 +435,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
               {member.telephone && (
                 <div className="flex items-center gap-2">
                   <Phone size={14} className="text-slate-400" />{" "}
-                  {member.telephone}
+                  {formatPhoneNumber(member.telephone)}
                 </div>
               )}
             </div>
