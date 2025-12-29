@@ -1808,6 +1808,73 @@ app.get(
   }
 );
 
+// ==========================================
+// SETTINGS API
+// ==========================================
+
+// Get current settings (publicly accessible)
+app.get("/api/settings", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT name, address, phone, email, tax_id FROM settings WHERE singleton_id = true");
+    if (result.rows.length === 0) {
+      // This should ideally not happen if seeding works
+      return res.status(404).json({ error: "Settings not found" });
+    }
+    const settings = result.rows[0];
+    res.json({
+      name: settings.name,
+      address: settings.address,
+      phone: settings.phone,
+      email: settings.email,
+      taxId: settings.tax_id
+    });
+  } catch (err) {
+    console.error("Get settings error:", err);
+    res.status(500).json({ error: "Failed to fetch settings" });
+  }
+});
+
+// Update settings (admin only)
+app.put(
+  "/api/settings",
+  authenticateToken,
+  requirePermission("settings:write"),
+  async (req, res) => {
+    const { name, address, phone, email, taxId } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Church name is required" });
+    }
+
+    try {
+      const result = await pool.query(
+        `
+        UPDATE settings
+        SET name = $1, address = $2, phone = $3, email = $4, tax_id = $5, updated_at = NOW()
+        WHERE singleton_id = true
+        RETURNING name, address, phone, email, tax_id
+      `,
+        [name, address, phone, email, taxId]
+      );
+
+      const updatedSettings = result.rows[0];
+
+      console.log(`[AUDIT] Settings updated by ${req.user.username}`);
+
+      res.json({
+        name: updatedSettings.name,
+        address: updatedSettings.address,
+        phone: updatedSettings.phone,
+        email: updatedSettings.email,
+        taxId: updatedSettings.tax_id
+      });
+    } catch (err) {
+      console.error("Update settings error:", err);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  }
+);
+
 // Simple test route to verify routing works
 app.get("/api/test", (req, res) => {
   res.json({ status: "ok", routes: "working" });
