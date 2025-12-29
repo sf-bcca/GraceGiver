@@ -9,6 +9,7 @@ export interface Member {
   state: string;
   zip: string;
   familyId?: string;
+  joinedAt?: string;
   createdAt: string;
 }
 

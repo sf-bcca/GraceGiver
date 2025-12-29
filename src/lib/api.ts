@@ -35,6 +35,7 @@ function mapMember(row: any) {
     state: row.state,
     zip: row.zip,
     familyId: row.family_id,
+    joinedAt: row.joined_at,
     createdAt: row.created_at,
   };
 }
@@ -139,6 +140,27 @@ export async function deleteMember(id: string) {
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
+}
+
+export async function fetchMemberReport(id: string) {
+  const response = await fetch(`${API_URL}/api/members/${id}/report`, {
+    headers: getAuthHeaders(),
+  });
+  const data = await handleResponse(response);
+  return data;
+}
+
+export async function downloadMemberReportPDF(id: string) {
+  const response = await fetch(`${API_URL}/api/members/${id}/report/pdf`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to generate PDF");
+  }
+
+  return response.blob();
 }
 
 export async function fetchDonations(page = 1, limit = 50) {

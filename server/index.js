@@ -240,6 +240,7 @@ app.get(
     const offset = (page - 1) * limit;
 
     try {
+      // Updated to fetch joined_at
       let query = "SELECT * FROM members";
       let countQuery = "SELECT COUNT(*) FROM members";
       const params = [];
@@ -274,6 +275,7 @@ app.get(
           state: row.state,
           zip: row.zip,
           familyId: row.family_id,
+          joinedAt: row.joined_at,
           createdAt: row.created_at,
         })),
         pagination: {
@@ -315,6 +317,7 @@ app.get(
         state: row.state,
         zip: row.zip,
         familyId: row.family_id,
+        joinedAt: row.joined_at,
         createdAt: row.created_at,
       });
     } catch (err) {
@@ -340,6 +343,7 @@ app.post(
       state,
       zip,
       familyId,
+      joinedAt,
     } = req.body;
 
     // High-priority validation check
@@ -362,7 +366,7 @@ app.post(
 
     try {
       const result = await pool.query(
-        "INSERT INTO members (id, first_name, last_name, email, telephone, address, city, state, zip, family_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
+        "INSERT INTO members (id, first_name, last_name, email, telephone, address, city, state, zip, family_id, joined_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
         [
           memberId,
           firstName,
@@ -374,6 +378,7 @@ app.post(
           state,
           zip,
           familyId,
+          joinedAt || null,
         ]
       );
       res.status(201).json(result.rows[0]);
@@ -400,6 +405,7 @@ app.put(
       state,
       zip,
       familyId,
+      joinedAt,
     } = req.body;
 
     const validation = validateMember({
@@ -419,7 +425,7 @@ app.put(
 
     try {
       const result = await pool.query(
-        "UPDATE members SET first_name = $1, last_name = $2, email = $3, telephone = $4, address = $5, city = $6, state = $7, zip = $8, family_id = $9 WHERE id = $10 RETURNING *",
+        "UPDATE members SET first_name = $1, last_name = $2, email = $3, telephone = $4, address = $5, city = $6, state = $7, zip = $8, family_id = $9, joined_at = $10 WHERE id = $11 RETURNING *",
         [
           firstName,
           lastName,
@@ -430,6 +436,7 @@ app.put(
           state,
           zip,
           familyId,
+          joinedAt || null,
           id,
         ]
       );
@@ -691,6 +698,8 @@ const {
   exportTransactions,
   getAtRiskDonors,
 } = require("./reports");
+
+const { generateMemberReportPDF } = require("./reports/memberReport");
 
 console.log("--- REPORT HANDLER TYPES ---");
 console.log("generateBatchStatement:", typeof generateBatchStatement);
@@ -1041,6 +1050,114 @@ app.get(
 const { canManageRole } = require("./rbac");
 
 // List all users (admin+)
+// Get Single Member Report Data (JSON)
+app.get(
+  "/api/members/:id/report",
+  authenticateToken,
+  requirePermission("reports:read"),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      // 1. Fetch Member
+      const memberRes = await pool.query("SELECT * FROM members WHERE id = $1", [id]);
+      if (memberRes.rows.length === 0) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+      const member = memberRes.rows[0];
+
+      // 2. Fetch Aggregates
+      const statsRes = await pool.query(`
+        SELECT
+          COALESCE(SUM(amount), 0) as lifetime_total,
+          MAX(donation_date) as last_donation_date,
+          COUNT(*) as donation_count
+        FROM donations
+        WHERE member_id = $1
+      `, [id]);
+      const stats = statsRes.rows[0];
+
+      // 3. Last Donation Amount
+      const lastDonationRes = await pool.query(`
+        SELECT amount FROM donations
+        WHERE member_id = $1
+        ORDER BY donation_date DESC
+        LIMIT 1
+      `, [id]);
+      const lastDonationAmount = lastDonationRes.rows.length > 0 ? parseFloat(lastDonationRes.rows[0].amount) : 0;
+
+      // 4. Recent Activity
+      const historyRes = await pool.query(`
+        SELECT id, amount, fund, donation_date
+        FROM donations
+        WHERE member_id = $1
+        ORDER BY donation_date DESC
+        LIMIT 20
+      `, [id]);
+
+      // 5. Calculate Tenure
+      let yearsOfMembership = 0;
+      if (member.joined_at) {
+        const joinDate = new Date(member.joined_at);
+        const now = new Date();
+        const diffTime = Math.abs(now - joinDate);
+        yearsOfMembership = parseFloat((diffTime / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1));
+      }
+
+      res.json({
+        member: {
+          id: member.id,
+          firstName: member.first_name,
+          lastName: member.last_name,
+          email: member.email,
+          joinedAt: member.joined_at
+        },
+        stats: {
+          lifetimeGiving: parseFloat(stats.lifetime_total),
+          lastDonationDate: stats.last_donation_date,
+          lastDonationAmount,
+          donationCount: parseInt(stats.donation_count),
+          yearsOfMembership
+        },
+        recentActivity: historyRes.rows.map(row => ({
+          id: row.id,
+          amount: parseFloat(row.amount),
+          fund: row.fund,
+          date: row.donation_date
+        }))
+      });
+
+    } catch (err) {
+      console.error("Member report error:", err);
+      res.status(500).json({ error: "Failed to generate member report" });
+    }
+  }
+);
+
+// Get Single Member Report PDF
+app.get(
+  "/api/members/:id/report/pdf",
+  authenticateToken,
+  requirePermission("reports:read"),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=member-report-${id}.pdf`
+      );
+      await generateMemberReportPDF(pool, id, res);
+    } catch (err) {
+      console.error("PDF Report Error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to generate PDF" });
+      } else {
+        res.end();
+      }
+    }
+  }
+);
+
 app.get(
   "/api/users",
   authenticateToken,

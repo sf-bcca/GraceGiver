@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
 import { fetchMembers, updateMember, deleteMember, createMember } from '../src/lib/api';
-import { Search, UserPlus, Mail, Phone, MoreVertical, Edit2, Trash2, Filter, X, AlertCircle } from 'lucide-react';
+import { Search, UserPlus, Mail, Phone, MoreVertical, Edit2, Trash2, Filter, X, AlertCircle, FileText } from 'lucide-react';
+import MemberReportModal from './MemberReportModal';
 
 const REGEX = {
   EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -27,6 +28,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [reportMemberId, setReportMemberId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -36,7 +38,8 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
     address: '',
     city: '',
     state: '',
-    zip: ''
+    zip: '',
+    joinedAt: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -107,7 +110,8 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       address: member.address,
       city: member.city,
       state: member.state,
-      zip: member.zip
+      zip: member.zip,
+      joinedAt: member.joinedAt ? new Date(member.joinedAt).toISOString().split('T')[0] : ''
     });
     setIsModalOpen(true);
   };
@@ -136,7 +140,8 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
       address: '',
       city: '',
       state: '',
-      zip: ''
+      zip: '',
+      joinedAt: ''
     });
     setIsModalOpen(true);
   }
@@ -167,7 +172,8 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
         address: '',
         city: '',
         state: '',
-        zip: ''
+        zip: '',
+        joinedAt: ''
       });
     } catch (error) {
       console.error('Failed to save member:', error);
@@ -302,6 +308,13 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                       >
                         <Trash2 size={16} />
                       </button>
+                      <button
+                        onClick={() => setReportMemberId(member.id)}
+                        className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                        title="View Report"
+                      >
+                        <FileText size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -350,10 +363,25 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
               >
                 Donations
               </button>
+                <button
+                  onClick={() => setReportMemberId(member.id)}
+                  className="px-3 py-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100"
+                  title="View Report"
+                >
+                  <FileText size={16} />
+                </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Member Report Modal */}
+      {reportMemberId && (
+        <MemberReportModal
+          memberId={reportMemberId}
+          onClose={() => setReportMemberId(null)}
+        />
+      )}
 
       {/* Add/Edit Member Modal */}
       {isModalOpen && (
@@ -410,6 +438,15 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                   />
                   {errors.telephone && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.telephone}</p>}
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Date Joined</label>
+                <input
+                  type="date"
+                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900"
+                  value={formData.joinedAt}
+                  onChange={(e) => setFormData({...formData, joinedAt: e.target.value})}
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Home Address</label>

@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS members (
     state TEXT,
     zip TEXT,
     family_id TEXT,
+    joined_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
