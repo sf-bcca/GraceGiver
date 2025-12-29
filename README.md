@@ -22,7 +22,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 - **AI Financial Insights:** Integration with Gemini AI for advanced narrative analysis of giving trends and financial health (requires API key).
 - **Enterprise Security:**
   - 🔐 JWT-based authentication with configurable expiry
-  - 🛡️ 5-tier Role-Based Access Control (RBAC)
+  - 🛡️ 6-tier Role-Based Access Control (RBAC)
   - 🔒 Account lockout after failed login attempts
   - 📋 Password policy enforcement with strength meter
   - 👤 Full user management UI (admin only)
@@ -130,13 +130,14 @@ The backend API runs on port `3000` internally. When running via Docker Compose,
 
 ### Role Hierarchy
 
-| Role          | Permissions                           |
-| :------------ | :------------------------------------ |
-| `super_admin` | Full system access, cannot be deleted |
-| `admin`       | User management + all data operations |
-| `manager`     | Reports + member/donation management  |
-| `data_entry`  | Create/edit members and donations     |
-| `viewer`      | Read-only access                      |
+| Role          | Permissions                                 |
+| :------------ | :------------------------------------------ |
+| `super_admin` | Full system access, cannot be deleted       |
+| `admin`       | User management + all data operations       |
+| `manager`     | Reports + member/donation management        |
+| `auditor`     | Global read-only access to all data         |
+| `data_entry`  | Create/edit members and donations           |
+| `viewer`      | **Self-Service**: Personal read access only |
 
 ---
 
