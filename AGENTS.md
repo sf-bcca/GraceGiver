@@ -10,19 +10,19 @@ This document outlines the roles, responsibilities, and interaction protocols fo
 Antigravity is the primary execution agent responsible for high-fidelity code implementation, refactoring, and real-time debugging within the workspace.
 
 - **Key Capabilities/Skills**
+
   - Full-stack development (TypeScript, React, Node.js).
   - Docker & Docker Compose orchestration.
   - Postgres database management (Self-hosted/SQL).
   - Nginx reverse proxy configuration.
   - Complex codebase navigation and semantic search.
   - **Custom Branding**: Implementation of the new GraceGiver logo and favicon system.
-  - **Advanced Financial Reporting**: IRS Compliance, Operational Health, Financial Intelligence.
-  - **GraceForecast**: Predictive retention engine with AI-powered "Nudge" interventions.
-  - **ServantHeart**: AI-integrated volunteer and talent matching registry.
-  - **CommunityBridge**: Transparent stewardship portals and campaign tracking.
-  - **Gemini AI Integration**: Advanced narrative financial analysis and talent matching.
+  - **Stewardship Intelligence**: AI-powered financial narrative analysis (Gemini), retention enginge (GraceForecast), and historical stewardship tracking.
+  - **Secure AI Integration**: Backend-only Gemini API handling for enhanced credential safety.
+
   - Environment management and secure credential handling.
   - Integration with local development environments and CLI tools.
+
 - **Interaction Protocols/APIs**
   - Directly interacts via the agentic toolset (file I/O, shell execution, browser automation).
 - **Expected Inputs and Outputs**
@@ -227,11 +227,10 @@ RESTful endpoints provided by `server/index.js`:
   - `GET /api/members/:id/skills`: Get/Update member skills/interests.
   - `GET /api/opportunities`: List/Create ministry roles.
   - `GET /api/opportunities/:id/matches`: AI-powered volunteer matching.
-- **CommunityBridge (Stewardship)**:
-  - `GET /api/stewardship/campaigns`: Public goal progress and campaign lists.
-  - `POST /api/stewardship/campaigns`: Admin management for campaigns.
-- **Validation**: Enforced via `server/validation.js` before database insertion.
-- **RBAC**: Enforced via `server/rbac.js`. Sensitive routes use `requireScopedPermission` to restrict `viewer` roles to their own records via the `member_id` linkage.
+- **Intelligence & AI**:
+  - `POST /api/ai/stewardship-insight`: Secure backend Gemini analysis.
+  - `GET /api/donations/summary`: Real-time dashboard stats with historical growth metrics (MoM, WoW).
+  - `GET /api/forecast/at-risk`: AI retention engine data.
 
 ### Initial Credentials
 

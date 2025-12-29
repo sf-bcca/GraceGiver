@@ -35,7 +35,14 @@ interface DashboardProps {
     donationCount: number;
     avgDonation: number;
     donorCount: number;
+    totalMembers: number;
+    newMembersThisWeek: number;
+    currentMonthDonations: number;
+    lastMonthDonations: number;
+    avgRecent: number;
+    avgPrevious: number;
   };
+
 }
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'];
@@ -102,6 +109,50 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
   };
 
 
+  // Calculate growth percentages
+  const givingGrowth = summary.lastMonthDonations > 0 
+    ? ((summary.currentMonthDonations - summary.lastMonthDonations) / summary.lastMonthDonations) * 100 
+    : 0;
+  
+  const avgDonationGrowth = summary.avgPrevious > 0
+    ? ((summary.avgRecent - summary.avgPrevious) / summary.avgPrevious) * 100
+    : 0;
+
+  const stats = [
+    { 
+      label: 'Total Giving', 
+      value: `$${summary.totalDonations.toLocaleString()}`, 
+      sub: givingGrowth >= 0 ? `+${givingGrowth.toFixed(1)}% vs last month` : `${givingGrowth.toFixed(1)}% vs last month`,
+      icon: TrendingUp, 
+      color: 'bg-emerald-50 text-emerald-600',
+      trend: givingGrowth
+    },
+    { 
+      label: 'Total Members', 
+      value: summary.totalMembers || members.length, 
+      sub: `${summary.newMembersThisWeek} new this week`, 
+      icon: Users, 
+      color: 'bg-blue-50 text-blue-600',
+      trend: summary.newMembersThisWeek > 0 ? 1 : 0
+    },
+    { 
+      label: 'Active Donors', 
+      value: summary.donorCount, 
+      sub: summary.totalMembers > 0 ? `${((summary.donorCount / summary.totalMembers) * 100).toFixed(0)}% of membership` : 'No members yet', 
+      icon: HeartHandshake, 
+      color: 'bg-purple-50 text-purple-600',
+      trend: 0 
+    },
+    { 
+      label: 'Avg. Donation', 
+      value: `$${summary.avgDonation.toFixed(0)}`, 
+      sub: avgDonationGrowth >= 0 ? `Up $${(summary.avgRecent - summary.avgPrevious).toFixed(0)} recently` : `Down $${Math.abs(summary.avgRecent - summary.avgPrevious).toFixed(0)} recently`, 
+      icon: ArrowUpRight, 
+      color: 'bg-amber-50 text-amber-600',
+      trend: avgDonationGrowth
+    },
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -123,20 +174,18 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: 'Total Giving', value: `$${summary.totalDonations.toLocaleString()}`, sub: '+12% from last month', icon: TrendingUp, color: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Total Members', value: members.length, sub: '2 new this week', icon: Users, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Active Donors', value: summary.donorCount, sub: '75% of membership', icon: HeartHandshake, color: 'bg-purple-50 text-purple-600' },
-          { label: 'Avg. Donation', value: `$${summary.avgDonation.toFixed(0)}`, sub: 'Up $15 recently', icon: ArrowUpRight, color: 'bg-amber-50 text-amber-600' },
-        ].map((stat, i) => (
+        {stats.map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-xl ${stat.color}`}>
                 <stat.icon size={24} />
               </div>
-              <span className="text-xs font-bold text-emerald-500 flex items-center bg-emerald-50 px-2 py-1 rounded-full">
-                <ArrowUpRight size={12} className="mr-1" /> 12%
-              </span>
+              {stat.trend !== 0 && (
+                <span className={`text-xs font-bold flex items-center px-2 py-1 rounded-full ${stat.trend > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-rose-500 bg-rose-50'}`}>
+                  {stat.trend > 0 ? <ArrowUpRight size={12} className="mr-1" /> : <ArrowDownRight size={12} className="mr-1" />}
+                  {Math.abs(stat.trend).toFixed(1)}%
+                </span>
+              )}
             </div>
             <h3 className="text-slate-500 text-sm font-medium">{stat.label}</h3>
             <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
@@ -144,6 +193,8 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
           </div>
         ))}
       </div>
+
+
 
       {/* AI Insight Box */}
       {aiInsight && (

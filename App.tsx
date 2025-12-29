@@ -31,7 +31,14 @@ const App: React.FC = () => {
     donationCount: 0,
     avgDonation: 0,
     donorCount: 0,
+    totalMembers: 0,
+    newMembersThisWeek: 0,
+    currentMonthDonations: 0,
+    lastMonthDonations: 0,
+    avgRecent: 0,
+    avgPrevious: 0
   });
+
   const [loading, setLoading] = useState(!!token);
 
   async function loadDonationSummary() {

@@ -734,24 +734,57 @@ app.get(
   requireScopedPermission("donations:read", "donation"),
   async (req, res) => {
     try {
-      let summaryQuery = `
-      SELECT
-        SUM(amount) as total,
-        COUNT(*) as count,
-        COUNT(DISTINCT member_id) as donor_count
-      FROM donations
-    `;
-      const params = [];
+      // 1. All-time Totals
+      let allTimeQuery = `
+        SELECT
+          SUM(amount) as total,
+          COUNT(*) as count,
+          COUNT(DISTINCT member_id) as donor_count
+        FROM donations
+      `;
+      let allTimeParams = [];
       if (req.scopedToOwn && req.user.memberId) {
-        summaryQuery += " WHERE member_id = $1";
-        params.push(req.user.memberId);
+        allTimeQuery += " WHERE member_id = $1";
+        allTimeParams.push(req.user.memberId);
       }
-      const { rows } = await pool.query(summaryQuery, params);
-      const { total, count, donor_count } = rows[0];
+      const allTimeResult = await pool.query(allTimeQuery, allTimeParams);
+      const allTime = allTimeResult.rows[0];
 
-      const totalDonations = parseFloat(total) || 0;
-      const donationCount = parseInt(count) || 0;
-      const donorCount = parseInt(donor_count) || 0;
+      // 2. Current Month vs Last Month
+      const monthParams = [...allTimeParams];
+      let monthQuery = `
+        SELECT 
+          SUM(CASE WHEN donation_date >= date_trunc('month', CURRENT_DATE) THEN amount ELSE 0 END) as current_month,
+          SUM(CASE WHEN donation_date >= date_trunc('month', CURRENT_DATE - INTERVAL '1 month') 
+                    AND donation_date < date_trunc('month', CURRENT_DATE) THEN amount ELSE 0 END) as last_month
+        FROM donations
+      `;
+      if (req.scopedToOwn && req.user.memberId) {
+        monthQuery += " WHERE member_id = $1";
+      }
+      const monthResult = await pool.query(monthQuery, monthParams);
+      const monthly = monthResult.rows[0];
+
+      // 3. Members Count & Weekly Growth
+      const totalMembersResult = await pool.query("SELECT COUNT(*) as total FROM members");
+      const newMembersResult = await pool.query("SELECT COUNT(*) as new_this_week FROM members WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'");
+
+      // 4. Avg Donation Trend (last 30 days vs 30-60 days ago)
+      let trendQuery = `
+        SELECT 
+          AVG(CASE WHEN donation_date >= CURRENT_DATE - INTERVAL '30 days' THEN amount ELSE NULL END) as avg_recent,
+          AVG(CASE WHEN donation_date >= CURRENT_DATE - INTERVAL '60 days' AND donation_date < CURRENT_DATE - INTERVAL '30 days' THEN amount ELSE NULL END) as avg_previous
+        FROM donations
+      `;
+      if (req.scopedToOwn && req.user.memberId) {
+        trendQuery += " WHERE member_id = $1";
+      }
+      const trendResult = await pool.query(trendQuery, allTimeParams);
+      const trends = trendResult.rows[0];
+
+      const totalDonations = parseFloat(allTime.total) || 0;
+      const donationCount = parseInt(allTime.count) || 0;
+      const donorCount = parseInt(allTime.donor_count) || 0;
       const avgDonation = totalDonations / (donationCount || 1);
 
       res.json({
@@ -759,7 +792,14 @@ app.get(
         donationCount,
         donorCount,
         avgDonation,
+        totalMembers: parseInt(totalMembersResult.rows[0].total),
+        newMembersThisWeek: parseInt(newMembersResult.rows[0].new_this_week),
+        currentMonthDonations: parseFloat(monthly.current_month) || 0,
+        lastMonthDonations: parseFloat(monthly.last_month) || 0,
+        avgRecent: parseFloat(trends.avg_recent) || 0,
+        avgPrevious: parseFloat(trends.avg_previous) || 0
       });
+
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
