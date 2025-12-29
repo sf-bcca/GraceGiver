@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ChurchSettings } from '../types';
 import { Settings as SettingsIcon, Save, Building2, Phone, Mail, FileCheck, CheckCircle2, KeyRound, Shield } from 'lucide-react';
+import { formatPhoneNumber, cleanInput } from '../src/lib/utils';
 
 interface SettingsProps {
   settings: ChurchSettings;
@@ -64,7 +65,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onUpdate, onChangePasswor
                 type="text"
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-900 shadow-sm"
                 value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                onChange={(e) => setFormData({...formData, phone: cleanInput('phone', e.target.value)})}
               />
             </div>
 

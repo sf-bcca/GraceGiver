@@ -4,6 +4,7 @@ import { Member } from '../types';
 import { fetchMembers, updateMember, deleteMember, createMember } from '../src/lib/api';
 import { Search, UserPlus, Mail, Phone, MoreVertical, Edit2, Trash2, Filter, X, AlertCircle, FileText } from 'lucide-react';
 import MemberReportModal from './MemberReportModal';
+import { formatPhoneNumber, cleanInput } from '../src/lib/utils';
 
 const REGEX = {
   EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -85,19 +86,6 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const cleanInput = (field: string, value: string) => {
-    switch (field) {
-      case 'state':
-        return value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
-      case 'zip':
-        return value.replace(/[^\d-]/g, '').slice(0, 10);
-      case 'telephone':
-        return value.replace(/[^\d+]/g, '').slice(0, 15);
-      default:
-        return value;
-    }
   };
 
   const handleEditClick = (member: Member) => {
@@ -251,7 +239,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
           <thead className="bg-slate-50/50 border-b border-slate-100">
             <tr>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Address</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Join Date</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
@@ -280,10 +268,16 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                    <div className="flex items-center gap-2 text-slate-600 text-sm mb-1">
                       <Mail size={14} />
                       {member.email}
                     </div>
+                    {member.telephone && (
+                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                      <Phone size={14} />
+                        {formatPhoneNumber(member.telephone)}
+                    </div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-slate-600 leading-tight">
@@ -348,7 +342,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
             </div>
             <div className="space-y-2 text-sm text-slate-600 mb-4">
               <div className="flex items-center gap-2"><Mail size={14} className="text-slate-400" /> {member.email}</div>
-              {member.telephone && <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {member.telephone}</div>}
+              {member.telephone && <div className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {formatPhoneNumber(member.telephone)}</div>}
             </div>
             <div className="flex gap-2">
               <button
