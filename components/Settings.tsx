@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChurchSettings } from '../types';
-import { Settings as SettingsIcon, Save, Building2, Phone, Mail, FileCheck, CheckCircle2, KeyRound, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Building2, Phone, Mail, FileCheck, CheckCircle2, KeyRound, Shield, Lock } from 'lucide-react';
 import { formatPhoneNumber, cleanInput } from '../src/lib/utils';
+import { useRecordLock } from '../src/hooks/useRecordLock';
 
 interface SettingsProps {
   settings: ChurchSettings;
@@ -13,6 +14,15 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ settings, onUpdate, onChangePassword }) => {
   const [formData, setFormData] = useState<ChurchSettings>(settings);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const { isLockedByOther, lockedBy, acquireLock, releaseLock } = useRecordLock("settings", "singleton");
+
+  useEffect(() => {
+    acquireLock();
+    return () => {
+      releaseLock();
+    };
+  }, [acquireLock, releaseLock]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +38,18 @@ const Settings: React.FC<SettingsProps> = ({ settings, onUpdate, onChangePasswor
         <p className="text-slate-500 mt-1">Configure your church identity and application preferences.</p>
       </header>
 
+      {isLockedByOther && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 animate-in slide-in-from-top-2">
+          <Lock className="text-amber-600" size={24} />
+          <div>
+            <h3 className="font-bold text-amber-800">Settings Locked</h3>
+            <p className="text-sm text-amber-700">These settings are currently being edited by <span className="font-bold">{lockedBy}</span>. Read-only mode active.</p>
+          </div>
+        </div>
+      )}
+
       {/* Church Information Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden ${isLockedByOther ? 'opacity-75 pointer-events-none' : ''}`}>
         <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
           <Building2 size={20} className="text-indigo-600" />
           <h2 className="font-bold text-slate-800">Church Information</h2>

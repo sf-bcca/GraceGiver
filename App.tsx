@@ -17,9 +17,13 @@ const VolunteerMatching = React.lazy(() => import('./components/VolunteerMatchin
 const StewardshipPortal = React.lazy(() => import('./components/StewardshipPortal'));
 
 import { fetchMembers, fetchDonations, createMember, createDonation, fetchDonationSummary, fetchSettings, updateSettings } from './src/lib/api';
+import { SocketProvider, useSocket } from './src/contexts/SocketContext';
 
-const App: React.FC = () => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+// Inner component to handle socket events (must be inside SocketProvider)
+const AppContent: React.FC<{
+  token: string | null;
+  setToken: (t: string | null) => void;
+}> = ({ token, setToken }) => {
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
   const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
   const [view, setView] = useState<ViewState>('DASHBOARD');
@@ -41,14 +45,8 @@ const App: React.FC = () => {
 
   const [loading, setLoading] = useState(!!token);
 
-  async function loadDonationSummary() {
-    try {
-      const summaryData = await fetchDonationSummary();
-      setDonationSummary(summaryData);
-    } catch (error) {
-      console.error('Failed to load donation summary:', error);
-    }
-  }
+  // Socket Integration for Real-Time Updates
+  const { socket } = useSocket();
 
   const loadData = React.useCallback(async () => {
     if (!token) return;
@@ -68,12 +66,34 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to load data:', error);
       // TODO: specific error state UI
-      setMembers([]);
-      setDonations([]);
+      // Keep previous data on error to prevent flash
     } finally {
       setLoading(false);
     }
   }, [token]);
+
+  // Listen for global data update events
+  React.useEffect(() => {
+    if (!socket) return;
+
+    const handleDataUpdate = (event: any) => {
+      console.log('Real-time update received:', event);
+      // Strategy A: Simple Refetch
+      loadData();
+    };
+
+    socket.on('member:update', handleDataUpdate);
+    socket.on('donation:update', handleDataUpdate);
+    socket.on('settings:update', handleDataUpdate); // Might not need full reload for settings but consistency is good
+    socket.on('user:update', handleDataUpdate); // Relevant for admins
+
+    return () => {
+      socket.off('member:update', handleDataUpdate);
+      socket.off('donation:update', handleDataUpdate);
+      socket.off('settings:update', handleDataUpdate);
+      socket.off('user:update', handleDataUpdate);
+    };
+  }, [socket, loadData]);
 
   React.useEffect(() => {
     loadData();
@@ -232,6 +252,16 @@ const App: React.FC = () => {
     <Layout activeView={view} setView={setView} churchName={churchSettings.name} onLogout={handleLogout}>
       {renderView()}
     </Layout>
+  );
+};
+
+const App: React.FC = () => {
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+
+  return (
+    <SocketProvider>
+      <AppContent token={token} setToken={setToken} />
+    </SocketProvider>
   );
 };
 

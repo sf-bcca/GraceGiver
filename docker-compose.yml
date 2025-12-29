@@ -45,6 +45,14 @@ services:
       - ./db:/db
     depends_on:
       - db
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: gracegiver-redis
+    restart: always
+    ports:
+      - "6379:6379"
 
   app:
     build:

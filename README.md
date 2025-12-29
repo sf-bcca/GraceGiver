@@ -31,6 +31,10 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 - **ServantHeart:** Volunteer and talent matching system that connects member skills to ministry needs using GraceAI.
 - **CommunityBridge:** Transparent stewardship portals that visualize progress toward specific financial goals and mission milestones.
 - **Docker Ready:** Containerized architecture for seamless deployment and scalability.
+- **Real-Time Collaboration:**
+  - **Live Sync:** Instant updates across all connected clients via WebSockets.
+  - **Record Locking:** Prevents concurrent editing conflicts on member and user records.
+  - **Redis-Backed:** Scalable architecture using Redis Adapter for Socket.io.
 
 ---
 
@@ -66,6 +70,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 3. **Start with Docker (Recommended):**
 
+   The application requires **Redis** for real-time features.
    ```bash
    docker-compose up --build
    ```
