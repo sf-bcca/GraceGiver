@@ -76,7 +76,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!REGEX.EMAIL.test(formData.email)) newErrors.email = 'Invalid email format';
+    if (formData.email && !REGEX.EMAIL.test(formData.email)) newErrors.email = 'Invalid email format';
     if (formData.telephone && !REGEX.PHONE.test(formData.telephone)) newErrors.telephone = 'Invalid phone format (e.g. +14155552671)';
     if (!REGEX.STATE.test(formData.state)) newErrors.state = 'Must be 2 uppercase letters (e.g., MS)';
     if (!REGEX.ZIP.test(formData.zip)) newErrors.zip = 'Invalid Zip (12345 or 12345-6789)';
@@ -420,7 +420,6 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({ members: initialMembe
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
                   <input
-                    required
                     type="email"
                     className={`w-full px-4 py-2 bg-white border ${errors.email ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all`}
                     value={formData.email}

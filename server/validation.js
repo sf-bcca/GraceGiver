@@ -19,9 +19,9 @@ function validateMember(member) {
   const errors = [];
 
   // Email Validation
-  if (!member.email || !REGEX.EMAIL.test(member.email)) {
+  if (member.email && !REGEX.EMAIL.test(member.email)) {
     errors.push('INVALID_EMAIL: Must be a valid RFC 5322 email address.');
-  } else if (member.email.length > 254) {
+  } else if (member.email && member.email.length > 254) {
     errors.push('INVALID_EMAIL_LENGTH: Email cannot exceed 254 characters.');
   }
 
