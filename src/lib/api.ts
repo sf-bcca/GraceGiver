@@ -142,6 +142,32 @@ export async function deleteMember(id: string) {
   return handleResponse(response);
 }
 
+export async function exportData(type: 'donations' | 'members', format: 'csv' | 'json', startDate?: string, endDate?: string, fund?: string) {
+  let url = `${API_URL}/api/export/${type}?format=${format}`;
+  if (type === 'donations' && startDate && endDate) {
+    url += `&startDate=${startDate}&endDate=${endDate}`;
+  }
+  if (type === 'donations' && fund) {
+    url += `&fund=${fund}`;
+  }
+  const response = await fetch(url, { headers: getAuthHeaders() });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || `Failed to export ${type}`);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `${type}_export_${new Date().toISOString().split('T')[0]}.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(downloadUrl);
+  a.remove();
+}
+
 export async function fetchMemberReport(id: string) {
   const response = await fetch(`${API_URL}/api/members/${id}/report`, {
     headers: getAuthHeaders(),
