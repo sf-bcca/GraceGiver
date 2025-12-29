@@ -220,6 +220,8 @@ RESTful endpoints provided by `server/index.js`:
   - `GET /api/reports/quarterly-progress?year=YYYY`: Year-over-year quarterly trends.
   - `GET /api/reports/trend-analysis`: 3-year historical bar chart data.
   - `GET /api/forecast/at-risk`: AI retention engine data.
+  - `GET /api/members/:id/report`: Individual Member Report (JSON).
+  - `GET /api/members/:id/report/pdf`: Individual Member Report (PDF).
 - **ServantHeart (Volunteers)**:
   - `GET /api/members/:id/skills`: Get/Update member skills/interests.
   - `GET /api/opportunities`: List/Create ministry roles.
