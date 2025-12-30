@@ -43,6 +43,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- [Redis](https://redis.io/) (included in Docker Compose; required for real-time features)
 - [Node.js](https://nodejs.org/) (v20+ recommended)
 - `npm` or `yarn`
 
@@ -71,6 +72,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 3. **Start with Docker (Recommended):**
 
    The application requires **Redis** for real-time features.
+
    ```bash
    docker-compose up --build
    ```
@@ -112,6 +114,13 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 ---
 
 ## 🔌 API Reference
+
+For complete API documentation including request/response examples, authentication, and error handling, see **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)**.
+
+Additional documentation:
+
+- **[Error Codes](docs/ERROR_CODES.md)** — All structured error responses
+- **[WebSocket](docs/WEBSOCKET.md)** — Real-time sync and record locking
 
 The backend API runs on port `3000` internally. When running via Docker Compose, it is mapped to host port `3001` to avoid conflicts.
 
