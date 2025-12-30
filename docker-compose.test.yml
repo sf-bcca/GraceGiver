@@ -1,0 +1,88 @@
+# =============================================================================
+# GraceGiver Test Environment
+# =============================================================================
+# Isolated test environment for automated browser testing.
+# Uses the same services as production but with test-specific configuration.
+# =============================================================================
+
+services:
+  db-test:
+    image: postgres:17-alpine
+    container_name: gracegiver-db-test
+    restart: "no"
+    environment:
+      POSTGRES_DB: gracegiver_test
+      POSTGRES_USER: testadmin
+      POSTGRES_PASSWORD: testpassword123
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./db/seed-test-users.sql:/docker-entrypoint-initdb.d/02-seed-test-users.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testadmin -d gracegiver_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-test:
+    image: redis:alpine
+    container_name: gracegiver-redis-test
+    restart: "no"
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-test:
+    build:
+      context: ./server
+    container_name: gracegiver-api-test
+    restart: "no"
+    ports:
+      - "3002:3000"
+    environment:
+      # Database configuration
+      DB_HOST: db-test
+      DB_PORT: 5432
+      DB_USER: testadmin
+      DB_PASSWORD: testpassword123
+      DB_NAME: gracegiver_test
+      
+      # Security configuration
+      JWT_SECRET: test-jwt-secret-for-automated-testing-only
+      JWT_EXPIRY: 24h
+      
+      # Redis for socket.io
+      REDIS_URL: redis://redis-test:6379
+      
+      # Skip bootstrap since we seed test users
+      INITIAL_ADMIN_USERNAME: ""
+      INITIAL_ADMIN_PASSWORD: ""
+      
+      # Node environment
+      NODE_ENV: test
+    depends_on:
+      db-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+
+  app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gracegiver-app-test
+    restart: "no"
+    ports:
+      - "8086:80"
+    environment:
+      # Point to test API
+      VITE_API_URL: http://localhost:3002
+    depends_on:
+      - api-test
+
+# No persistent volumes - fresh state each run

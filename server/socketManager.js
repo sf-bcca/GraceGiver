@@ -116,7 +116,10 @@ async function acquireLock(resourceType, resourceId, user) {
     acquiredAt: Date.now(),
   });
 
-  if (!redisClient) return { success: true, lockedBy: null }; // Fallback if no Redis
+  if (!redisClient) {
+    console.warn("acquireLock: Redis client is not initialized. Falling back to success (no-op).");
+    return { success: true, lockedBy: null }; // Fallback if no Redis
+  }
 
   // SET key value NX EX ttl
   // NX: Only set if not exists
