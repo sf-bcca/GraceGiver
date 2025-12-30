@@ -123,6 +123,8 @@ To interact with or trigger these agents, follow these simple protocols:
 4. **Test & QA (Verification)**: After I (Antigravity) finish a task, I will perform verification. You can also explicitly say: _"Verify the latest changes"_ or _"Run the E2E tests"_ to trigger this agent.
 5. **Data Integrity (Validation)**: This runs automatically on form submission. The backend will reject any data that doesn't conform to the standards defined in `server/validation.js`.
 
+> **Note:** Real-time features (record locking, live sync) require Redis. See `REDIS_URL` configuration in `.env`.
+
 ---
 
 ## General Interaction Guidelines
@@ -166,7 +168,7 @@ This section details the concrete implementation of the core systems, serving as
 
 ### Role-Based Access Control (RBAC)
 
-The system implements a 5-tier role hierarchy:
+The system implements a 6-tier role hierarchy:
 
 | Role          | Description                                  |
 | ------------- | -------------------------------------------- |
@@ -203,7 +205,7 @@ The system uses PostgreSQL with the following core entities (`db/init.sql`):
 
 ### API Structure
 
-RESTful endpoints provided by `server/index.js`:
+RESTful endpoints provided by `server/index.js`. For complete documentation, see [docs/API_REFERENCE.md](docs/API_REFERENCE.md).
 
 - **Auth**:
   - `POST /api/login`: Authenticate user, returns JWT with role permissions.
