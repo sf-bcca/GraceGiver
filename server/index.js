@@ -16,6 +16,7 @@ const {
 } = require("./passwordPolicy");
 const { requirePermission, requireScopedPermission, requireRole, getRoleInfo } = require("./rbac");
 const { getFinancialSummary } = require("./geminiService");
+const { initializeSocket, emitEvent } = require("./socketManager");
 
 
 const app = express();
@@ -530,6 +531,7 @@ app.post(
           joinedAt || null,
         ]
       );
+      emitEvent("member:update", { type: "CREATE", data: result.rows[0] });
       res.status(201).json(result.rows[0]);
     } catch (err) {
       console.error(err);
@@ -592,6 +594,7 @@ app.put(
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Member not found" });
       }
+      emitEvent("member:update", { type: "UPDATE", data: result.rows[0] });
       res.json(result.rows[0]);
     } catch (err) {
       console.error(err);
@@ -661,6 +664,7 @@ app.delete(
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Member not found" });
       }
+      emitEvent("member:update", { type: "DELETE", id });
       res.json({ message: "Member deleted successfully" });
     } catch (err) {
       console.error(err);
@@ -878,6 +882,7 @@ app.post(
         "INSERT INTO donations (member_id, amount, fund, notes, entered_by) VALUES ($1, $2, $3, $4, $5) RETURNING *",
         [memberId, amount, fund, notes, enteredBy]
       );
+      emitEvent("donation:update", { type: "CREATE", data: result.rows[0] });
       res.status(201).json(result.rows[0]);
     } catch (err) {
       console.error(err);
@@ -901,6 +906,7 @@ app.put(
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Donation not found" });
       }
+      emitEvent("donation:update", { type: "UPDATE", data: result.rows[0] });
       res.json(result.rows[0]);
     } catch (err) {
       console.error(err);
@@ -923,6 +929,7 @@ app.delete(
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Donation not found" });
       }
+      emitEvent("donation:update", { type: "DELETE", id });
       res.json({ message: "Donation deleted successfully" });
     } catch (err) {
       console.error(err);
@@ -1492,6 +1499,8 @@ app.post(
         `[AUDIT] User created: ${username} with role ${requestedRole} by ${req.user.username}`
       );
 
+      emitEvent("user:update", { type: "CREATE", data: result.rows[0] });
+
       res.status(201).json({
         id: result.rows[0].id,
         username: result.rows[0].username,
@@ -1608,6 +1617,8 @@ app.put(
         })}`
       );
 
+      emitEvent("user:update", { type: "UPDATE", data: result.rows[0] });
+
       res.json(result.rows[0]);
     } catch (err) {
       if (err.code === "23505") {
@@ -1667,6 +1678,8 @@ app.delete(
       console.log(
         `[AUDIT] User ${targetUser.rows[0].username} (${id}) deleted by ${req.user.username}`
       );
+
+      emitEvent("user:update", { type: "DELETE", id });
 
       res.json({ message: "User deleted successfully" });
     } catch (err) {
@@ -1861,6 +1874,8 @@ app.put(
 
       console.log(`[AUDIT] Settings updated by ${req.user.username}`);
 
+      emitEvent("settings:update", updatedSettings);
+
       res.json({
         name: updatedSettings.name,
         address: updatedSettings.address,
@@ -1889,6 +1904,9 @@ async function startServer() {
     const server = app.listen(port, () => {
       console.log(`Server running on port ${port}`);
     });
+
+    // Initialize Socket.io
+    initializeSocket(server);
 
     server.on("close", () => {
       console.log("Server closed");

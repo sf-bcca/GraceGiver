@@ -160,7 +160,9 @@ This section details the concrete implementation of the core systems, serving as
   3. Server checks for account lockout and failed attempt limits.
   4. Server issues JWT (24h expiry by default, configurable via `JWT_EXPIRY`).
   5. Client stores token in `localStorage` and sends `Authorization: Bearer <token>` header.
-  6. If `mustChangePassword` is true in response, client must call `/api/users/change-password`.
+  6. Client connects to **Socket.io** using the token for handshake authentication.
+     - _Note_: Requires `REDIS_URL=redis://redis:6379` in the API container for record locking.
+  7. If `mustChangePassword` is true in response, client must call `/api/users/change-password`.
 
 ### Role-Based Access Control (RBAC)
 

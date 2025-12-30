@@ -3,6 +3,7 @@ import {
   Users, UserPlus, Shield, Lock, Unlock, Key, Trash2, 
   Edit2, X, Check, AlertCircle, Loader2, Mail, Calendar 
 } from 'lucide-react';
+import { useRecordLock } from '../src/hooks/useRecordLock';
 
 interface User {
   id: number;
@@ -117,6 +118,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
     setEditingUser(user);
     setShowEditModal(true);
   };
+
+  const { isLockedByOther, lockedBy, acquireLock, releaseLock } = useRecordLock(
+    "user",
+    editingUser ? String(editingUser.id) : null
+  );
+
+  useEffect(() => {
+    if (showEditModal && editingUser) {
+      acquireLock();
+    }
+  }, [showEditModal, editingUser, acquireLock]);
+
+  useEffect(() => {
+    if (!showEditModal) {
+      releaseLock();
+    }
+  }, [showEditModal, releaseLock]);
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -468,7 +486,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserId, currentU
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+
+            {isLockedByOther && (
+              <div className="bg-amber-50 border-b border-amber-100 p-4 flex items-center gap-3">
+                <Lock className="text-amber-600" size={20} />
+                <div className="text-sm text-amber-800">
+                  <span className="font-bold">Locked:</span> Edited by <span className="font-bold">{lockedBy}</span>.
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateUser} className={`p-6 space-y-4 ${isLockedByOther ? 'opacity-50 pointer-events-none' : ''}`}>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Username</label>
                 <input

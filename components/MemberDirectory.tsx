@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import MemberReportModal from "./MemberReportModal";
 import { formatPhoneNumber, cleanInput } from "../src/lib/utils";
+import { useRecordLock } from "../src/hooks/useRecordLock";
 
 const REGEX = {
   EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -64,6 +65,12 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
     joinedAt: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Locking Logic
+  const { isLockedByOther, lockedBy, acquireLock, releaseLock } = useRecordLock(
+    "member",
+    editingMember ? editingMember.id : null
+  );
 
   // Debounced search
   useEffect(() => {
@@ -117,7 +124,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleEditClick = (member: Member) => {
+  const handleEditClick = async (member: Member) => {
     setEditingMember(member);
     setFormData({
       firstName: member.firstName,
@@ -134,6 +141,20 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
     });
     setIsModalOpen(true);
   };
+
+  // Attempt to acquire lock when modal opens and member is selected
+  useEffect(() => {
+    if (isModalOpen && editingMember) {
+      acquireLock();
+    }
+  }, [isModalOpen, editingMember, acquireLock]);
+
+  // Release lock when modal closes
+  useEffect(() => {
+    if (!isModalOpen && editingMember) {
+      releaseLock();
+    }
+  }, [isModalOpen, editingMember, releaseLock]);
 
   const handleDeleteClick = async (id: string) => {
     if (
@@ -497,7 +518,17 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white">
+
+            {isLockedByOther && (
+              <div className="bg-amber-50 border-b border-amber-100 p-4 flex items-center gap-3">
+                <AlertCircle className="text-amber-600" size={20} />
+                <div className="text-sm text-amber-800">
+                  <span className="font-bold">Record Locked:</span> This member is currently being edited by <span className="font-bold">{lockedBy}</span>. You cannot make changes until they finish.
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className={`p-6 space-y-4 bg-white ${isLockedByOther ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">

@@ -41,10 +41,21 @@ services:
       
       # AI Features (Gemini)
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      
+      # Redis Config
+      REDIS_URL: redis://redis:6379
     volumes:
       - ./db:/db
     depends_on:
       - db
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: gracegiver-redis
+    restart: always
+    ports:
+      - "6379:6379"
 
   app:
     build:
