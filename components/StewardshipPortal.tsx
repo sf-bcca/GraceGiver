@@ -216,12 +216,16 @@ const StewardshipPortal: React.FC = () => {
                     value={newCampaign.fundName}
                     onChange={e => setNewCampaign({...newCampaign, fundName: e.target.value})}
                   >
+                    <option value="Benevolence">Benevolence</option>
+                    <option value="Church School">Church School</option>
+                    <option value="Lay">Lay</option>
                     <option value="Offering">Offering</option>
+                    <option value="Other">Other</option>
+                    <option value="Revival">Revival</option>
                     <option value="Tithes">Tithes</option>
                     <option value="Upkeep">Upkeep</option>
-                    <option value="Benevolence">Benevolence</option>
-                    <option value="Revival">Revival</option>
-                    <option value="Other">Other</option>
+                    <option value="WMS">WMS</option>
+                    <option value="YPD">YPD</option>
                   </select>
                 </div>
                 <div>

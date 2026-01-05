@@ -22,6 +22,8 @@ export enum FundType {
   REVIVAL = "Revival",
   TITHES = "Tithes",
   UPKEEP = "Upkeep",
+  WMS = "WMS",
+  YPD = "YPD",
 }
 
 export interface Donation {
