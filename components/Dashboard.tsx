@@ -1,31 +1,29 @@
-
-import React, { useState, useEffect } from 'react';
-import { Member, Donation, FundType, ChurchSettings } from '../types';
-import { 
-  TrendingUp, 
-  Users, 
-  HeartHandshake, 
-  ArrowUpRight, 
+import React, { useState, useEffect } from "react";
+import { Member, Donation, FundType, ChurchSettings } from "../types";
+import {
+  TrendingUp,
+  Users,
+  HeartHandshake,
+  ArrowUpRight,
   ArrowDownRight,
   Sparkles,
   Loader2,
   AlertCircle,
-  ChevronRight
-} from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  ChevronRight,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   Cell,
   PieChart,
-  Pie
-} from 'recharts';
-import CustomTooltip from './CustomTooltip';
-
+  Pie,
+} from "recharts";
+import CustomTooltip from "./CustomTooltip";
 
 interface DashboardProps {
   members: Member[];
@@ -43,12 +41,16 @@ interface DashboardProps {
     avgRecent: number;
     avgPrevious: number;
   };
-
 }
 
-const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'];
+const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b"];
 
-const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSettings, summary }) => {
+const Dashboard: React.FC<DashboardProps> = ({
+  members,
+  donations,
+  churchSettings,
+  summary,
+}) => {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const [atRiskDonors, setAtRiskDonors] = useState<any[]>([]);
@@ -58,10 +60,15 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
     const fetchForecast = async () => {
       setLoadingForecast(true);
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/forecast/at-risk`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${
+            import.meta.env.VITE_API_URL || "http://localhost:3001"
+          }/api/forecast/at-risk`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         if (response.ok) {
           const data = await response.json();
           setAtRiskDonors(data);
@@ -76,81 +83,112 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
   }, []);
 
   // Data for Charts
-  const fundData = Object.values(FundType).map((fund) => ({
-    name: fund,
-    value: donations.filter(d => d.fund === fund).reduce((sum, d) => sum + d.amount, 0)
-  })).filter(f => f.value > 0);
+  const fundData = Object.values(FundType)
+    .map((fund) => ({
+      name: fund,
+      value: donations
+        .filter((d) => d.fund === fund)
+        .reduce((sum, d) => sum + d.amount, 0),
+    }))
+    .filter((f) => f.value > 0);
 
   const handleGenerateInsight = async () => {
     setLoadingAi(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/ai/stewardship-insight`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ donations, members })
-      });
-      
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_API_URL || "http://localhost:3001"
+        }/api/ai/stewardship-insight`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ donations, members }),
+        }
+      );
+
       if (response.ok) {
         const data = await response.json();
         setAiInsight(data.insight);
       } else {
         const errorData = await response.json();
-        setAiInsight(`Error: ${errorData.error || 'Failed to generate insight'}`);
+        setAiInsight(
+          `Error: ${errorData.error || "Failed to generate insight"}`
+        );
       }
     } catch (error) {
       console.error("AI Insight Error:", error);
-      setAiInsight("AI analysis is currently unavailable. Please try again later.");
+      setAiInsight(
+        "AI analysis is currently unavailable. Please try again later."
+      );
     } finally {
       setLoadingAi(false);
     }
   };
 
-
   // Calculate growth percentages
-  const givingGrowth = summary.lastMonthDonations > 0 
-    ? ((summary.currentMonthDonations - summary.lastMonthDonations) / summary.lastMonthDonations) * 100 
-    : 0;
-  
-  const avgDonationGrowth = summary.avgPrevious > 0
-    ? ((summary.avgRecent - summary.avgPrevious) / summary.avgPrevious) * 100
-    : 0;
+  const givingGrowth =
+    summary.lastMonthDonations > 0
+      ? ((summary.currentMonthDonations - summary.lastMonthDonations) /
+          summary.lastMonthDonations) *
+        100
+      : 0;
+
+  const avgDonationGrowth =
+    summary.avgPrevious > 0
+      ? ((summary.avgRecent - summary.avgPrevious) / summary.avgPrevious) * 100
+      : 0;
 
   const stats = [
-    { 
-      label: 'Total Giving', 
-      value: `$${summary.totalDonations.toLocaleString()}`, 
-      sub: givingGrowth >= 0 ? `+${givingGrowth.toFixed(1)}% vs last month` : `${givingGrowth.toFixed(1)}% vs last month`,
-      icon: TrendingUp, 
-      color: 'bg-emerald-50 text-emerald-600',
-      trend: givingGrowth
+    {
+      label: "Total Giving",
+      value: `$${summary.totalDonations.toLocaleString()}`,
+      sub:
+        givingGrowth >= 0
+          ? `+${givingGrowth.toFixed(1)}% vs last month`
+          : `${givingGrowth.toFixed(1)}% vs last month`,
+      icon: TrendingUp,
+      color: "bg-emerald-50 text-emerald-600",
+      trend: givingGrowth,
     },
-    { 
-      label: 'Total Members', 
-      value: summary.totalMembers || members.length, 
-      sub: `${summary.newMembersThisWeek} new this week`, 
-      icon: Users, 
-      color: 'bg-blue-50 text-blue-600',
-      trend: summary.newMembersThisWeek > 0 ? 1 : 0
+    {
+      label: "Total Members",
+      value: summary.totalMembers || members.length,
+      sub: `${summary.newMembersThisWeek} new this week`,
+      icon: Users,
+      color: "bg-blue-50 text-blue-600",
+      trend: summary.newMembersThisWeek > 0 ? 1 : 0,
     },
-    { 
-      label: 'Active Donors', 
-      value: summary.donorCount, 
-      sub: summary.totalMembers > 0 ? `${((summary.donorCount / summary.totalMembers) * 100).toFixed(0)}% of membership` : 'No members yet', 
-      icon: HeartHandshake, 
-      color: 'bg-purple-50 text-purple-600',
-      trend: 0 
+    {
+      label: "Active Donors",
+      value: summary.donorCount,
+      sub:
+        summary.totalMembers > 0
+          ? `${((summary.donorCount / summary.totalMembers) * 100).toFixed(
+              0
+            )}% of membership`
+          : "No members yet",
+      icon: HeartHandshake,
+      color: "bg-purple-50 text-purple-600",
+      trend: 0,
     },
-    { 
-      label: 'Avg. Donation', 
-      value: `$${summary.avgDonation.toFixed(0)}`, 
-      sub: avgDonationGrowth >= 0 ? `Up $${(summary.avgRecent - summary.avgPrevious).toFixed(0)} recently` : `Down $${Math.abs(summary.avgRecent - summary.avgPrevious).toFixed(0)} recently`, 
-      icon: ArrowUpRight, 
-      color: 'bg-amber-50 text-amber-600',
-      trend: avgDonationGrowth
+    {
+      label: "Avg. Donation",
+      value: `$${summary.avgDonation.toFixed(0)}`,
+      sub:
+        avgDonationGrowth >= 0
+          ? `Up $${(summary.avgRecent - summary.avgPrevious).toFixed(
+              0
+            )} recently`
+          : `Down $${Math.abs(summary.avgRecent - summary.avgPrevious).toFixed(
+              0
+            )} recently`,
+      icon: ArrowUpRight,
+      color: "bg-amber-50 text-amber-600",
+      trend: avgDonationGrowth,
     },
   ];
 
@@ -158,16 +196,24 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Financial Dashboard</h1>
-          <p className="text-slate-500 mt-1">Real-time overview of {churchSettings.name}'s stewardship.</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Financial Dashboard
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Real-time overview of {churchSettings.name}'s stewardship.
+          </p>
         </div>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={handleGenerateInsight}
             disabled={loadingAi}
             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-sm font-medium disabled:opacity-50"
           >
-            {loadingAi ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+            {loadingAi ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <Sparkles size={18} />
+            )}
             AI Insight
           </button>
         </div>
@@ -176,26 +222,39 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+          <div
+            key={i}
+            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+          >
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-xl ${stat.color}`}>
                 <stat.icon size={24} />
               </div>
               {stat.trend !== 0 && (
-                <span className={`text-xs font-bold flex items-center px-2 py-1 rounded-full ${stat.trend > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-rose-500 bg-rose-50'}`}>
-                  {stat.trend > 0 ? <ArrowUpRight size={12} className="mr-1" /> : <ArrowDownRight size={12} className="mr-1" />}
+                <span
+                  className={`text-xs font-bold flex items-center px-2 py-1 rounded-full ${
+                    stat.trend > 0
+                      ? "text-emerald-500 bg-emerald-50"
+                      : "text-rose-500 bg-rose-50"
+                  }`}
+                >
+                  {stat.trend > 0 ? (
+                    <ArrowUpRight size={12} className="mr-1" />
+                  ) : (
+                    <ArrowDownRight size={12} className="mr-1" />
+                  )}
                   {Math.abs(stat.trend).toFixed(1)}%
                 </span>
               )}
             </div>
             <h3 className="text-slate-500 text-sm font-medium">{stat.label}</h3>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">
+              {stat.value}
+            </p>
             <p className="text-slate-400 text-xs mt-2">{stat.sub}</p>
           </div>
         ))}
       </div>
-
-
 
       {/* AI Insight Box */}
       {aiInsight && (
@@ -229,15 +288,22 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
         ) : atRiskDonors.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {atRiskDonors.map((donor, idx) => (
-              <div key={idx} className="p-4 rounded-xl border border-rose-100 bg-rose-50/30 hover:shadow-md transition-shadow group">
+              <div
+                key={idx}
+                className="p-4 rounded-xl border border-rose-100 bg-rose-50/30 hover:shadow-md transition-shadow group"
+              >
                 <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">{donor.name}</h4>
+                  <h4 className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">
+                    {donor.name}
+                  </h4>
                   <div className="flex items-center gap-1 text-rose-600 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold">
                     <AlertCircle size={10} />
                     {donor.status.toUpperCase()}
                   </div>
                 </div>
-                <p className="text-slate-600 text-xs mb-3 italic">"{donor.recommendation}"</p>
+                <p className="text-slate-600 text-xs mb-3 italic">
+                  "{donor.recommendation}"
+                </p>
                 <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 border-t border-rose-100/50 pt-2">
                   <span>LAST GIFT: ${donor.history[0].amount.toFixed(0)}</span>
                   <button className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
@@ -249,7 +315,9 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
           </div>
         ) : (
           <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <p className="text-slate-400 text-sm">All donor patterns currently stable. Good job stewardship team!</p>
+            <p className="text-slate-400 text-sm">
+              All donor patterns currently stable. Good job stewardship team!
+            </p>
           </div>
         )}
       </div>
@@ -257,17 +325,39 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
       {/* Charts Section */}
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Giving by Fund</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-6">
+            Giving by Fund
+          </h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={fundData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+              <BarChart
+                data={fundData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f1f5f9"
+                />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  dy={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
                   {fundData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -276,8 +366,18 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Stewardship Distribution</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-6">
+            Stewardship Distribution
+          </h3>
           <div className="h-[300px] w-full flex items-center justify-center">
+            <div className="absolute flex flex-col items-center pointer-events-none">
+              <span className="text-2xl font-bold text-slate-800">
+                ${summary.totalDonations.toLocaleString()}
+              </span>
+              <span className="text-xs text-slate-400 font-medium">
+                TOTAL GIFTS
+              </span>
+            </div>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -290,16 +390,20 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
                   dataKey="value"
                 >
                   {fundData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                      strokeWidth={0}
+                    />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  wrapperStyle={{ outline: "none", zIndex: 50 }}
+                  cursor={{ fill: "transparent" }}
+                />
               </PieChart>
             </ResponsiveContainer>
-            <div className="absolute flex flex-col items-center">
-              <span className="text-2xl font-bold text-slate-800">${summary.totalDonations.toLocaleString()}</span>
-              <span className="text-xs text-slate-400 font-medium">TOTAL GIFTS</span>
-            </div>
           </div>
         </div>
       </div>
