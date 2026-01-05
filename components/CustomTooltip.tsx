@@ -3,11 +3,11 @@ import React from 'react';
 import { TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-lg">
-        <p className="font-bold text-slate-800">{label}</p>
+        <p className="font-bold text-slate-800">{label || payload[0].payload.name}</p>
         <p className="text-indigo-600">
           {`Amount: $${payload[0].value.toLocaleString()}`}
         </p>
