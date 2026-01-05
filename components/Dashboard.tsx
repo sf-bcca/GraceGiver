@@ -24,6 +24,7 @@ import {
   PieChart,
   Pie
 } from 'recharts';
+import CustomTooltip from './CustomTooltip';
 
 
 interface DashboardProps {
@@ -263,10 +264,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
                   {fundData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -295,9 +293,7 @@ const Dashboard: React.FC<DashboardProps> = ({ members, donations, churchSetting
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute flex flex-col items-center">
