@@ -897,11 +897,11 @@ app.put(
   requirePermission("donations:update"),
   async (req, res) => {
     const { id } = req.params;
-    const { amount, fund, notes, enteredBy } = req.body;
+    const { amount, fund, notes, enteredBy, donationDate } = req.body;
     try {
       const result = await pool.query(
-        "UPDATE donations SET amount = $1, fund = $2, notes = $3, entered_by = $4 WHERE id = $5 RETURNING *",
-        [amount, fund, notes, enteredBy, id]
+        "UPDATE donations SET amount = $1, fund = $2, notes = $3, entered_by = $4, donation_date = $5 WHERE id = $6 RETURNING *",
+        [amount, fund, notes, enteredBy, donationDate, id]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Donation not found" });

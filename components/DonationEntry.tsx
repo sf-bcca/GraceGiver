@@ -120,7 +120,8 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
           amount: parseFloat(amount),
           fund,
           notes,
-          enteredBy: 'Admin'
+          enteredBy: 'Admin',
+          donationDate: date
         });
         setIsEditing(null);
       } else {
@@ -179,6 +180,11 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
     setAmount(donation.amount.toString());
     setFund(donation.fund);
     setNotes(donation.notes || '');
+    // Populate the date field from the donation's date or timestamp
+    const donationDate = donation.date || donation.timestamp;
+    if (donationDate) {
+      setDate(new Date(donationDate).toISOString().split('T')[0]);
+    }
     setIsEditing(donation.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -326,7 +332,6 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-medium text-slate-900 shadow-sm"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                disabled={!!isEditing}
               />
             </div>
 
