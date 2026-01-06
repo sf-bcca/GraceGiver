@@ -440,7 +440,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
                         ${donation.amount.toFixed(2)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-2">
                           <button
                             onClick={() => handleEditClick(donation)}
                             className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors bg-white border border-slate-200 rounded-lg shadow-sm"
