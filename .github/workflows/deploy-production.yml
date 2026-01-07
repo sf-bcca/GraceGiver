@@ -51,6 +51,7 @@ jobs:
           # 3. Pull latest images
           # 4. Restart containers
           script: |
+            export PATH=/usr/local/bin:$PATH
             PROJECT_PATH="${{ secrets.SYNOLOGY_PROJECT_PATH || '/volume1/docker/gracegiver' }}"
             echo "Deploying to $PROJECT_PATH..."
 
