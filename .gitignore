@@ -24,3 +24,10 @@ test-secret.js
 *.njsproj
 *.sln
 *.sw?
+
+# Test and Coverage Artifacts
+playwright-report/
+test-results/
+server/coverage/
+blob-report/
+
