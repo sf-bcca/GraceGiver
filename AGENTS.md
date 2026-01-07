@@ -64,7 +64,7 @@ These agents provide continuous monitoring and enforcement of code quality, secu
   - Static code analysis and adherence to project style guides.
   - Automated identification of security vulnerabilities in dependencies.
 - **Interaction Protocols/APIs**
-  - Integrated via Git hooks (Husky) and CI/CD pipelines.
+  - Integrated via Git hooks (Husky) and **GitHub Actions** (`security.yml`).
 - **Expected Inputs and Outputs**
   - **Inputs**: Staged commits, file changes, and dependency manifests.
   - **Outputs**: Pass/Fail status for pre-commit checks, detailed linting reports.
@@ -84,6 +84,7 @@ The Test/QA Agent ensures that all changes are verified against the specified re
   - Performance monitoring and load testing simulation.
 - **Interaction Protocols/APIs**
   - Interacts through the workspace testing framework (Vitest/Jest) and browser automation tools.
+  - **Automated Verification**: Runs on every PR via **GitHub Actions** (`ci.yml`, `e2e.yml`).
 - **Expected Inputs and Outputs**
   - **Inputs**: New features, code modifications, and test specifications.
   - **Outputs**: Test execution reports, code coverage metrics, and visual snapshots.

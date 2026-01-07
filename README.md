@@ -33,6 +33,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 - **ServantHeart:** Volunteer and talent matching system that connects member skills to ministry needs using GraceAI.
 - **CommunityBridge:** Transparent stewardship portals that visualize progress toward specific financial goals and mission milestones.
 - **Docker Ready:** Containerized architecture for seamless deployment and scalability.
+- **Automated CD:** Continuous Deployment to Synology NAS via secure Tailscale tunnel.
 - **Real-Time Collaboration:**
   - **Live Sync:** Instant updates across all connected clients via WebSockets.
   - **Record Locking:** Prevents concurrent editing conflicts on member and user records.
@@ -158,12 +159,25 @@ The backend API runs on port `3000` internally. When running via Docker Compose,
 
 ---
 
+## 🚀 Deployment
+
+The `GraceGiver` repository features a fully automated **Continuous Deployment (CD)** pipeline using GitHub Actions.
+
+- **Target:** Synology NAS (`brookwood.tail6e8dc.ts.net`)
+- **Mechanism:**
+  1.  **Build & Publish:** On every push to `main` (or tag), Docker images are built and pushed to GitHub Container Registry (GHCR).
+  2.  **Deploy:** A `deploy-production` workflow connects to the private Tailscale network, SSHs into the NAS, pulls the new images, and restarts the containers with zero downtime.
+- **Trigger:** Merge to `main` branch.
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions from the community! Please follow these steps:
 
 1. **Fork** the repository.
 2. **Create a branch** for your feature or bugfix (`git checkout -b feature/amazing-feature`).
+   > **Note:** We use **Trunk-Based Development**. Please branch off `main` and keep PRs small and frequent.
 3. **Commit** your changes (`git commit -m 'Add some amazing feature'`).
 4. **Push** to the branch (`git push origin feature/amazing-feature`).
 5. **Open a Pull Request**.
