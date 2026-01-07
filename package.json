@@ -7,7 +7,10 @@
     "dev": "concurrently \"cd server && node index.js\" \"vite\"",
     "build": "vite build",
     "preview": "vite preview",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:debug": "npx playwright test --debug"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
@@ -19,6 +22,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@secretlint/secretlint-rule-aws": "^11.2.5",
     "@secretlint/secretlint-rule-npm": "^11.2.5",
     "@secretlint/secretlint-rule-preset-recommend": "^11.2.5",

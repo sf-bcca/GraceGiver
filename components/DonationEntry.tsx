@@ -81,7 +81,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
       setTotalPages(result.pagination.totalPages);
 
       // Resolve members for history items that aren't in our cache
-      const uniqueMemberIds = [...new Set(result.data.map((d: Donation) => d.memberId))];
+      const uniqueMemberIds = Array.from(new Set(result.data.map((d: Donation) => d.memberId))) as string[];
       const missingIds = uniqueMemberIds.filter(id => !resolvedMembers[id]);
 
       if (missingIds.length > 0) {
