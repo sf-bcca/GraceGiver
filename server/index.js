@@ -898,18 +898,42 @@ app.put(
   async (req, res) => {
     const { id } = req.params;
     const { amount, fund, notes, enteredBy, donationDate } = req.body;
+
+    const updates = {
+      amount,
+      fund,
+      notes,
+      entered_by: enteredBy,
+      donation_date: donationDate,
+    };
+
+    const fieldsToUpdate = Object.entries(updates).filter(
+      ([, value]) => value !== undefined
+    );
+
+    if (fieldsToUpdate.length === 0) {
+      return res.status(400).json({ error: "No valid fields to update." });
+    }
+
+    const setClause = fieldsToUpdate
+      .map(([key], index) => `${key} = $${index + 1}`)
+      .join(", ");
+    const values = fieldsToUpdate.map(([, value]) => value);
+    values.push(id);
+
     try {
       const result = await pool.query(
-        "UPDATE donations SET amount = $1, fund = $2, notes = $3, entered_by = $4, donation_date = $5 WHERE id = $6 RETURNING *",
-        [amount, fund, notes, enteredBy, donationDate, id]
+        `UPDATE donations SET ${setClause} WHERE id = $${values.length} RETURNING *`,
+        values
       );
+
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Donation not found" });
       }
+
       emitEvent("donation:update", { type: "UPDATE", data: result.rows[0] });
       res.json(result.rows[0]);
-    } catch (err) {
-      console.error(err);
+    } catch (err)      console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
   }

@@ -182,7 +182,8 @@ describe('Donations API', () => {
         .put(`/api/donations/${donationId}`)
         .send({
           amount: 75.00,
-          notes: 'Updated note'
+          notes: 'Updated note',
+          donation_date: '2023-01-01'
         });
 
       // Check if update was successful via list
