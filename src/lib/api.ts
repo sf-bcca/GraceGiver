@@ -212,10 +212,8 @@ export async function createDonation(donation: any) {
 
 export async function updateDonation(id: string, donation: any) {
   const payload: { [key: string]: any } = { ...donation };
-  if (payload.donationDate) {
-    payload.donation_date = payload.donationDate;
-    delete payload.donationDate;
-  }
+  // payload.donationDate is already in the correct format for the backend
+
 
   const response = await fetch(`${API_URL}/api/donations/${id}`, {
     method: "PUT",
