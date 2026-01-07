@@ -121,7 +121,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
           fund,
           notes,
           enteredBy: 'Admin',
-          donationDate: date
+          donationDate: new Date(date + 'T12:00:00').toISOString()
         });
         setIsEditing(null);
       } else {
