@@ -43,7 +43,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DO_PULL: "true"
         with:
-          host: brookwood.tail6e8dc.ts.net
+          host: "100.100.57.20"
           username: shedrick
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: GH_TOKEN,DO_PULL
