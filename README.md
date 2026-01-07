@@ -3,7 +3,9 @@
 
 # GraceGiver | Secure Church Management & Donation Tracking
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/your-repo/gracegiver/actions)
+[![CI](https://github.com/sf-bcca/GraceGiver/actions/workflows/ci.yml/badge.svg)](https://github.com/sf-bcca/GraceGiver/actions/workflows/ci.yml)
+[![E2E Tests](https://github.com/sf-bcca/GraceGiver/actions/workflows/e2e.yml/badge.svg)](https://github.com/sf-bcca/GraceGiver/actions/workflows/e2e.yml)
+[![Security](https://github.com/sf-bcca/GraceGiver/actions/workflows/security.yml/badge.svg)](https://github.com/sf-bcca/GraceGiver/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](CONTRIBUTING.md)
 
