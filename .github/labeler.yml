@@ -1,0 +1,76 @@
+# =============================================================================
+# GraceGiver PR Labeler Configuration
+# =============================================================================
+# Maps file paths to labels for automatic PR categorization.
+# =============================================================================
+
+# Frontend changes
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "components/**"
+          - "src/**"
+          - "App.tsx"
+          - "index.tsx"
+          - "vite.config.ts"
+          - "*.css"
+
+# Backend changes
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "server/**"
+          - "!server/tests/**"
+
+# Database changes
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "db/**"
+
+# Testing changes
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+          - "server/tests/**"
+          - "playwright.config.ts"
+          - "**/*.test.js"
+          - "**/*.test.ts"
+          - "**/*.spec.ts"
+
+# Documentation changes
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "*.md"
+          - "README.md"
+          - "AGENTS.md"
+
+# Infrastructure/DevOps changes
+infrastructure:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "Dockerfile"
+          - "docker-compose*.yml"
+          - "nginx.conf"
+          - ".github/**"
+
+# Dependencies
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
+          - "server/package.json"
+          - "server/package-lock.json"
+
+# Security-related changes
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "server/auth.js"
+          - "server/rbac.js"
+          - "server/passwordPolicy.js"
+          - ".secretlint*"
