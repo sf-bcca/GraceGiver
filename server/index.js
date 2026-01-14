@@ -876,11 +876,11 @@ app.post(
   authenticateToken,
   requirePermission("donations:create"),
   async (req, res) => {
-    const { memberId, amount, fund, notes, enteredBy } = req.body;
+    const { memberId, amount, fund, notes, enteredBy, donationDate, date } = req.body;
     try {
       const result = await pool.query(
-        "INSERT INTO donations (member_id, amount, fund, notes, entered_by) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [memberId, amount, fund, notes, enteredBy]
+        "INSERT INTO donations (member_id, amount, fund, notes, entered_by, donation_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+        [memberId, amount, fund, notes, enteredBy, donationDate || date || new Date()]
       );
       emitEvent("donation:update", { type: "CREATE", data: result.rows[0] });
       res.status(201).json(result.rows[0]);
@@ -942,6 +942,7 @@ const {
   generateBatchStatement,
   exportTransactions,
   getAtRiskDonors,
+  getMemberStatement,
 } = require("./reports");
 
 const { generateMemberReportPDF } = require("./reports/memberReport");
@@ -991,6 +992,33 @@ app.get(
         // If headers sent, we can't send JSON. End the stream to prevent hang.
         res.end();
       }
+    }
+  }
+);
+
+app.get(
+  "/api/reports/member-statement/:id",
+  authenticateToken,
+  requireScopedPermission("reports:read", "member", (req) => req.params.id),
+  async (req, res) => {
+    const { id } = req.params;
+    const { year } = req.query;
+
+    if (!year) {
+      return res.status(400).json({ error: "Year is required" });
+    }
+
+    try {
+      const statement = await getMemberStatement(pool, id, year);
+      
+      if (!statement) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+
+      res.json(statement);
+    } catch (err) {
+      console.error("Member statement error:", err);
+      res.status(500).json({ error: "Failed to generate member statement" });
     }
   }
 );
