@@ -196,6 +196,13 @@ export async function fetchMemberStatement(id: string, year: string) {
   return handleResponse(response);
 }
 
+export async function fetchMemberNarrative(id: string, year: string) {
+  const response = await fetch(`${API_URL}/api/reports/member-narrative/${id}?year=${year}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
 export async function downloadMemberStatement(id: string, year: string) {
   const response = await fetch(`${API_URL}/api/reports/member-statement/${id}?year=${year}&format=pdf`, {
     headers: getAuthHeaders(),

@@ -1044,6 +1044,31 @@ app.get(
 );
 
 app.get(
+  "/api/reports/member-narrative/:id",
+  authenticateToken,
+  requireScopedPermission("reports:read", "member", (req) => req.params.id),
+  async (req, res) => {
+    const { id } = req.params;
+    const { year } = req.query;
+
+    if (!year) {
+      return res.status(400).json({ error: "Year is required" });
+    }
+
+    try {
+      const statement = await getMemberStatement(pool, id, year);
+      if (!statement) return res.status(404).json({ error: "Member not found" });
+
+      const narrative = await generateMemberNarrative(statement.member, statement.donations, year);
+      res.json({ narrative });
+    } catch (err) {
+      console.error("Member narrative error:", err);
+      res.status(500).json({ error: "Failed to generate narrative" });
+    }
+  }
+);
+
+app.get(
   "/api/reports/export",
   authenticateToken,
   requirePermission("reports:export"),
