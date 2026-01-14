@@ -57,6 +57,54 @@ const getFinancialSummary = async (donations, members) => {
   }
 };
 
+const generateMemberNarrative = async (member, donations, year) => {
+  const ai = getAIClient();
+  if (!ai) return "AI narrative is currently unavailable (missing API Key).";
+
+  const totalAmount = donations.reduce((sum, d) => sum + parseFloat(d.amount), 0);
+  
+  const breakdown = donations.reduce((acc, d) => {
+    const fund = d.fund;
+    acc[fund] = (acc[fund] || 0) + parseFloat(d.amount);
+    return acc;
+  }, {});
+
+  const promptText = `
+    Write a short, encouraging, and personalized narrative for a church member's annual contribution statement.
+    
+    Member Name: ${member.firstName} ${member.lastName}
+    Year: ${year}
+    Total Giving: $${totalAmount.toLocaleString()}
+    
+    Giving Breakdown:
+    ${JSON.stringify(breakdown, null, 2)}
+    
+    Guidelines:
+    - Tone: Grateful, spiritual, and encouraging.
+    - Length: 2-3 sentences max.
+    - Mention specific funds they supported if significant.
+    - Do NOT mention tax deductibility details here (that's handled elsewhere).
+    - Focus on the impact of their generosity.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview", 
+      contents: promptText
+    });
+    return response.text;
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    return "Error generating narrative. We appreciate your faithful support.";
+  }
+};
+
+const setGenAIInstance = (instance) => {
+  genAI = instance;
+};
+
 module.exports = {
-  getFinancialSummary
+  getFinancialSummary,
+  generateMemberNarrative,
+  setGenAIInstance
 };
