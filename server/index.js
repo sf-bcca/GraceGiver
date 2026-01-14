@@ -15,7 +15,7 @@ const {
   getPasswordPolicy,
 } = require("./passwordPolicy");
 const { requirePermission, requireScopedPermission, requireRole, getRoleInfo } = require("./rbac");
-const { getFinancialSummary } = require("./geminiService");
+const { getFinancialSummary, generateMemberNarrative } = require("./geminiService");
 const { initializeSocket, emitEvent } = require("./socketManager");
 
 
@@ -945,7 +945,7 @@ const {
   getMemberStatement,
 } = require("./reports");
 
-const { generateMemberReportPDF } = require("./reports/memberReport");
+const { generateMemberReportPDF, generateAnnualStatementPDF } = require("./reports/memberReport");
 
 console.log("--- REPORT HANDLER TYPES ---");
 console.log("generateBatchStatement:", typeof generateBatchStatement);
@@ -1002,7 +1002,7 @@ app.get(
   requireScopedPermission("reports:read", "member", (req) => req.params.id),
   async (req, res) => {
     const { id } = req.params;
-    const { year } = req.query;
+    const { year, format } = req.query;
 
     if (!year) {
       return res.status(400).json({ error: "Year is required" });
@@ -1015,10 +1015,30 @@ app.get(
         return res.status(404).json({ error: "Member not found" });
       }
 
+      if (format === 'pdf') {
+        const narrative = await generateMemberNarrative(statement.member, statement.donations, year);
+        
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=statement-${year}-${statement.member.lastName}.pdf`
+        );
+        
+        return generateAnnualStatementPDF(
+          statement.member, 
+          statement.donations, 
+          statement.summary, 
+          narrative, 
+          res
+        );
+      }
+
       res.json(statement);
     } catch (err) {
       console.error("Member statement error:", err);
-      res.status(500).json({ error: "Failed to generate member statement" });
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to generate member statement" });
+      }
     }
   }
 );

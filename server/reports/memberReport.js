@@ -108,4 +108,87 @@ const generateMemberReportPDF = async (pool, memberId, res) => {
   }
 };
 
-module.exports = { generateMemberReportPDF };
+const generateAnnualStatementPDF = (member, donations, summary, narrative, res) => {
+  try {
+    const doc = new PDFDocument({ margin: 50 });
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(20).text('Mt. Herman A.M.E. Church', { align: 'center' });
+    doc.fontSize(16).text('Annual Contribution Statement', { align: 'center' });
+    doc.fontSize(12).text(`Tax Year: ${summary.year}`, { align: 'center' });
+    doc.moveDown();
+
+    // Member Info
+    doc.fontSize(12).font('Helvetica-Bold').text(`${member.firstName} ${member.lastName}`);
+    doc.font('Helvetica').text(member.address || '');
+    if (member.city || member.state || member.zip) {
+      doc.text(`${member.city || ''}, ${member.state || ''} ${member.zip || ''}`);
+    }
+    doc.moveDown();
+
+    // Narrative Section
+    if (narrative) {
+      doc.font('Helvetica-Bold').text('Impact Summary');
+      doc.font('Helvetica-Oblique').text(narrative);
+      doc.moveDown();
+    }
+
+    // Donations Table
+    const tableTop = doc.y;
+    const dateX = 50;
+    const fundX = 150;
+    const amountX = 400;
+
+    doc.font('Helvetica-Bold');
+    doc.text('Date', dateX, tableTop);
+    doc.text('Fund', fundX, tableTop);
+    doc.text('Amount', amountX, tableTop, { width: 100, align: 'right' });
+    doc.font('Helvetica');
+
+    let y = tableTop + 20;
+    doc.moveTo(50, y - 5).lineTo(550, y - 5).stroke();
+
+    donations.forEach(d => {
+      if (y > 700) {
+        doc.addPage();
+        y = 50;
+      }
+      
+      const dateStr = d.date ? new Date(d.date).toLocaleDateString() : 'N/A';
+      
+      doc.text(dateStr, dateX, y);
+      doc.text(d.fund, fundX, y);
+      doc.text(`$${parseFloat(d.amount).toFixed(2)}`, amountX, y, { width: 100, align: 'right' });
+      
+      y += 20;
+    });
+
+    doc.moveTo(50, y).lineTo(550, y).stroke();
+    y += 10;
+
+    // Total
+    doc.font('Helvetica-Bold');
+    doc.text('Total Contributions:', 250, y);
+    doc.text(`$${parseFloat(summary.totalAmount).toFixed(2)}`, amountX, y, { width: 100, align: 'right' });
+
+    // IRS Disclaimer
+    const bottomY = 700;
+    if (doc.y > 650) doc.addPage();
+    
+    doc.font('Helvetica-Oblique').fontSize(8);
+    doc.text(
+      '"No goods or services were provided in exchange for this contribution other than intangible religious benefits."',
+      50, 
+      doc.y > bottomY ? doc.y + 20 : bottomY, 
+      { align: 'center', width: 500 }
+    );
+
+    doc.end();
+  } catch (err) {
+    console.error('Error generating annual statement PDF:', err);
+    throw err;
+  }
+};
+
+module.exports = { generateMemberReportPDF, generateAnnualStatementPDF };

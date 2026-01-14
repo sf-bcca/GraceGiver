@@ -98,5 +98,26 @@ describe('Reports API', () => {
       // Assuming 404 if member not found.
       expect(res.status).toBe(404);
     });
+
+    it('should return a PDF when format=pdf', async () => {
+      const res = await authorizedRequest(adminToken)
+        .get(`/api/reports/member-statement/${TEST_DATA.memberId}?year=${reportYear}&format=pdf`)
+        .buffer(true) // Ensure we get the binary body
+        .parse((res, callback) => {
+          res.setEncoding('binary');
+          res.data = '';
+          res.on('data', (chunk) => {
+            res.data += chunk;
+          });
+          res.on('end', () => {
+            callback(null, Buffer.from(res.data, 'binary'));
+          });
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.header['content-type']).toBe('application/pdf');
+      // Verify content disposition
+      expect(res.header['content-disposition']).toContain('.pdf');
+    });
   });
 });
