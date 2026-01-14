@@ -16,7 +16,8 @@ import {
   Filter,
   X,
   AlertCircle,
-  FileText,
+  Receipt,
+  ClipboardList,
   DollarSign,
 } from "lucide-react";
 import MemberReportModal from "./MemberReportModal";
@@ -398,7 +399,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                         title="Annual Statement"
                         aria-label="Annual Statement"
                       >
-                        <FileText size={16} />
+                        <Receipt size={16} />
                       </button>
                       <button
                         onClick={() => setReportMemberId(member.id)}
@@ -406,7 +407,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                         title="View Report"
                         aria-label="View Report"
                       >
-                        <FileText size={16} />
+                        <ClipboardList size={16} />
                       </button>
                       <div className="w-px h-4 bg-slate-200 mx-1 self-center" />
                       <button
@@ -488,7 +489,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 title="Statement"
                 aria-label="Annual Statement"
               >
-                <FileText size={16} />
+                <Receipt size={16} />
                 Stmt
               </button>
               <button
@@ -497,7 +498,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 title="View Report"
                 aria-label="View Report"
               >
-                <FileText size={16} />
+                <ClipboardList size={16} />
                 Report
               </button>
               <button
