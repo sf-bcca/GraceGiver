@@ -2,7 +2,7 @@
 
 This plan follows the project's TDD workflow: Write Tests (Red) -> Implement (Green) -> Refactor.
 
-## Phase 1: Backend Data & AI Narrative Generation
+## Phase 1: Backend Data & AI Narrative Generation [checkpoint: 3da72dc]
 
 - [x] Task: Backend - [TDD] Create API endpoint for member giving history [dd93b2a]
     - [ ] Sub-task: Write integration tests for `GET /api/reports/member-statement/:id?year=YYYY` in `server/tests/integration/reports.integration.test.js`
@@ -10,7 +10,7 @@ This plan follows the project's TDD workflow: Write Tests (Red) -> Implement (Gr
 - [x] Task: Backend - [TDD] Implement AI Narrative Service for member impact [3725f55]
     - [ ] Sub-task: Write unit tests in `server/tests/geminiService.test.js` for a new `generateMemberNarrative` function
     - [ ] Sub-task: Implement `generateMemberNarrative` in `server/geminiService.js` using giving data context
-- [ ] Task: Conductor - User Manual Verification 'Backend Data & AI Narrative Generation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Backend Data & AI Narrative Generation' (Protocol in workflow.md) [3da72dc]
 
 ## Phase 2: PDF Generation & Statement API Completion
 
