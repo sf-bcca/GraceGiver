@@ -7,7 +7,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 # Core Value Proposition
 - **Secure Donation & Fund Management:** Robust recording of contributions across multiple funds (General, Building, Missions, etc.) with guaranteed data integrity and audit trails.
-- **Intelligent Reporting & Analytics:** A comprehensive reporting suite that delivers IRS-compliant tax statements and operational health insights to ensure transparency and accountability.
+- **Intelligent Reporting & Analytics:** A comprehensive reporting suite that delivers IRS-compliant tax statements, personalized member giving summaries, and operational health insights to ensure transparency and accountability.
 
 # AI & Automation Strategy
 - **Financial Narrative:** Leveraging AI (Gemini) to transform complex financial data into clear, narrative summaries, making financial health understandable for all stakeholders.
