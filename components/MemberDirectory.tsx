@@ -473,7 +473,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <button
                 onClick={() => handleDonationClick(member)}
                 className="py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase flex flex-col items-center gap-1 hover:bg-emerald-100 transition-colors"
