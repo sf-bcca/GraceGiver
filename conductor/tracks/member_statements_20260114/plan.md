@@ -4,7 +4,7 @@ This plan follows the project's TDD workflow: Write Tests (Red) -> Implement (Gr
 
 ## Phase 1: Backend Data & AI Narrative Generation
 
-- [ ] Task: Backend - [TDD] Create API endpoint for member giving history
+- [x] Task: Backend - [TDD] Create API endpoint for member giving history [dd93b2a]
     - [ ] Sub-task: Write integration tests for `GET /api/reports/member-statement/:id?year=YYYY` in `server/tests/integration/reports.integration.test.js`
     - [ ] Sub-task: Implement the route and controller in `server/reports.js` and `server/index.js`
 - [ ] Task: Backend - [TDD] Implement AI Narrative Service for member impact
