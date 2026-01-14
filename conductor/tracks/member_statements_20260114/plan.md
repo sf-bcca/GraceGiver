@@ -24,10 +24,10 @@ This plan follows the project's TDD workflow: Write Tests (Red) -> Implement (Gr
 
 ## Phase 3: Frontend Integration & UI [checkpoint: 226d049]
 
-- [x] Task: Frontend - [TDD] Create Statement Generation Modal component [740886d]
+- [x] Task: Frontend - [TDD] Create Statement Generation Modal component [d0b8246]
     - [ ] Sub-task: Write Playwright tests in `tests/e2e/member-statement.spec.ts` for the modal's open/close and year selection
     - [ ] Sub-task: Create `MemberStatementModal.tsx` in `components/`
-- [x] Task: Frontend - Implement Statement Download functionality [740886d]
+- [x] Task: Frontend - Implement Statement Download functionality [d0b8246]
     - [ ] Sub-task: Update E2E tests to verify file download trigger
     - [ ] Sub-task: Connect the modal to the backend API and handle the file download stream
 - [x] Task: Conductor - User Manual Verification 'Frontend Integration & UI' (Protocol in workflow.md) [226d049]
