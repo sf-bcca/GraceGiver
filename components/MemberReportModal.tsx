@@ -88,7 +88,7 @@ const MemberReportModal: React.FC<MemberReportModalProps> = ({ memberId, onClose
   if (!data) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] backdrop-blur-sm p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] backdrop-blur-sm p-4" role="dialog" aria-modal="true">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
         {/* Header */}

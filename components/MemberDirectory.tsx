@@ -388,6 +388,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                         onClick={() => handleDonationClick(member)}
                         className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
                         title="Donations"
+                        aria-label="Donations"
                       >
                         <DollarSign size={16} />
                       </button>
@@ -395,6 +396,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                         onClick={() => setStatementMemberId(member.id)}
                         className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
                         title="Annual Statement"
+                        aria-label="Annual Statement"
                       >
                         <FileText size={16} />
                       </button>
@@ -402,6 +404,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                         onClick={() => setReportMemberId(member.id)}
                         className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                         title="View Report"
+                        aria-label="View Report"
                       >
                         <FileText size={16} />
                       </button>
@@ -474,6 +477,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 onClick={() => handleDonationClick(member)}
                 className="py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-bold uppercase flex flex-col items-center gap-1 hover:bg-emerald-100 transition-colors"
                 title="Donations"
+                aria-label="Donations"
               >
                 <DollarSign size={16} />
                 Give
@@ -482,6 +486,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 onClick={() => setStatementMemberId(member.id)}
                 className="py-2 bg-purple-50 text-purple-600 rounded-xl text-[10px] font-bold uppercase flex flex-col items-center gap-1 hover:bg-purple-100 transition-colors"
                 title="Statement"
+                aria-label="Annual Statement"
               >
                 <FileText size={16} />
                 Stmt
@@ -490,6 +495,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 onClick={() => setReportMemberId(member.id)}
                 className="py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold uppercase flex flex-col items-center gap-1 hover:bg-indigo-100 transition-colors"
                 title="View Report"
+                aria-label="View Report"
               >
                 <FileText size={16} />
                 Report
