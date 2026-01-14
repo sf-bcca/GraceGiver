@@ -20,6 +20,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import MemberReportModal from "./MemberReportModal";
+import MemberStatementModal from "./MemberStatementModal";
 import { formatPhoneNumber, cleanInput } from "../src/lib/utils";
 import { useRecordLock } from "../src/hooks/useRecordLock";
 
@@ -52,6 +53,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [reportMemberId, setReportMemberId] = useState<string | null>(null);
+  const [statementMemberId, setStatementMemberId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -390,6 +392,13 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                         <DollarSign size={16} />
                       </button>
                       <button
+                        onClick={() => setStatementMemberId(member.id)}
+                        className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
+                        title="Annual Statement"
+                      >
+                        <FileText size={16} />
+                      </button>
+                      <button
                         onClick={() => setReportMemberId(member.id)}
                         className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                         title="View Report"
@@ -470,6 +479,14 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 Give
               </button>
               <button
+                onClick={() => setStatementMemberId(member.id)}
+                className="py-2 bg-purple-50 text-purple-600 rounded-xl text-[10px] font-bold uppercase flex flex-col items-center gap-1 hover:bg-purple-100 transition-colors"
+                title="Statement"
+              >
+                <FileText size={16} />
+                Stmt
+              </button>
+              <button
                 onClick={() => setReportMemberId(member.id)}
                 className="py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-bold uppercase flex flex-col items-center gap-1 hover:bg-indigo-100 transition-colors"
                 title="View Report"
@@ -503,6 +520,14 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
         <MemberReportModal
           memberId={reportMemberId}
           onClose={() => setReportMemberId(null)}
+        />
+      )}
+
+      {/* Annual Statement Modal */}
+      {statementMemberId && (
+        <MemberStatementModal
+          memberId={statementMemberId}
+          onClose={() => setStatementMemberId(null)}
         />
       )}
 

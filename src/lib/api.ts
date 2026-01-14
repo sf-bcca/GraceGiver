@@ -189,6 +189,26 @@ export async function downloadMemberReportPDF(id: string) {
   return response.blob();
 }
 
+export async function fetchMemberStatement(id: string, year: string) {
+  const response = await fetch(`${API_URL}/api/reports/member-statement/${id}?year=${year}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function downloadMemberStatement(id: string, year: string) {
+  const response = await fetch(`${API_URL}/api/reports/member-statement/${id}?year=${year}&format=pdf`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to generate PDF");
+  }
+
+  return response.blob();
+}
+
 export async function fetchDonations(page = 1, limit = 50) {
   const params = new URLSearchParams({
     page: page.toString(),
