@@ -7,7 +7,7 @@ This plan follows the project's TDD workflow: Write Tests (Red) -> Implement (Gr
 - [x] Task: Backend - [TDD] Create API endpoint for member giving history [dd93b2a]
     - [ ] Sub-task: Write integration tests for `GET /api/reports/member-statement/:id?year=YYYY` in `server/tests/integration/reports.integration.test.js`
     - [ ] Sub-task: Implement the route and controller in `server/reports.js` and `server/index.js`
-- [ ] Task: Backend - [TDD] Implement AI Narrative Service for member impact
+- [x] Task: Backend - [TDD] Implement AI Narrative Service for member impact [3725f55]
     - [ ] Sub-task: Write unit tests in `server/tests/geminiService.test.js` for a new `generateMemberNarrative` function
     - [ ] Sub-task: Implement `generateMemberNarrative` in `server/geminiService.js` using giving data context
 - [ ] Task: Conductor - User Manual Verification 'Backend Data & AI Narrative Generation' (Protocol in workflow.md)
