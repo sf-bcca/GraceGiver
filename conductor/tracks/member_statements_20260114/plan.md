@@ -12,15 +12,15 @@ This plan follows the project's TDD workflow: Write Tests (Red) -> Implement (Gr
     - [ ] Sub-task: Implement `generateMemberNarrative` in `server/geminiService.js` using giving data context
 - [x] Task: Conductor - User Manual Verification 'Backend Data & AI Narrative Generation' (Protocol in workflow.md) [3da72dc]
 
-## Phase 2: PDF Generation & Statement API Completion
+## Phase 2: PDF Generation & Statement API Completion [checkpoint: 7daccba]
 
-- [ ] Task: Backend - [TDD] Implement PDFKit service for member statements
+- [x] Task: Backend - [TDD] Implement PDFKit service for member statements [176b94b]
     - [ ] Sub-task: Write unit tests in `server/tests/reports/memberReport.test.js` verifying the PDF structure and content inclusion
     - [ ] Sub-task: Implement the PDF generation logic in `server/reports/memberReport.js`
-- [ ] Task: Backend - Finalize statement endpoint with PDF response
+- [x] Task: Backend - Finalize statement endpoint with PDF response [176b94b]
     - [ ] Sub-task: Update integration tests to verify PDF content-type and binary data
     - [ ] Sub-task: Integrate the AI narrative and PDF service into the main report endpoint
-- [ ] Task: Conductor - User Manual Verification 'PDF Generation & Statement API Completion' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'PDF Generation & Statement API Completion' (Protocol in workflow.md) [7daccba]
 
 ## Phase 3: Frontend Integration & UI
 
