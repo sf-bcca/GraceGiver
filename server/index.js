@@ -333,7 +333,7 @@ app.get(
       const params = [];
       const conditions = [];
       if (startDate && endDate) {
-        conditions.push(`d.donation_date BETWEEN $${params.length + 1} AND $${params.length + 2}`);
+        conditions.push(`d.donation_date >= $${params.length + 1} AND d.donation_date < ($${params.length + 2}::date + INTERVAL '1 day')`);
         params.push(startDate, endDate);
       }
       if (fund) {
