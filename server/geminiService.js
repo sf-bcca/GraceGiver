@@ -26,6 +26,7 @@ const getFinancialSummary = async (donations, members) => {
   const promptText = `
     Analyze the following church donation data and provide a concise strategic summary for the board.
     
+    Date: ${new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}
     Total Donations: $${totalAmount.toLocaleString()}
     Donation Count: ${donations.length}
     Unique Donors: ${donorCount}
