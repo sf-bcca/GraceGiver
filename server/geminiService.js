@@ -47,10 +47,13 @@ const getFinancialSummary = async (donations, members) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", 
+      model: "gemini-2.5-flash-lite", 
       contents: promptText
     });
-    return response.text;
+    
+    // Handle response.text() whether it's a function (SDK v1) or property
+    const text = typeof response.text === 'function' ? response.text() : response.text;
+    return text;
   } catch (error) {
     console.error("Gemini Error:", error);
     return "Error generating analysis. Please try again later.";
@@ -89,10 +92,13 @@ const generateMemberNarrative = async (member, donations, year) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", 
+      model: "gemini-2.5-flash-lite", 
       contents: promptText
     });
-    return response.text;
+
+    // Handle response.text() whether it's a function (SDK v1) or property
+    const text = typeof response.text === 'function' ? response.text() : response.text;
+    return text;
   } catch (error) {
     console.error("Gemini Error:", error);
     return "Error generating narrative. We appreciate your faithful support.";

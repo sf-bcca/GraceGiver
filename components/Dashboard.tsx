@@ -110,6 +110,14 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       );
 
+      if (response.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.reload(); // Force app to re-render in login state
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         setAiInsight(data.insight);
