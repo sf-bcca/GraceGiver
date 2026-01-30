@@ -9,9 +9,9 @@ Focus on ensuring the backend securely serves data to the `viewer` role based on
     - [x] Modify `requireScopedPermission` to ensure `viewer` can access their own record via `member_id` from their JWT.
     - [x] Create `/api/self/profile` endpoint as a convenience alias for the logged-in member's data.
     - [x] Create `/api/self/donations` endpoint to fetch donations for the logged-in member's `member_id`.
-- [ ] Task: Implement self-service giving statement list
-    - [ ] Create `/api/self/statements` endpoint to list available years for the member.
-    - [ ] Ensure existing `/api/reports/statements` logic can be invoked securely by a `viewer` for their own ID.
+- [x] Task: Implement self-service giving statement list [cf9f0b0]
+    - [x] Create `/api/self/statements` endpoint to list available years for the member.
+    - [x] Ensure existing `/api/reports/statements` logic can be invoked securely by a `viewer` for their own ID.
 - [ ] Task: Verify security boundaries with unit tests
     - [ ] Write tests ensuring a `viewer` cannot access another member's data via ID manipulation.
     - [ ] Write tests for the new `self` endpoints.
