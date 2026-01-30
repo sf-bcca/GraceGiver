@@ -24,10 +24,22 @@ interface MemberDashboardProps {
   onOpenSettings: () => void;
 }
 
+interface Campaign {
+  id: number;
+  fund_name: string;
+  title: string;
+  description: string;
+  goal_amount: number;
+  current_amount: number;
+  end_date?: string;
+  is_active: boolean;
+}
+
 const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLogout, onOpenSettings }) => {
   const [profile, setProfile] = useState<Member | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [statements, setStatements] = useState<number[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,15 +47,22 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
     const loadMemberData = async () => {
       try {
         setLoading(true);
-        const [profileRes, donationsRes, statementsRes] = await Promise.all([
+        const token = localStorage.getItem("token");
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+        
+        const [profileRes, donationsRes, statementsRes, campaignsRes] = await Promise.all([
           fetchSelfProfile(),
           fetchSelfDonations(),
-          fetchSelfStatements()
+          fetchSelfStatements(),
+          fetch(`${apiUrl}/api/stewardship/campaigns`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).then(res => res.json())
         ]);
         
         setProfile(profileRes);
         setDonations(donationsRes.data);
         setStatements(statementsRes);
+        setCampaigns(campaignsRes);
       } catch (err) {
         console.error('Failed to load member data:', err);
         setError('Failed to load your profile. Please try again later.');
@@ -58,6 +77,20 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
   const totalGivenThisYear = donations
     .filter(d => new Date(d.date).getFullYear() === new Date().getFullYear())
     .reduce((sum, d) => sum + d.amount, 0);
+
+  const getCampaignProgress = (campaign: Campaign) => {
+    const memberGivingToFund = donations
+      .filter(d => d.fund === campaign.fund_name)
+      .reduce((sum, d) => sum + d.amount, 0);
+    
+    return {
+      memberAmount: memberGivingToFund,
+      totalAmount: campaign.current_amount,
+      goal: campaign.goal_amount,
+      percent: (campaign.current_amount / campaign.goal_amount) * 100,
+      memberPercent: (memberGivingToFund / campaign.current_amount) * 100
+    };
+  };
 
   if (loading) {
     return (
@@ -123,8 +156,8 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-8">
         {/* Welcome & Stats */}
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-6">
             <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-3xl font-bold shrink-0">
               {profile.firstName[0]}{profile.lastName[0]}
             </div>
@@ -137,15 +170,51 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
             </div>
           </div>
 
-          <div className="w-full md:w-80 bg-emerald-600 p-8 rounded-3xl shadow-lg shadow-emerald-100 text-white">
-            <div className="flex items-center gap-2 text-emerald-100 font-bold text-xs uppercase tracking-widest mb-4">
+          <div className="bg-emerald-600 p-8 rounded-3xl shadow-lg shadow-emerald-100 text-white flex flex-col justify-center">
+            <div className="flex items-center gap-2 text-emerald-100 font-bold text-xs uppercase tracking-widest mb-2">
               <TrendingUp size={16} />
               <span>Giving This Year</span>
             </div>
             <div className="text-4xl font-bold tracking-tight">${totalGivenThisYear.toLocaleString()}</div>
-            <p className="text-emerald-100 text-sm mt-2 font-medium">Thank you for your stewardship!</p>
           </div>
         </div>
+
+        {/* Campaign Progress */}
+        {campaigns.length > 0 && (
+          <section className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+            <div className="flex items-center gap-2 mb-6">
+              <Target size={20} className="text-indigo-600" />
+              <h3 className="font-bold text-slate-900 text-lg">Stewardship Goals</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {campaigns.map(campaign => {
+                const stats = getCampaignProgress(campaign);
+                return (
+                  <div key={campaign.id} className="space-y-3">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <h4 className="font-bold text-slate-800">{campaign.title}</h4>
+                        <p className="text-xs text-slate-500 font-medium">Total Raised: ${stats.totalAmount.toLocaleString()} / ${stats.goal.toLocaleString()}</p>
+                      </div>
+                      <span className="text-sm font-black text-emerald-600">{stats.percent.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
+                        style={{ width: `${Math.min(100, stats.percent)}%` }}
+                      />
+                    </div>
+                    {stats.memberAmount > 0 && (
+                      <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
+                        Your Impact: ${stats.memberAmount.toLocaleString()} ({stats.memberPercent.toFixed(1)}% of total raised)
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Profile Info */}
