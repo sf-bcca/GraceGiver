@@ -43,9 +43,9 @@ Build the primary landing page components for the member experience.
 ## Phase 4: Profile & Security Management
 Enable members to update their own records and manage their account.
 
-- [ ] Task: Build Member Profile Edit Page
-    - [ ] Create forms for updating contact information (Email, Phone, Address).
-    - [ ] Integrate existing skill management UI from `VolunteerMatching` or `MemberDirectory`.
+- [x] Task: Build Member Profile Edit Page [d50b9e2]
+    - [x] Create forms for updating contact information (Email, Phone, Address).
+    - [x] Integrate existing skill management UI from `VolunteerMatching` or `MemberDirectory`.
 - [ ] Task: Build Password Change Component for Members
     - [ ] Re-use/Refactor `PasswordChange.tsx` to fit the member portal's simplified aesthetic.
 - [ ] Task: Implement Tax Statement Download List
