@@ -19,15 +19,15 @@ Focus on creating a secure, rate-limited endpoint for account creation.
     - [x] Test validation and policy failures.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Backend Registration API' [486e953]
 
-## Phase 2: Frontend Registration UI
+## Phase 2: Frontend Registration UI [checkpoint: cbc9e68]
 Create the user interface and integrate it with the login flow.
 
-- [ ] Task: Create `Register` component
-    - [ ] Implement form with validation feedback.
-    - [ ] Show real-time password strength meter.
-- [ ] Task: Integrate with `App` and `Login`
-    - [ ] Add "Need an account? Register" link to `Login.tsx`.
-    - [ ] Add `REGISTER` view to `ViewState` and `App.tsx`.
-- [ ] Task: Implement Post-Registration Flow
-    - [ ] Auto-login user upon successful registration or redirect to login with a success message.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Frontend Registration UI' (Protocol in workflow.md)
+- [x] Task: Create `Register` component [cbc9e68]
+    - [x] Implement form with validation feedback.
+    - [x] Show real-time password strength meter.
+- [x] Task: Integrate with `App` and `Login` [cbc9e68]
+    - [x] Add "Need an account? Register" link to `Login.tsx`.
+    - [x] Add `REGISTER` view to `ViewState` and `App.tsx`.
+- [x] Task: Implement Post-Registration Flow [cbc9e68]
+    - [x] Auto-login user upon successful registration or redirect to login with a success message.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Frontend Registration UI' [cbc9e68]
