@@ -27,7 +27,7 @@ Set up the routing logic and the base layout for the simplified member dashboard
     - [x] Implement a basic header with profile/logout options.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Frontend Infrastructure & Routing' [4cf9690]
 
-## Phase 3: Dashboard Quick Stats & Activity
+## Phase 3: Dashboard Quick Stats & Activity [checkpoint: ed706ba]
 Build the primary landing page components for the member experience.
 
 - [x] Task: Implement Giving Summary & Progress Bar [b9976f4]
@@ -38,7 +38,7 @@ Build the primary landing page components for the member experience.
     - [x] Display active roles or matched opportunities fetched from existing `/api/opportunities` and `/api/opportunities/:id/matches`.
 - [x] Task: Implement Profile Completeness Indicator [99d7edb]
     - [x] Create logic to calculate % completeness based on email, telephone, address, and skills fields.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Dashboard Quick Stats & Activity' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Dashboard Quick Stats & Activity' [ed706ba]
 
 ## Phase 4: Profile & Security Management
 Enable members to update their own records and manage their account.
