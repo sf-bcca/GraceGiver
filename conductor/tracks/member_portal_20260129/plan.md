@@ -20,8 +20,8 @@ Focus on ensuring the backend securely serves data to the `viewer` role based on
 ## Phase 2: Frontend Infrastructure & Routing
 Set up the routing logic and the base layout for the simplified member dashboard.
 
-- [ ] Task: Implement Role-Based Redirect Logic
-    - [ ] Update the `Login` component or main `App` entry point to redirect `viewer` roles to `/member-dashboard`.
+- [x] Task: Implement Role-Based Redirect Logic [8a2ad54]
+    - [x] Update the `Login` component or main `App` entry point to redirect `viewer` roles to `/member-dashboard`.
 - [ ] Task: Create `MemberDashboard` shell and navigation
     - [ ] Design a simplified layout that removes administrative sidebars.
     - [ ] Implement a basic header with profile/logout options.
