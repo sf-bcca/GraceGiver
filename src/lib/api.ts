@@ -266,6 +266,42 @@ export async function fetchDonationSummary() {
   return handleResponse(response);
 }
 
+// ==========================================
+// SELF-SERVICE API (Member Portal)
+// ==========================================
+
+export async function fetchSelfProfile() {
+  const response = await fetch(`${API_URL}/api/self/profile`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchSelfDonations(page = 1, limit = 50) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  const response = await fetch(`${API_URL}/api/self/donations?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchSelfStatements() {
+  const response = await fetch(`${API_URL}/api/self/statements`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
+export async function fetchSelfOpportunities() {
+  const response = await fetch(`${API_URL}/api/self/opportunities`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+}
+
 export async function downloadBatchStatement(year: string) {
   const response = await fetch(
     `${API_URL}/api/reports/statements?year=${year}`,

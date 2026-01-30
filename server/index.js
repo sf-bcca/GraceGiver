@@ -336,6 +336,33 @@ app.get(
   }
 );
 
+// Get matched volunteer opportunities
+app.get(
+  "/api/self/opportunities",
+  authenticateToken,
+  requireScopedPermission("members:read", "member", (req) => req.user.memberId),
+  async (req, res) => {
+    if (!req.user.memberId) {
+      return res.status(400).json({ error: "User is not linked to a member record" });
+    }
+
+    try {
+      // Find opportunities that match member's skills or interests
+      const result = await pool.query(
+        `SELECT * FROM ministry_opportunities 
+         WHERE required_skills && (SELECT skills FROM members WHERE id = $1)
+         OR required_skills && (SELECT interests FROM members WHERE id = $1)
+         ORDER BY created_at DESC`,
+        [req.user.memberId]
+      );
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
 // Validate password strength (public - for real-time feedback)
 app.post("/api/auth/validate-password", (req, res) => {
   const { password } = req.body;

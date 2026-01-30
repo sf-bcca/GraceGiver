@@ -13,10 +13,16 @@ import {
   Award,
   Download,
   Loader2,
-  Clock
+  Clock,
+  HeartHandshake
 } from 'lucide-react';
 import { Member, Donation, ChurchSettings } from '../types';
-import { fetchSelfProfile, fetchSelfDonations, fetchSelfStatements } from '../src/lib/api';
+import { 
+  fetchSelfProfile, 
+  fetchSelfDonations, 
+  fetchSelfStatements,
+  fetchSelfOpportunities
+} from '../src/lib/api';
 
 interface MemberDashboardProps {
   churchSettings: ChurchSettings;
@@ -35,11 +41,19 @@ interface Campaign {
   is_active: boolean;
 }
 
+interface Opportunity {
+  id: number;
+  title: string;
+  description: string;
+  required_skills: string[];
+}
+
 const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLogout, onOpenSettings }) => {
   const [profile, setProfile] = useState<Member | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [statements, setStatements] = useState<number[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,19 +64,21 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
         const token = localStorage.getItem("token");
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
         
-        const [profileRes, donationsRes, statementsRes, campaignsRes] = await Promise.all([
+        const [profileRes, donationsRes, statementsRes, campaignsRes, opportunitiesRes] = await Promise.all([
           fetchSelfProfile(),
           fetchSelfDonations(),
           fetchSelfStatements(),
           fetch(`${apiUrl}/api/stewardship/campaigns`, {
             headers: { Authorization: `Bearer ${token}` }
-          }).then(res => res.json())
+          }).then(res => res.json()),
+          fetchSelfOpportunities()
         ]);
         
         setProfile(profileRes);
         setDonations(donationsRes.data);
         setStatements(statementsRes);
         setCampaigns(campaignsRes);
+        setOpportunities(opportunitiesRes);
       } catch (err) {
         console.error('Failed to load member data:', err);
         setError('Failed to load your profile. Please try again later.');
@@ -271,6 +287,45 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     )}
                   </div>
                 </div>
+              </div>
+            </section>
+
+            {/* Ministry Matches Section */}
+            <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-50 flex justify-between items-center">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <HeartHandshake size={18} className="text-emerald-600" />
+                  Ministry Matches
+                </h3>
+                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider">AI Powered</span>
+              </div>
+              <div className="p-6">
+                {opportunities.length > 0 ? (
+                  <div className="space-y-4">
+                    {opportunities.slice(0, 3).map(opp => (
+                      <div key={opp.id} className="group cursor-pointer">
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{opp.title}</h4>
+                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{opp.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {opp.required_skills.slice(0, 2).map((s, i) => (
+                            <span key={i} className="text-[9px] font-bold px-1.5 py-0.5 bg-slate-50 text-slate-400 rounded uppercase tracking-tighter border border-slate-100">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <button className="w-full py-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50 rounded-lg transition-all mt-2">
+                      View All Opportunities
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-xs text-slate-400 italic leading-relaxed">
+                      Add more skills to your profile to see matched ministry roles!
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
 
