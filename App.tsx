@@ -120,6 +120,19 @@ const AppContent: React.FC<{
     }
   }, [view, token, loadData]);
 
+  // Set initial view based on role if logged in
+  React.useEffect(() => {
+    if (token) {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.role === 'viewer') {
+          setView('MEMBER_DASHBOARD');
+        }
+      }
+    }
+  }, [token]);
+
   const [churchSettings, setChurchSettings] = useState<ChurchSettings>({
     name: "GraceGiver",
     address: "",
@@ -154,6 +167,15 @@ const AppContent: React.FC<{
 
   const handleLoginSuccess = (passwordChangeRequired: boolean = false) => {
     setToken(localStorage.getItem("token"));
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user.role === 'viewer') {
+        setView("MEMBER_DASHBOARD");
+      } else {
+        setView("DASHBOARD");
+      }
+    }
     setMustChangePassword(passwordChangeRequired);
   };
 
@@ -194,6 +216,23 @@ const AppContent: React.FC<{
     setView("DASHBOARD");
   };
 
+  // Ensure viewer role is redirected if they somehow land on admin views
+  React.useEffect(() => {
+    if (token) {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.role === 'viewer' && view !== 'MEMBER_DASHBOARD' && view !== 'SETTINGS') {
+          // Viewers only allowed on MEMBER_DASHBOARD or SETTINGS (for password change)
+          setView('MEMBER_DASHBOARD');
+        } else if (user.role !== 'viewer' && view === 'MEMBER_DASHBOARD') {
+          // Admins shouldn't be on MEMBER_DASHBOARD
+          setView('DASHBOARD');
+        }
+      }
+    }
+  }, [token, view]);
+
   const renderView = () => {
     return (
       <Suspense
@@ -213,6 +252,13 @@ const AppContent: React.FC<{
                   churchSettings={churchSettings}
                   summary={donationSummary}
                 />
+              );
+            case "MEMBER_DASHBOARD":
+              return (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                   <h2 className="text-2xl font-bold text-slate-800 mb-4">Member Portal Coming Soon</h2>
+                   <p className="text-slate-600 max-w-md">We are currently building your personalized member experience. You will soon be able to view your giving history and manage your profile here.</p>
+                </div>
               );
             case "MEMBERS":
               return (
