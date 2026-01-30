@@ -108,6 +108,22 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
     };
   };
 
+  const getProfileCompleteness = () => {
+    if (!profile) return 0;
+    const fields = [
+      profile.email,
+      profile.telephone,
+      profile.address,
+      profile.city,
+      profile.state,
+      profile.zip,
+      profile.skills && profile.skills.length > 0,
+      profile.interests && profile.interests.length > 0
+    ];
+    const completed = fields.filter(Boolean).length;
+    return Math.round((completed / fields.length) * 100);
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -236,11 +252,20 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
           {/* Left Column: Profile Info */}
           <div className="lg:col-span-1 space-y-8">
             <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                  <User size={18} className="text-indigo-600" />
-                  My Profile
-                </h3>
+              <div className="p-6 border-b border-slate-50">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <User size={18} className="text-indigo-600" />
+                    My Profile
+                  </h3>
+                  <span className="text-xs font-bold text-indigo-600">{getProfileCompleteness()}% Complete</span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-500 rounded-full transition-all duration-700" 
+                    style={{ width: `${getProfileCompleteness()}%` }}
+                  />
+                </div>
               </div>
               <div className="p-6 space-y-6">
                 <div className="space-y-4">
