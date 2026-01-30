@@ -40,7 +40,7 @@ Build the primary landing page components for the member experience.
     - [x] Create logic to calculate % completeness based on email, telephone, address, and skills fields.
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Dashboard Quick Stats & Activity' [ed706ba]
 
-## Phase 4: Profile & Security Management
+## Phase 4: Profile & Security Management [checkpoint: 8c8ae4c]
 Enable members to update their own records and manage their account.
 
 - [x] Task: Build Member Profile Edit Page [d50b9e2]
@@ -50,4 +50,4 @@ Enable members to update their own records and manage their account.
     - [x] Re-use/Refactor `PasswordChange.tsx` to fit the member portal's simplified aesthetic.
 - [x] Task: Implement Tax Statement Download List [fc1cc2e]
     - [x] Create a UI to list years and trigger PDF downloads using the `/api/self/statements` and report endpoints.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Profile & Security Management' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Profile & Security Management' [8c8ae4c]
