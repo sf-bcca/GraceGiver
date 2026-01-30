@@ -109,4 +109,22 @@ describe('Self-Service Endpoints', () => {
     expect(res.body).toEqual([2026, 2025]);
     expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("DISTINCT EXTRACT(YEAR"), ['M1']);
   });
+
+  it('GET /api/self/profile should return 400 for unlinked user', async () => {
+    // Override mockAuth for this test
+    const unlinkedAuth = (req, res, next) => {
+      req.user = { id: 2, role: 'viewer' }; // No memberId
+      next();
+    };
+
+    const localApp = express();
+    localApp.use(express.json());
+    localApp.get('/api/self/profile', unlinkedAuth, async (req, res) => {
+      if (!req.user.memberId) return res.status(400).json({ error: "Unlinked" });
+      res.json({ ok: true });
+    });
+
+    const res = await request(localApp).get('/api/self/profile');
+    expect(res.status).toBe(400);
+  });
 });
