@@ -315,31 +315,34 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
               <div className="p-6 border-b border-slate-50 flex justify-between items-center">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2">
                   <Heart size={18} className="text-rose-500" />
-                  Recent Giving
+                  Recent Activity
                 </h3>
               </div>
               <div className="p-0">
                 {donations.length > 0 ? (
                   <div className="divide-y divide-slate-50">
-                    {donations.map((donation) => (
+                    {donations.slice(0, 5).map((donation) => (
                       <div key={donation.id} className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
-                             <Clock size={24} />
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-indigo-600">
+                             <TrendingUp size={24} />
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900">${donation.amount.toLocaleString()}</p>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                              <span>{donation.fund}</span>
-                              <span>•</span>
-                              <span>{new Date(donation.date).toLocaleDateString()}</span>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-900">${donation.amount.toLocaleString()}</p>
+                              <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded uppercase tracking-wider">{donation.fund}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-slate-400 font-medium mt-0.5">
+                              <Calendar size={12} />
+                              <span>{new Date(donation.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                             </div>
                           </div>
                         </div>
                         {donation.notes && (
-                          <p className="hidden md:block text-xs text-slate-400 max-w-[200px] truncate italic">
-                            "{donation.notes}"
-                          </p>
+                          <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 max-w-[200px] bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                            <Info size={12} />
+                            <p className="truncate italic">"{donation.notes}"</p>
+                          </div>
                         )}
                         <ChevronRight className="text-slate-300" size={20} />
                       </div>
