@@ -21,8 +21,11 @@ import {
   fetchSelfProfile, 
   fetchSelfDonations, 
   fetchSelfStatements,
-  fetchSelfOpportunities
+  fetchSelfOpportunities,
+  updateMember,
+  updateMemberSkills
 } from '../src/lib/api';
+import { formatPhoneNumber, cleanInput } from '../src/lib/utils';
 
 interface MemberDashboardProps {
   churchSettings: ChurchSettings;
@@ -48,6 +51,13 @@ interface Opportunity {
   required_skills: string[];
 }
 
+const REGEX = {
+  EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  PHONE: /^\+?[1-9]\d{1,14}$/,
+  ZIP: /^\d{5}(-\d{4})?$/,
+  STATE: /^[A-Z]{2}$/,
+};
+
 const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLogout, onOpenSettings }) => {
   const [profile, setProfile] = useState<Member | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
@@ -56,39 +66,131 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    telephone: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    skills: [] as string[],
+    interests: [] as string[]
+  });
+  const [formErrors, setErrors] = useState<Record<string, string>>({});
+
+  const loadMemberData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      
+      const [profileRes, donationsRes, statementsRes, campaignsRes, opportunitiesRes] = await Promise.all([
+        fetchSelfProfile(),
+        fetchSelfDonations(),
+        fetchSelfStatements(),
+        fetch(`${apiUrl}/api/stewardship/campaigns`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(res => res.json()),
+        fetchSelfOpportunities()
+      ]);
+      
+      setProfile(profileRes);
+      setDonations(donationsRes.data);
+      setStatements(statementsRes);
+      setCampaigns(campaignsRes);
+      setOpportunities(opportunitiesRes);
+
+      // Set initial form data
+      setFormData({
+        firstName: profileRes.firstName,
+        lastName: profileRes.lastName,
+        email: profileRes.email || "",
+        telephone: profileRes.telephone || "",
+        address: profileRes.address || "",
+        city: profileRes.city || "",
+        state: profileRes.state || "",
+        zip: profileRes.zip || "",
+        skills: profileRes.skills || [],
+        interests: profileRes.interests || []
+      });
+    } catch (err) {
+      console.error('Failed to load member data:', err);
+      setError('Failed to load your profile. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadMemberData = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-        
-        const [profileRes, donationsRes, statementsRes, campaignsRes, opportunitiesRes] = await Promise.all([
-          fetchSelfProfile(),
-          fetchSelfDonations(),
-          fetchSelfStatements(),
-          fetch(`${apiUrl}/api/stewardship/campaigns`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }).then(res => res.json()),
-          fetchSelfOpportunities()
-        ]);
-        
-        setProfile(profileRes);
-        setDonations(donationsRes.data);
-        setStatements(statementsRes);
-        setCampaigns(campaignsRes);
-        setOpportunities(opportunitiesRes);
-      } catch (err) {
-        console.error('Failed to load member data:', err);
-        setError('Failed to load your profile. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadMemberData();
   }, []);
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (formData.email && !REGEX.EMAIL.test(formData.email))
+      newErrors.email = "Invalid email format";
+    if (formData.telephone && !REGEX.PHONE.test(formData.telephone))
+      newErrors.telephone = "Invalid phone format (e.g. +14155552671)";
+    if (!REGEX.STATE.test(formData.state))
+      newErrors.state = "Must be 2 uppercase letters";
+    if (!REGEX.ZIP.test(formData.zip))
+      newErrors.zip = "Invalid Zip";
+    if (!formData.firstName.trim()) newErrors.firstName = "Required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate() || !profile) return;
+
+    try {
+      setIsSaving(true);
+      // Update core info
+      const updated = await updateMember(profile.id, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        telephone: formData.telephone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        familyId: profile.familyId,
+        joinedAt: profile.joinedAt
+      });
+
+      // Update skills
+      await updateMemberSkills(profile.id, formData.skills, formData.interests);
+
+      setIsEditModalOpen(false);
+      await loadMemberData(); // Refresh all data
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addSkill = (skill: string) => {
+    if (skill.trim() && !formData.skills.includes(skill.trim())) {
+      setFormData({ ...formData, skills: [...formData.skills, skill.trim()] });
+    }
+  };
+
+  const removeSkill = (index: number) => {
+    const newSkills = [...formData.skills];
+    newSkills.splice(index, 1);
+    setFormData({ ...formData, skills: newSkills });
+  };
 
   const totalGivenThisYear = donations
     .filter(d => new Date(d.date).getFullYear() === new Date().getFullYear())
@@ -124,7 +226,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
     return Math.round((completed / fields.length) * 100);
   };
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -258,7 +360,17 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     <User size={18} className="text-indigo-600" />
                     My Profile
                   </h3>
-                  <span className="text-xs font-bold text-indigo-600">{getProfileCompleteness()}% Complete</span>
+                  <button 
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="Edit Profile"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Completeness</span>
+                   <span className="text-xs font-bold text-indigo-600">{getProfileCompleteness()}%</span>
                 </div>
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                   <div 
@@ -450,6 +562,177 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
         <p>&copy; {new Date().getFullYear()} Mt. Herman A.M.E. Church. All rights reserved.</p>
         <p className="mt-1">Secure stewardship powered by GraceGiver.</p>
       </footer>
+
+      {/* Edit Profile Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-indigo-900 text-white flex justify-between items-center">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <User size={20} />
+                Edit My Profile
+              </h2>
+              <button onClick={() => setIsEditModalOpen(false)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateProfile} className="p-6 max-h-[80vh] overflow-y-auto space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Contact Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">First Name</label>
+                    <input
+                      required
+                      type="text"
+                      className={`w-full px-4 py-2 bg-white border ${formErrors.firstName ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Last Name</label>
+                    <input
+                      required
+                      type="text"
+                      className={`w-full px-4 py-2 bg-white border ${formErrors.lastName ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      className={`w-full px-4 py-2 bg-white border ${formErrors.email ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      className={`w-full px-4 py-2 bg-white border ${formErrors.telephone ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      value={formData.telephone}
+                      onChange={(e) => setFormData({ ...formData, telephone: cleanInput("telephone", e.target.value) })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Home Address</h3>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Street Address</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">City</label>
+                    <input
+                      required
+                      type="text"
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">State</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="ST"
+                      className={`w-full px-4 py-2 bg-white border ${formErrors.state ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: cleanInput("state", e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">ZIP</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="12345"
+                      className={`w-full px-4 py-2 bg-white border ${formErrors.zip ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      value={formData.zip}
+                      onChange={(e) => setFormData({ ...formData, zip: cleanInput("zip", e.target.value) })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Skills & Interests</h3>
+                <p className="text-[10px] text-slate-400 italic">Helping us match you with the right ministry opportunities.</p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.skills.map((skill, i) => (
+                    <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100">
+                      {skill}
+                      <button type="button" onClick={() => removeSkill(i)} className="hover:text-indigo-900">
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a skill (e.g. Teaching, Music)"
+                    className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addSkill(e.currentTarget.value);
+                        e.currentTarget.value = '';
+                      }
+                    }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousSibling as HTMLInputElement;
+                      addSkill(input.value);
+                      input.value = '';
+                    }}
+                    className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-bold text-sm hover:bg-indigo-200 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-6 flex gap-3 sticky bottom-0 bg-white pb-2 border-t border-slate-50">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="animate-spin" size={18} /> : null}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -469,6 +752,57 @@ const ChevronRight = ({ className, size }: { className?: string, size?: number }
     className={className}
   >
     <path d="m9 18 6-6-6-6"/>
+  </svg>
+);
+
+const X = ({ className, size }: { className?: string, size?: number }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size || 24} 
+    height={size || 24} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+  </svg>
+);
+
+const Edit2 = ({ className, size }: { className?: string, size?: number }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size || 24} 
+    height={size || 24} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+  </svg>
+);
+
+const Info = ({ className, size }: { className?: string, size?: number }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size || 24} 
+    height={size || 24} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
   </svg>
 );
 
