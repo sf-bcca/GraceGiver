@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import Register from '../components/Register';
+import Register from '../../components/Register';
 import React from 'react';
 
 // Mock lucide-react to avoid issues with SVG rendering in tests

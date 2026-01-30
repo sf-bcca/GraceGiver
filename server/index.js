@@ -70,9 +70,7 @@ app.post("/api/register", registerLimiter, async (req, res) => {
     lastName,
     email,
     telephone,
-    state: "MS",
-    zip: "00000",
-  }); // MS/00000 are placeholders for reg
+  });
   if (!memberValidation.isValid) {
     return res
       .status(400)
@@ -81,21 +79,23 @@ app.post("/api/register", registerLimiter, async (req, res) => {
 
   const passwordValidation = validatePasswordPolicy(password);
   if (!passwordValidation.valid) {
-    return res
-      .status(400)
-      .json({
-        error: "PASSWORD_POLICY_VIOLATION",
-        details: passwordValidation.errors,
-      });
+    return res.status(400).json({
+      error: "PASSWORD_POLICY_VIOLATION",
+      details: passwordValidation.errors,
+    });
   }
 
+  const client = await pool.connect();
   try {
+    await client.query("BEGIN");
+
     // 2. Check if user already exists
-    const userResult = await pool.query(
+    const userResult = await client.query(
       "SELECT id FROM users WHERE email = $1 OR username = $1",
       [email],
     );
     if (userResult.rows.length > 0) {
+      await client.query("ROLLBACK");
       return res.status(409).json({
         error: "Email already registered",
         message:
@@ -106,9 +106,9 @@ app.post("/api/register", registerLimiter, async (req, res) => {
 
     // 3. Match or Create Member Record
     let memberId;
-    const memberMatch = await pool.query(
-      "SELECT id FROM members WHERE email = $1 OR (telephone = $2 AND $2 IS NOT NULL)",
-      [email, telephone],
+    const memberMatch = await client.query(
+      "SELECT id FROM members WHERE email = $1",
+      [email],
     );
 
     if (memberMatch.rows.length > 0) {
@@ -118,7 +118,7 @@ app.post("/api/register", registerLimiter, async (req, res) => {
       );
     } else {
       memberId = crypto.randomUUID();
-      await pool.query(
+      await client.query(
         "INSERT INTO members (id, first_name, last_name, email, telephone, address, city, state, zip) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         [
           memberId,
@@ -128,8 +128,8 @@ app.post("/api/register", registerLimiter, async (req, res) => {
           telephone || null,
           "New Member",
           "Update City",
-          "ST",
-          "00000",
+          null,
+          null,
         ],
       );
       console.log(
@@ -143,10 +143,12 @@ app.post("/api/register", registerLimiter, async (req, res) => {
 
     // 4. Create User Account
     const passwordHash = await bcrypt.hash(password, 12);
-    const newUser = await pool.query(
+    const newUser = await client.query(
       "INSERT INTO users (username, email, password_hash, role, member_id, must_change_password) VALUES ($1, $2, $3, 'viewer', $4, false) RETURNING id, username, role, member_id",
       [email, email, passwordHash, memberId],
     );
+
+    await client.query("COMMIT");
 
     console.log(`[AUDIT] User registered: ${email} (Role: viewer)`);
     emitEvent("user:update", { type: "CREATE", data: newUser.rows[0] });
@@ -165,8 +167,11 @@ app.post("/api/register", registerLimiter, async (req, res) => {
       },
     });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Registration error:", err);
     res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
   }
 });
 
@@ -488,10 +493,11 @@ app.get(
       // Find opportunities that match member's skills or interests
       // If skills/interests are empty, this will just return an empty array (no match)
       const result = await pool.query(
-        `SELECT * FROM ministry_opportunities 
-         WHERE required_skills && COALESCE((SELECT skills FROM members WHERE id = $1), '{}'::text[])
-         OR required_skills && COALESCE((SELECT interests FROM members WHERE id = $1), '{}'::text[])
-         ORDER BY created_at DESC`,
+        `SELECT o.* FROM ministry_opportunities o
+         INNER JOIN members m ON m.id = $1
+         WHERE o.required_skills && COALESCE(m.skills, '{}'::text[])
+         OR o.required_skills && COALESCE(m.interests, '{}'::text[])
+         ORDER BY o.created_at DESC`,
         [req.user.memberId],
       );
       res.json(result.rows);

@@ -99,7 +99,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
         fetchSelfProfile(),
         fetchSelfDonations(),
         fetchSelfStatements(),
-        fetch('/api/stewardship/campaigns', {
+        fetch(`${apiUrl}/api/stewardship/campaigns`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(res => res.json()),
         fetchSelfOpportunities()

@@ -31,12 +31,12 @@ function validateMember(member) {
   }
 
   // Zip Code Validation
-  if (!member.zip || !REGEX.ZIP.test(member.zip)) {
+  if (member.zip && !REGEX.ZIP.test(member.zip)) {
     errors.push('INVALID_ZIP: Zip code must be 5 digits (12345) or ZIP+4 (12345-6789).');
   }
 
   // State Validation
-  if (!member.state || !REGEX.STATE.test(member.state)) {
+  if (member.state && !REGEX.STATE.test(member.state)) {
     errors.push('INVALID_STATE: State must be a 2-character uppercase abbreviation.');
   }
 

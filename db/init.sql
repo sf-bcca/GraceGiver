@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     email TEXT,
     role TEXT DEFAULT 'viewer',
+    member_id TEXT REFERENCES members(id) ON DELETE SET NULL,
     
     -- Password management
     must_change_password BOOLEAN DEFAULT false,
@@ -48,7 +49,7 @@ INSERT INTO roles (name, description, permissions) VALUES
     ('admin', 'User management and all data operations', '["users:read", "users:write", "members:*", "donations:*", "reports:*"]'),
     ('manager', 'Reports and member/donation management', '["members:*", "donations:*", "reports:read", "reports:export"]'),
     ('data_entry', 'Add and edit members and donations', '["members:create", "members:update", "members:read", "donations:create", "donations:update", "donations:read"]'),
-    ('viewer', 'Read-only access', '["members:read", "donations:read", "reports:read"]')
+    ('viewer', 'Personal profile management and giving history', '["members:read:own", "members:update:own", "donations:read:own", "reports:read:own"]')
 ON CONFLICT (name) DO NOTHING;
 
 -- -----------------------------------------------------------------------------

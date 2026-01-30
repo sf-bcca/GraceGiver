@@ -197,7 +197,7 @@ The system implements a 6-tier role hierarchy:
 | `manager`     | Reports, member/donation management, export  |
 | `auditor`     | Global read-only access (all data)           |
 | `data_entry`  | Create and edit members and donations        |
-| `viewer`      | **Self-Service**: Personal read-only access  |
+| `viewer`      | **Self-Service**: Personal profile management & giving history |
 
 Roles are seeded in `db/init.sql` and enforced via `server/rbac.js` middleware. Permissions include `settings:read`, `settings:write`, and `reports:export` for authorized roles.
 
