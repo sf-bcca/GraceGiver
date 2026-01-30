@@ -12,9 +12,9 @@ Focus on ensuring the backend securely serves data to the `viewer` role based on
 - [x] Task: Implement self-service giving statement list [cf9f0b0]
     - [x] Create `/api/self/statements` endpoint to list available years for the member.
     - [x] Ensure existing `/api/reports/statements` logic can be invoked securely by a `viewer` for their own ID.
-- [ ] Task: Verify security boundaries with unit tests
-    - [ ] Write tests ensuring a `viewer` cannot access another member's data via ID manipulation.
-    - [ ] Write tests for the new `self` endpoints.
+- [x] Task: Verify security boundaries with unit tests [e3c901c]
+    - [x] Write tests ensuring a `viewer` cannot access another member's data via ID manipulation.
+    - [x] Write tests for the new `self` endpoints.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: API & Security Enhancements' (Protocol in workflow.md)
 
 ## Phase 2: Frontend Infrastructure & Routing
