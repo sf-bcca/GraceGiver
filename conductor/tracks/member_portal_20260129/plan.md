@@ -2,7 +2,7 @@
 
 This plan outlines the steps to implement a simplified member self-service portal for users with the `viewer` role, enabling them to manage their profile, view giving history, and download statements.
 
-## Phase 1: API & Security Enhancements
+## Phase 1: API & Security Enhancements [checkpoint: 765128d]
 Focus on ensuring the backend securely serves data to the `viewer` role based on their linked `member_id`.
 
 - [x] Task: Extend `/api/members/:id` and `/api/donations` to support self-service access [731e83f]
@@ -15,7 +15,7 @@ Focus on ensuring the backend securely serves data to the `viewer` role based on
 - [x] Task: Verify security boundaries with unit tests [e3c901c]
     - [x] Write tests ensuring a `viewer` cannot access another member's data via ID manipulation.
     - [x] Write tests for the new `self` endpoints.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: API & Security Enhancements' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: API & Security Enhancements' [765128d]
 
 ## Phase 2: Frontend Infrastructure & Routing
 Set up the routing logic and the base layout for the simplified member dashboard.
