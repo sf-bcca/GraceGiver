@@ -221,6 +221,98 @@ app.get("/api/auth/password-policy", (req, res) => {
   res.json(getPasswordPolicy());
 });
 
+// ==========================================
+// SELF-SERVICE API (Viewer Role)
+// ==========================================
+
+// Get own profile
+app.get(
+  "/api/self/profile",
+  authenticateToken,
+  requireScopedPermission("members:read", "member", (req) => req.user.memberId),
+  async (req, res) => {
+    if (!req.user.memberId) {
+      return res.status(400).json({ error: "User is not linked to a member record" });
+    }
+    
+    try {
+      const result = await pool.query("SELECT * FROM members WHERE id = $1", [
+        req.user.memberId,
+      ]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Member record not found" });
+      }
+      const row = result.rows[0];
+      res.json({
+        id: row.id,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        email: row.email,
+        telephone: row.telephone,
+        address: row.address,
+        city: row.city,
+        state: row.state,
+        zip: row.zip,
+        familyId: row.family_id,
+        skills: row.skills,
+        interests: row.interests,
+        joinedAt: row.joined_at,
+        createdAt: row.created_at,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// Get own donations
+app.get(
+  "/api/self/donations",
+  authenticateToken,
+  requireScopedPermission("donations:read", "donation", (req) => req.user.memberId),
+  async (req, res) => {
+    if (!req.user.memberId) {
+      return res.status(400).json({ error: "User is not linked to a member record" });
+    }
+
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
+    try {
+      const countResult = await pool.query(
+        "SELECT COUNT(*) FROM donations WHERE member_id = $1",
+        [req.user.memberId]
+      );
+      const total = parseInt(countResult.rows[0].count);
+
+      const result = await pool.query(
+        "SELECT * FROM donations WHERE member_id = $1 ORDER BY donation_date DESC LIMIT $2 OFFSET $3",
+        [req.user.memberId, limit, offset]
+      );
+
+      res.json({
+        data: result.rows.map((row) => ({
+          id: row.id.toString(),
+          amount: parseFloat(row.amount),
+          fund: row.fund,
+          notes: row.notes,
+          date: row.donation_date,
+        })),
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
 // Validate password strength (public - for real-time feedback)
 app.post("/api/auth/validate-password", (req, res) => {
   const { password } = req.body;

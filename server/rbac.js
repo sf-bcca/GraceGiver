@@ -88,11 +88,15 @@ function hasPermission(userRole, requiredPermission) {
 function isOwner(user, resourceType, resourceId) {
   if (!user || !user.memberId) return false;
   
-  if (resourceType === 'member') {
+  // For member, donation, and report resources, the resourceId being checked 
+  // is often the member_id itself (especially in self-service endpoints)
+  if (['member', 'donation', 'report'].includes(resourceType)) {
     return String(user.memberId) === String(resourceId);
   }
   
-  // For donations, we'd need to check the DB, but can pass member_id from req
+  // For specific donation ownership checks where resourceId is a donation ID,
+  // we would need a DB lookup. But for now, we use 'donation_owner' when 
+  // the resolver provides the member_id associated with that donation.
   if (resourceType === 'donation_owner') {
      return String(user.memberId) === String(resourceId);
   }
