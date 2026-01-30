@@ -5,18 +5,18 @@ This plan outlines the steps to implement a public member registration flow, ena
 ## Phase 1: Backend Registration API
 Focus on creating a secure, rate-limited endpoint for account creation.
 
-- [ ] Task: Create `/api/register` endpoint
-    - [ ] Implement input validation (Name, Email, Phone).
-    - [ ] Implement Password Policy enforcement.
-    - [ ] Add logic to check for existing `users` by email.
-    - [ ] Add logic to match/create `members` record.
-    - [ ] Hash password and create `user` with `viewer` role.
-- [ ] Task: Implement Registration Rate Limiting
-    - [ ] Apply `express-rate-limit` specifically to the register route.
-- [ ] Task: Verify registration logic with unit tests
-    - [ ] Test matching existing members.
-    - [ ] Test new member creation.
-    - [ ] Test validation and policy failures.
+- [x] Task: Create `/api/register` endpoint [b4fbba3]
+    - [x] Implement input validation (Name, Email, Phone).
+    - [x] Implement Password Policy enforcement.
+    - [x] Add logic to check for existing `users` by email.
+    - [x] Add logic to match/create `members` record.
+    - [x] Hash password and create `user` with `viewer` role.
+- [x] Task: Implement Registration Rate Limiting [b4fbba3]
+    - [x] Apply `express-rate-limit` specifically to the register route.
+- [x] Task: Verify registration logic with unit tests [b4fbba3]
+    - [x] Test matching existing members.
+    - [x] Test new member creation.
+    - [x] Test validation and policy failures.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Backend Registration API' (Protocol in workflow.md)
 
 ## Phase 2: Frontend Registration UI
