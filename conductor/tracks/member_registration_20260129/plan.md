@@ -2,7 +2,7 @@
 
 This plan outlines the steps to implement a public member registration flow, enabling parishioners to create accounts and link them to their records.
 
-## Phase 1: Backend Registration API
+## Phase 1: Backend Registration API [checkpoint: 486e953]
 Focus on creating a secure, rate-limited endpoint for account creation.
 
 - [x] Task: Create `/api/register` endpoint [b4fbba3]
@@ -17,7 +17,7 @@ Focus on creating a secure, rate-limited endpoint for account creation.
     - [x] Test matching existing members.
     - [x] Test new member creation.
     - [x] Test validation and policy failures.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Backend Registration API' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Backend Registration API' [486e953]
 
 ## Phase 2: Frontend Registration UI
 Create the user interface and integrate it with the login flow.
