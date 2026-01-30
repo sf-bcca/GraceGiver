@@ -17,7 +17,7 @@ Focus on ensuring the backend securely serves data to the `viewer` role based on
     - [x] Write tests for the new `self` endpoints.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: API & Security Enhancements' [765128d]
 
-## Phase 2: Frontend Infrastructure & Routing
+## Phase 2: Frontend Infrastructure & Routing [checkpoint: 4cf9690]
 Set up the routing logic and the base layout for the simplified member dashboard.
 
 - [x] Task: Implement Role-Based Redirect Logic [8a2ad54]
@@ -25,7 +25,7 @@ Set up the routing logic and the base layout for the simplified member dashboard
 - [x] Task: Create `MemberDashboard` shell and navigation [310424d]
     - [x] Design a simplified layout that removes administrative sidebars.
     - [x] Implement a basic header with profile/logout options.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Frontend Infrastructure & Routing' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Frontend Infrastructure & Routing' [4cf9690]
 
 ## Phase 3: Dashboard Quick Stats & Activity
 Build the primary landing page components for the member experience.
