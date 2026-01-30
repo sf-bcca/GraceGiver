@@ -313,6 +313,29 @@ app.get(
   }
 );
 
+// Get available statement years
+app.get(
+  "/api/self/statements",
+  authenticateToken,
+  requireScopedPermission("reports:read", "report", (req) => req.user.memberId),
+  async (req, res) => {
+    if (!req.user.memberId) {
+      return res.status(400).json({ error: "User is not linked to a member record" });
+    }
+
+    try {
+      const result = await pool.query(
+        "SELECT DISTINCT EXTRACT(YEAR FROM donation_date)::int as year FROM donations WHERE member_id = $1 ORDER BY year DESC",
+        [req.user.memberId]
+      );
+      res.json(result.rows.map(r => r.year));
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
 // Validate password strength (public - for real-time feedback)
 app.post("/api/auth/validate-password", (req, res) => {
   const { password } = req.body;

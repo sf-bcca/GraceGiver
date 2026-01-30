@@ -63,6 +63,15 @@ describe('Self-Service Endpoints', () => {
         res.status(500).json({ error: "Error" });
       }
     });
+
+    app.get('/api/self/statements', mockAuth, mockScopedPermission('reports:read', 'report', (req) => req.user.memberId), async (req, res) => {
+      try {
+        const result = await mockPool.query("SELECT DISTINCT EXTRACT(YEAR FROM donation_date)::int as year FROM donations WHERE member_id = $1", [req.user.memberId]);
+        res.json(result.rows.map(r => r.year));
+      } catch (err) {
+        res.status(500).json({ error: "Error" });
+      }
+    });
   });
 
   it('GET /api/self/profile should return member data', async () => {
@@ -87,5 +96,17 @@ describe('Self-Service Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].amount).toBe(100);
+  });
+
+  it('GET /api/self/statements should return list of years', async () => {
+    mockPool.query.mockResolvedValue({
+      rows: [{ year: 2026 }, { year: 2025 }]
+    });
+
+    const res = await request(app).get('/api/self/statements');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([2026, 2025]);
+    expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("DISTINCT EXTRACT(YEAR"), ['M1']);
   });
 });
