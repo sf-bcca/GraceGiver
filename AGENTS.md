@@ -13,15 +13,12 @@ Antigravity is the primary execution agent responsible for high-fidelity code im
 
   - Full-stack development (TypeScript, React, Node.js).
   - Docker & Docker Compose orchestration.
-  - Postgres database management (Self-hosted/SQL).
-  - Nginx reverse proxy configuration.
+  - Postgres database management (**grace-database-steward**).
+  - Nginx reverse proxy and Synology environment optimization (**synology-docker-ops**).
   - Complex codebase navigation and semantic search.
   - **Custom Branding**: Implementation of the new GraceGiver logo and favicon system.
-  - **Stewardship Intelligence**: AI-powered financial narrative analysis (Gemini), retention enginge (GraceForecast), and historical stewardship tracking.
+  - **Stewardship Intelligence**: AI-powered financial narrative analysis (**ai-stewardship-tuner**), retention engine (GraceForecast), and historical stewardship tracking.
   - **Secure AI Integration**: Backend-only Gemini API handling for enhanced credential safety.
-
-  - Environment management and secure credential handling.
-  - Integration with local development environments and CLI tools.
 
 - **Interaction Protocols/APIs**
   - Directly interacts via the agentic toolset (file I/O, shell execution, browser automation).
@@ -39,7 +36,7 @@ Antigravity is the primary execution agent responsible for high-fidelity code im
 The Architect operates at the macro level, ensuring that all implementation details align with the long-term technical vision and system constraints.
 
 - **Key Capabilities/Skills**
-  - System design and architectural documentation.
+  - System design and architectural documentation (**grace-doc-master**).
   - Requirement analysis and feasibility studies.
   - Containerized architecture planning and Docker stack optimization.
   - Generation of structured implementation plans and task breakdowns.
@@ -62,6 +59,7 @@ These agents provide continuous monitoring and enforcement of code quality, secu
 - **Key Capabilities/Skills**
   - Secret scanning and sensitive data detection (via SecretLint).
   - Static code analysis and adherence to project style guides.
+  - **PII Enforcement**: Automated identification of privacy leaks in logs and code (**pii-guardian**).
   - Automated identification of security vulnerabilities in dependencies.
 - **Interaction Protocols/APIs**
   - Integrated via Git hooks (Husky) and **GitHub Actions** (`security.yml`).
@@ -79,7 +77,8 @@ These agents provide continuous monitoring and enforcement of code quality, secu
 The Test/QA Agent ensures that all changes are verified against the specified requirements and do not introduce regressions.
 
 - **Key Capabilities/Skills**
-  - Automated unit, integration, and E2E test generation.
+  - Automated unit, integration, and E2E test generation (**grace-qa-sentinel**).
+  - Smart test execution based on modified file patterns.
   - Visual regression testing and browser-based verification.
   - Performance monitoring and load testing simulation.
 - **Interaction Protocols/APIs**
@@ -93,7 +92,26 @@ The Test/QA Agent ensures that all changes are verified against the specified re
 
 ---
 
-## 5. Data Integrity Agent (Validation)
+## 5. Documentation Agent (The Master)
+
+**Purpose/Mandate**
+The Documentation Agent prevents "documentation drift" by ensuring that technical references always match the current state of the codebase.
+
+- **Key Capabilities/Skills**
+  - Automated API route coverage auditing (**grace-doc-master**).
+  - Synchronization between database migrations and `db/init.sql`.
+  - Maintenance of the project manifest and setup guides.
+- **Interaction Protocols/APIs**
+  - Monitors `server/index.js` and `db/migrations/` for undocumented changes.
+- **Expected Inputs and Outputs**
+  - **Inputs**: New API routes, schema modifications, architectural shifts.
+  - **Outputs**: Updated `API_REFERENCE.md`, `ERROR_CODES.md`, and sync reports.
+- **Ownership/Primary Maintainer**
+  - Technical Writing / Lead Developer.
+
+---
+
+## 6. Data Integrity Agent (Validation)
 
 **Purpose/Mandate**
 The Data Integrity Agent enforces strict validation rules across all data entry points, ensuring database consistency and preventing malformed data from entering the persistence layer.

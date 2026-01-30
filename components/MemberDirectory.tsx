@@ -75,6 +75,11 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
     editingMember ? editingMember.id : null
   );
 
+  // Sync state with props
+  useEffect(() => {
+    setMembers(initialMembers);
+  }, [initialMembers]);
+
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -398,6 +403,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                         className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
                         title="Annual Statement"
                         aria-label="Annual Statement"
+                        data-testid="annual-statement-button"
                       >
                         <Receipt size={16} />
                       </button>
@@ -488,6 +494,7 @@ const MemberDirectory: React.FC<MemberDirectoryProps> = ({
                 className="py-2 bg-purple-50 text-purple-600 rounded-xl text-[10px] font-bold uppercase flex flex-col items-center gap-1 hover:bg-purple-100 transition-colors"
                 title="Statement"
                 aria-label="Annual Statement"
+                data-testid="annual-statement-button-mobile"
               >
                 <Receipt size={16} />
                 Stmt

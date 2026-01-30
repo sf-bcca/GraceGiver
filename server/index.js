@@ -1963,11 +1963,6 @@ app.put(
   }
 );
 
-// Simple test route to verify routing works
-app.get("/api/test", (req, res) => {
-  res.json({ status: "ok", routes: "working" });
-});
-
 // Startup function with bootstrap
 async function startServer() {
   try {

@@ -146,7 +146,9 @@ describe('Members API', () => {
         .send({
           firstName: 'Update',
           lastName: 'TestCase',
-          email: `update.test.${Date.now()}@example.com`
+          email: `update.test.${Date.now()}@example.com`,
+          state: 'MS',
+          zip: '38930'
         });
 
       const memberId = createRes.body.id;
@@ -163,7 +165,9 @@ describe('Members API', () => {
         .send({
           firstName: 'Updated',
           lastName: 'TestCase',
-          city: 'NewCity'
+          city: 'NewCity',
+          state: 'MS',
+          zip: '38930'
         });
 
       expect(updateRes.status).toBe(200);
@@ -193,7 +197,9 @@ describe('Members API', () => {
         .send({
           firstName: 'Delete',
           lastName: 'TestCase',
-          email: `delete.test.${Date.now()}@example.com`
+          email: `delete.test.${Date.now()}@example.com`,
+          state: 'MS',
+          zip: '38930'
         });
 
       const memberId = createRes.body.id;

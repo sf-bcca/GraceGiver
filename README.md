@@ -15,6 +15,33 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 ---
 
+## 🛠️ Development Suite
+
+GraceGiver includes a suite of specialized CLI tools (AI Skills) to assist with development and project health.
+
+- **`grace-database-steward`**: Automates idempotent migrations and schema syncing.
+  ```bash
+  node conductor/grace-database-steward/scripts/generate_migration.cjs "migration_name"
+  ```
+- **`pii-guardian`**: Enforces privacy standards and audits logs for sensitive data leaks.
+  ```bash
+  node conductor/pii-guardian/scripts/audit_pii.cjs
+  ```
+- **`grace-doc-master`**: Detects "documentation drift" between code and API references.
+  ```bash
+  node conductor/grace-doc-master/scripts/check_doc_drift.cjs
+  ```
+- **`grace-qa-sentinel`**: Smart test runner that executes relevant tests based on changed files.
+  ```bash
+  bash conductor/grace-qa-sentinel/scripts/run_smart_tests.sh
+  ```
+- **`ai-stewardship-tuner`**: Specialized environment for testing and refining Gemini AI prompts.
+  ```bash
+  node conductor/ai-stewardship-tuner/scripts/test_prompts.cjs
+  ```
+
+---
+
 ## 🚀 Features
 
 - **Dashboard:** Real-time visibility into totals, fund distribution, and **historical growth metrics** (MoM and weekly trends).

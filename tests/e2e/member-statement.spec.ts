@@ -7,6 +7,7 @@ test.describe('Member Statement Generation', () => {
     await waitForApi(page);
     await login(page);
     await navigateTo(page, 'Members');
+    await expect(page.getByRole('heading', { name: /Member Directory/i })).toBeVisible();
   });
 
   test('should open statement modal and allow PDF download', async ({ page }) => {
@@ -14,17 +15,10 @@ test.describe('Member Statement Generation', () => {
     const row = page.getByRole('row', { name: TEST_MEMBER.lastName });
     await expect(row).toBeVisible();
 
-    // 2. Click the "Statement" button (we'll need to add this button)
-    // We'll assume a new button with title "Annual Statement" or icon
-    // For now, let's target by title attribute or aria-label if we add it
-    const statementButton = row.getByRole('button', { name: /statement/i });
-    
-    // Check if it exists (it won't yet)
-    // If we use standard TDD, this test should fail here.
-    // However, if the button is hidden/in menu, we might need to click 'More' first.
-    // In MemberDirectory, actions are visible in the row.
-    
-    await statementButton.click();
+    // 2. Click the "Statement" button
+    const statementButton = row.getByTestId('annual-statement-button');
+    await expect(statementButton).toBeVisible();
+    await statementButton.click({ force: true });
 
     // 3. Verify Modal opens
     const modal = page.getByRole('dialog');

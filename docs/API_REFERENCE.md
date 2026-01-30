@@ -155,12 +155,24 @@ Authorization: Bearer <JWT_TOKEN>
 { "skills": ["teaching", "music"], "interests": ["youth", "outreach"] }
 ```
 
-### Member Report
+### Individual Member Reports
 
 **`GET /api/members/:id/report`** — Get member report (JSON)  
 **`GET /api/members/:id/report/pdf`** — Download member report (PDF)
 
 Returns lifetime giving, donation history, and membership tenure.
+
+**`GET /api/reports/member-statement/:id`** — Detailed annual statement
+
+| Permission     | Query Params             |
+| -------------- | ------------------------ |
+| `reports:read` | `year` (req), `format`   |
+
+**`GET /api/reports/member-narrative/:id`** — AI stewardship narrative
+
+| Permission     | Query Params |
+| -------------- | ------------ |
+| `reports:read` | `year` (req) |
 
 ---
 
@@ -173,6 +185,10 @@ Returns lifetime giving, donation history, and membership tenure.
 | Auth     | Permission       | Query Params    |
 | -------- | ---------------- | --------------- |
 | Required | `donations:read` | `page`, `limit` |
+
+### Get Single Donation
+
+**`GET /api/donations/:id`** — Permission: `donations:read`
 
 ### Get Donation Summary (Dashboard)
 
