@@ -34,8 +34,8 @@ Build the primary landing page components for the member experience.
     - [x] Create a component to calculate and display "Total Given This Year" against a target (if applicable) or as a simple stat.
 - [x] Task: Implement Recent Activity Feed [b308e04]
     - [x] Create a list component to show the 3-5 most recent donations fetched from `/api/self/donations`.
-- [ ] Task: Implement ServantHeart Volunteer Status
-    - [ ] Display active roles or matched opportunities fetched from existing `/api/opportunities` and `/api/opportunities/:id/matches`.
+- [x] Task: Implement ServantHeart Volunteer Status [e194eeb]
+    - [x] Display active roles or matched opportunities fetched from existing `/api/opportunities` and `/api/opportunities/:id/matches`.
 - [ ] Task: Implement Profile Completeness Indicator
     - [ ] Create logic to calculate % completeness based on email, telephone, address, and skills fields.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Dashboard Quick Stats & Activity' (Protocol in workflow.md)
