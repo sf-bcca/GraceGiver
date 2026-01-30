@@ -20,6 +20,7 @@ const VolunteerMatching = React.lazy(
 const StewardshipPortal = React.lazy(
   () => import("./components/StewardshipPortal")
 );
+const MemberDashboard = React.lazy(() => import("./components/MemberDashboard"));
 
 import {
   fetchMembers,
@@ -255,10 +256,11 @@ const AppContent: React.FC<{
               );
             case "MEMBER_DASHBOARD":
               return (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                   <h2 className="text-2xl font-bold text-slate-800 mb-4">Member Portal Coming Soon</h2>
-                   <p className="text-slate-600 max-w-md">We are currently building your personalized member experience. You will soon be able to view your giving history and manage your profile here.</p>
-                </div>
+                <MemberDashboard
+                  churchSettings={churchSettings}
+                  onLogout={handleLogout}
+                  onOpenSettings={handleOpenPasswordChange}
+                />
               );
             case "MEMBERS":
               return (
@@ -384,6 +386,10 @@ const AppContent: React.FC<{
   }
 
   // Logged in and password is OK - show main app
+  if (view === 'MEMBER_DASHBOARD') {
+    return renderView();
+  }
+
   return (
     <Layout
       activeView={view}
