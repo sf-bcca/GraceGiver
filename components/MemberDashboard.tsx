@@ -24,7 +24,8 @@ import {
   fetchSelfStatements,
   fetchSelfOpportunities,
   updateMember,
-  updateMemberSkills
+  updateMemberSkills,
+  downloadMemberStatement
 } from '../src/lib/api';
 import { formatPhoneNumber, cleanInput } from '../src/lib/utils';
 import PasswordChange from './PasswordChange';
@@ -71,20 +72,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    telephone: "",
-    address: "",
-    city: "",
-    state: "",
-    zip: "",
-    skills: [] as string[],
-    interests: [] as string[]
-  });
-  const [formErrors, setErrors] = useState<Record<string, string>>({});
+  const [downloadingYear, setDownloadingYear] = useState<number | null>(null);
 
   const loadMemberData = async () => {
     try {
@@ -193,6 +181,27 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
     const newSkills = [...formData.skills];
     newSkills.splice(index, 1);
     setFormData({ ...formData, skills: newSkills });
+  };
+
+  const handleDownloadStatement = async (year: number) => {
+    if (!profile) return;
+    try {
+      setDownloadingYear(year);
+      const blob = await downloadMemberStatement(profile.id, year.toString());
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Statement-${year}-${profile.lastName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert('Failed to download statement. Please try again.');
+    } finally {
+      setDownloadingYear(null);
+    }
   };
 
   const totalGivenThisYear = donations
@@ -483,7 +492,9 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     {statements.map(year => (
                       <button 
                         key={year}
-                        className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 rounded-2xl transition-all group border border-transparent hover:border-indigo-100"
+                        disabled={downloadingYear === year}
+                        onClick={() => handleDownloadStatement(year)}
+                        className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 rounded-2xl transition-all group border border-transparent hover:border-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-900 font-bold shadow-sm">
@@ -491,7 +502,11 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                           </div>
                           <span className="font-bold text-slate-700">Annual Statement</span>
                         </div>
-                        <Download size={18} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                        {downloadingYear === year ? (
+                          <Loader2 size={18} className="animate-spin text-indigo-600" />
+                        ) : (
+                          <Download size={18} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                        )}
                       </button>
                     ))}
                   </div>
