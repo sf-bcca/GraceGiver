@@ -4,9 +4,11 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 # Target Audience
 - **Church Administrators:** Empowered by streamlined donation tracking and member management tools to handle daily operations with ease and precision.
 - **Financial Stewardship Committees:** Provided with high-level visibility into giving trends and financial health metrics to make informed decisions for the church's mission.
+- **Church Members:** Empowered by a dedicated self-service portal to manage their personal profiles, track their stewardship, and download tax statements directly.
 
 # Core Value Proposition
 - **Secure Donation & Fund Management:** Robust recording of contributions across multiple funds (General, Building, Missions, etc.) with guaranteed data integrity and audit trails.
+- **Member Self-Service Portal:** A simplified, mobile-friendly interface for regular parishioners to manage their contact information, skills, and donation history independently.
 - **Intelligent Reporting & Analytics:** A comprehensive reporting suite that delivers IRS-compliant tax statements, personalized member giving summaries, and operational health insights to ensure transparency and accountability.
 
 # AI & Automation Strategy
