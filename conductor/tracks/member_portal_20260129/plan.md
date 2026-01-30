@@ -48,6 +48,6 @@ Enable members to update their own records and manage their account.
     - [x] Integrate existing skill management UI from `VolunteerMatching` or `MemberDirectory`.
 - [x] Task: Build Password Change Component for Members [314a6df]
     - [x] Re-use/Refactor `PasswordChange.tsx` to fit the member portal's simplified aesthetic.
-- [ ] Task: Implement Tax Statement Download List
-    - [ ] Create a UI to list years and trigger PDF downloads using the `/api/self/statements` and report endpoints.
+- [x] Task: Implement Tax Statement Download List [fc1cc2e]
+    - [x] Create a UI to list years and trigger PDF downloads using the `/api/self/statements` and report endpoints.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Profile & Security Management' (Protocol in workflow.md)
