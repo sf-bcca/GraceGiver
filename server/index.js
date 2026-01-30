@@ -26,24 +26,95 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+// ==========================================
+// REGISTRATION API
+// ==========================================
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 registrations per hour
+  message: 'Too many accounts created from this IP, please try again after an hour',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// Log pool errors
-pool.on("error", (err) => {
-  console.error("Database pool error:", err);
-});
+app.post("/api/register", registerLimiter, async (req, res) => {
+  const { firstName, lastName, email, telephone, password } = req.body;
 
-// Catch unhandled errors to prevent silent exit
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
-});
+  // 1. Validate Input
+  const memberValidation = validateMember({ firstName, lastName, email, telephone, state: "MS", zip: "00000" }); // MS/00000 are placeholders for reg
+  if (!memberValidation.isValid) {
+    return res.status(400).json({ error: "VALIDATION_FAILED", details: memberValidation.errors });
+  }
 
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
+  const passwordValidation = validatePasswordPolicy(password);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({ error: "PASSWORD_POLICY_VIOLATION", details: passwordValidation.errors });
+  }
+
+  try {
+    // 2. Check if user already exists
+    const userResult = await pool.query("SELECT id FROM users WHERE email = $1 OR username = $1", [email]);
+    if (userResult.rows.length > 0) {
+      return res.status(409).json({ 
+        error: "Email already registered", 
+        message: "An account with this email already exists. Please login or reset your password.",
+        code: "EMAIL_EXISTS" 
+      });
+    }
+
+    // 3. Match or Create Member Record
+    let memberId;
+    const memberMatch = await pool.query(
+      "SELECT id FROM members WHERE email = $1 OR (telephone = $2 AND $2 IS NOT NULL)", 
+      [email, telephone]
+    );
+
+    if (memberMatch.rows.length > 0) {
+      memberId = memberMatch.rows[0].id;
+      console.log(`[Registration] Linked new user ${email} to existing member ${memberId}`);
+    } else {
+      memberId = crypto.randomUUID();
+      await pool.query(
+        "INSERT INTO members (id, first_name, last_name, email, telephone, address, city, state, zip) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [memberId, firstName, lastName, email, telephone || null, "New Member", "Update City", "ST", "00000"]
+      );
+      console.log(`[Registration] Created new member record ${memberId} for ${email}`);
+      emitEvent("member:update", { type: "CREATE", data: { id: memberId, firstName, lastName, email } });
+    }
+
+    // 4. Create User Account
+    const passwordHash = await bcrypt.hash(password, 12);
+    const newUser = await pool.query(
+      "INSERT INTO users (username, email, password_hash, role, member_id, must_change_password) VALUES ($1, $2, $3, 'viewer', $4, false) RETURNING id, username, role",
+      [email, email, passwordHash, memberId]
+    );
+
+    console.log(`[AUDIT] User registered: ${email} (Role: viewer)`);
+    emitEvent("user:update", { type: "CREATE", data: newUser.rows[0] });
+
+    // 5. Issue Token for auto-login
+    const token = generateToken({
+      id: newUser.rows[0].id,
+      username: newUser.rows[0].username,
+      role: 'viewer',
+      member_id: memberId
+    });
+
+    res.status(201).json({
+      message: "Registration successful",
+      token,
+      user: {
+        id: newUser.rows[0].id,
+        username: newUser.rows[0].username,
+        role: 'viewer'
+      }
+    });
+
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 app.post("/api/login", async (req, res) => {
