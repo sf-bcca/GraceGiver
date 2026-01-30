@@ -12,7 +12,8 @@ test.describe('Member Statement Generation', () => {
 
   test('should open statement modal and allow PDF download', async ({ page }) => {
     // 1. Find the test member row
-    const row = page.getByRole('row', { name: TEST_MEMBER.lastName });
+    // 1. Find the test member row - use ID to be specific and avoid strict mode issues with duplicates
+    const row = page.getByRole('row', { name: TEST_MEMBER.lastName }).filter({ hasText: TEST_MEMBER.id });
     await expect(row).toBeVisible();
 
     // 2. Click the "Statement" button

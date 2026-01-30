@@ -7,6 +7,26 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
+-- Members Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS members (
+    id TEXT PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    email TEXT,
+    telephone TEXT,
+    address TEXT,
+    city TEXT,
+    state TEXT,
+    zip TEXT,
+    family_id TEXT,
+    skills TEXT[] DEFAULT '{}',
+    interests TEXT[] DEFAULT '{}',
+    joined_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -----------------------------------------------------------------------------
 -- Users Table (Enhanced for Security)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
@@ -51,26 +71,6 @@ INSERT INTO roles (name, description, permissions) VALUES
     ('data_entry', 'Add and edit members and donations', '["members:create", "members:update", "members:read", "donations:create", "donations:update", "donations:read"]'),
     ('viewer', 'Personal profile management and giving history', '["members:read:own", "members:update:own", "donations:read:own", "reports:read:own"]')
 ON CONFLICT (name) DO NOTHING;
-
--- -----------------------------------------------------------------------------
--- Members Table
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS members (
-    id TEXT PRIMARY KEY,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    email TEXT,
-    telephone TEXT,
-    address TEXT,
-    city TEXT,
-    state TEXT,
-    zip TEXT,
-    family_id TEXT,
-    skills TEXT[] DEFAULT '{}',
-    interests TEXT[] DEFAULT '{}',
-    joined_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
 
 -- -----------------------------------------------------------------------------
 -- Ministry Opportunities Table (ServantHeart)
@@ -137,9 +137,6 @@ CREATE INDEX IF NOT EXISTS idx_donations_fund ON donations(fund);
 CREATE INDEX IF NOT EXISTS idx_fund_campaigns_fund ON fund_campaigns (fund_name);
 
 -- -----------------------------------------------------------------------------
--- NOTE: Initial Admin User
--- -----------------------------------------------------------------------------
--- -----------------------------------------------------------------------------
 -- Settings Table
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS settings (
@@ -169,6 +166,9 @@ CREATE TABLE IF NOT EXISTS export_logs (
     filters JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+-- -----------------------------------------------------------------------------
+-- NOTE: Initial Admin User
+-- -----------------------------------------------------------------------------
 -- The initial super admin user is NOT created here.
 -- It is automatically created on first application startup via the
 -- bootstrap mechanism in server/bootstrap.js

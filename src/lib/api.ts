@@ -1,3 +1,5 @@
+import { ChurchSettings, Member, Donation } from "../../types";
+
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 function getAuthHeaders() {
@@ -452,8 +454,6 @@ export async function fetchCampaigns() {
   });
   return handleResponse(response);
 }
-
-import { ChurchSettings } from "../../types";
 
 export async function createCampaign(campaign: any) {
   const response = await fetch(`${API_URL}/api/stewardship/campaigns`, {

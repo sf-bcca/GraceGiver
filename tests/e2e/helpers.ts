@@ -7,8 +7,8 @@
 import { Page, expect } from '@playwright/test';
 
 // Test environment configuration
-export const TEST_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
-export const API_URL = process.env.E2E_API_URL || 'http://localhost:3000';
+export const TEST_URL = process.env.E2E_BASE_URL || 'http://localhost:8086';
+export const API_URL = process.env.E2E_API_URL || 'http://localhost:3002';
 
 // Test user credentials (from db/seed-test-users.sql)
 export const TEST_USER = {

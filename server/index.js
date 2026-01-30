@@ -1150,7 +1150,7 @@ app.post(
 app.get(
   "/api/donations/:id",
   authenticateToken,
-  requirePermission("donations:read"),
+  requireScopedPermission("donations:read", "donation"),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -1163,11 +1163,7 @@ app.get(
       const row = result.rows[0];
 
       // Ownership check for non-global actors
-      if (
-        !hasPermission(req.user.role, "donations:read") &&
-        hasPermission(req.user.role, "donations:read:own") &&
-        row.member_id !== req.user.memberId
-      ) {
+      if (req.scopedToOwn && row.member_id !== req.user.memberId) {
         return res
           .status(403)
           .json({ error: "Access denied to this donation" });
@@ -1218,13 +1214,38 @@ app.post(
 );
 
 app.put(
+
   "/api/donations/:id",
+
   authenticateToken,
-  requirePermission("donations:update"),
+
+  requireScopedPermission("donations:update", "donation"),
+
   async (req, res) => {
+
     const { id } = req.params;
+
     const { amount, fund, notes, enteredBy, donationDate } = req.body;
+
+
+
     try {
+      // If scoped to own, verify ownership first
+      if (!hasPermission(req.user.role, "donations:update")) {
+        const checkRes = await pool.query(
+          "SELECT member_id FROM donations WHERE id = $1",
+          [id],
+        );
+        if (
+          checkRes.rows.length > 0 &&
+          checkRes.rows[0].member_id !== req.user.memberId
+        ) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
+
+
       const result = await pool.query(
         "UPDATE donations SET amount = $1, fund = $2, notes = $3, entered_by = $4, donation_date = $5 WHERE id = $6 RETURNING *",
         [amount, fund, notes, enteredBy, donationDate, id],
@@ -1244,10 +1265,24 @@ app.put(
 app.delete(
   "/api/donations/:id",
   authenticateToken,
-  requirePermission("donations:delete"),
+  requireScopedPermission("donations:delete", "donation"),
   async (req, res) => {
     const { id } = req.params;
     try {
+      // If scoped to own, verify ownership first
+      if (!hasPermission(req.user.role, "donations:delete")) {
+        const checkRes = await pool.query(
+          "SELECT member_id FROM donations WHERE id = $1",
+          [id],
+        );
+        if (
+          checkRes.rows.length > 0 &&
+          checkRes.rows[0].member_id !== req.user.memberId
+        ) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
       const result = await pool.query(
         "DELETE FROM donations WHERE id = $1 RETURNING *",
         [id],
