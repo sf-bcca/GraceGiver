@@ -12,12 +12,13 @@ import {
   Mail,
   Award,
   Download,
-    Loader2, 
-    Clock,
-    HeartHandshake,
-    Shield,
-    Edit2
-  } from 'lucide-react';import { Member, Donation, ChurchSettings } from '../types';
+  Loader2, 
+  Clock,
+  HeartHandshake,
+  Shield,
+  Edit2
+} from 'lucide-react';
+import { Member, Donation, ChurchSettings } from '../types';
 import { 
   fetchSelfProfile, 
   fetchSelfDonations, 
@@ -61,7 +62,7 @@ const REGEX = {
   STATE: /^[A-Z]{2}$/,
 };
 
-const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLogout, onOpenSettings }) => {
+const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLogout }) => {
   const [profile, setProfile] = useState<Member | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [statements, setStatements] = useState<number[]>([]);
@@ -74,27 +75,41 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
   const [isSaving, setIsSaving] = useState(false);
   const [downloadingYear, setDownloadingYear] = useState<number | null>(null);
 
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    telephone: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    skills: [] as string[],
+    interests: [] as string[]
+  });
+  const [formErrors, setErrors] = useState<Record<string, string>>({});
+
   const loadMemberData = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const apiUrl = import.meta.env.VITE_API_URL || ""; // Using relative via proxy is best
       
       const [profileRes, donationsRes, statementsRes, campaignsRes, opportunitiesRes] = await Promise.all([
         fetchSelfProfile(),
         fetchSelfDonations(),
         fetchSelfStatements(),
-        fetch(`${apiUrl}/api/stewardship/campaigns`, {
+        fetch('/api/stewardship/campaigns', {
           headers: { Authorization: `Bearer ${token}` }
         }).then(res => res.json()),
         fetchSelfOpportunities()
       ]);
       
       setProfile(profileRes);
-      setDonations(donationsRes.data);
-      setStatements(statementsRes);
-      setCampaigns(campaignsRes);
-      setOpportunities(opportunitiesRes);
+      setDonations(donationsRes.data || []);
+      setStatements(statementsRes || []);
+      setCampaigns(campaignsRes || []);
+      setOpportunities(opportunitiesRes || []);
 
       // Set initial form data
       setFormData({
@@ -109,9 +124,14 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
         skills: profileRes.skills || [],
         interests: profileRes.interests || []
       });
-    } catch (err) {
+      setError(null);
+    } catch (err: any) {
       console.error('Failed to load member data:', err);
-      setError('Failed to load your profile. Please try again later.');
+      if (err.message === 'Unauthorized') {
+        setError('Your session has expired. Please log in again.');
+      } else {
+        setError('Unable to load your profile details. Please refresh or try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -126,9 +146,9 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
     if (formData.email && !REGEX.EMAIL.test(formData.email))
       newErrors.email = "Invalid email format";
     if (formData.telephone && !REGEX.PHONE.test(formData.telephone))
-      newErrors.telephone = "Invalid phone format (e.g. +14155552671)";
+      newErrors.telephone = "Invalid phone format";
     if (!REGEX.STATE.test(formData.state))
-      newErrors.state = "Must be 2 uppercase letters";
+      newErrors.state = "Must be 2 letters";
     if (!REGEX.ZIP.test(formData.zip))
       newErrors.zip = "Invalid Zip";
     if (!formData.firstName.trim()) newErrors.firstName = "Required";
@@ -144,8 +164,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
 
     try {
       setIsSaving(true);
-      // Update core info
-      const updated = await updateMember(profile.id, {
+      await updateMember(profile.id, {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -158,14 +177,12 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
         joinedAt: profile.joinedAt
       });
 
-      // Update skills
       await updateMemberSkills(profile.id, formData.skills, formData.interests);
-
       setIsEditModalOpen(false);
-      await loadMemberData(); // Refresh all data
+      await loadMemberData();
     } catch (err) {
       console.error('Failed to update profile:', err);
-      alert('Failed to save changes. Please try again.');
+      alert(`Failed to save changes: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -198,7 +215,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
       a.remove();
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Failed to download statement. Please try again.');
+      alert('Failed to download statement.');
     } finally {
       setDownloadingYear(null);
     }
@@ -218,7 +235,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
       totalAmount: campaign.current_amount,
       goal: campaign.goal_amount,
       percent: (campaign.current_amount / campaign.goal_amount) * 100,
-      memberPercent: (memberGivingToFund / campaign.current_amount) * 100
+      memberPercent: (memberGivingToFund / (campaign.current_amount || 1)) * 100
     };
   };
 
@@ -271,7 +288,6 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Member Header */}
       <header className="bg-indigo-900 text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -301,7 +317,6 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
       </header>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-8">
-        {/* Welcome & Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-6">
             <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-3xl font-bold shrink-0">
@@ -325,11 +340,10 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
           </div>
         </div>
 
-        {/* Campaign Progress */}
         {campaigns.length > 0 && (
           <section className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
             <div className="flex items-center gap-2 mb-6">
-              <Target size={20} className="text-indigo-600" />
+              <HeartHandshake size={20} className="text-indigo-600" />
               <h3 className="font-bold text-slate-900 text-lg">Stewardship Goals</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -363,7 +377,6 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Profile Info */}
           <div className="lg:col-span-1 space-y-8">
             <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-6 border-b border-slate-50">
@@ -375,7 +388,6 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                   <button 
                     onClick={() => setIsEditModalOpen(true)}
                     className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    title="Edit Profile"
                   >
                     <Edit2 size={16} />
                   </button>
@@ -404,7 +416,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     <Phone size={18} className="text-slate-400 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Telephone</p>
-                      <p className="text-slate-700 font-medium">{profile.telephone || 'Not provided'}</p>
+                      <p className="text-slate-700 font-medium">{formatPhoneNumber(profile.telephone) || 'Not provided'}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -439,46 +451,6 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
               </div>
             </section>
 
-            {/* Ministry Matches Section */}
-            <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                  <HeartHandshake size={18} className="text-emerald-600" />
-                  Ministry Matches
-                </h3>
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider">AI Powered</span>
-              </div>
-              <div className="p-6">
-                {opportunities.length > 0 ? (
-                  <div className="space-y-4">
-                    {opportunities.slice(0, 3).map(opp => (
-                      <div key={opp.id} className="group cursor-pointer">
-                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{opp.title}</h4>
-                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{opp.description}</p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {opp.required_skills.slice(0, 2).map((s, i) => (
-                            <span key={i} className="text-[9px] font-bold px-1.5 py-0.5 bg-slate-50 text-slate-400 rounded uppercase tracking-tighter border border-slate-100">
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                    <button className="w-full py-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50 rounded-lg transition-all mt-2">
-                      View All Opportunities
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-xs text-slate-400 italic leading-relaxed">
-                      Add more skills to your profile to see matched ministry roles!
-                    </p>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Statements Section */}
             <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-6 border-b border-slate-50">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2">
@@ -519,7 +491,6 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
             </section>
           </div>
 
-          {/* Right Column: Giving History */}
           <div className="lg:col-span-2">
             <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden h-full">
               <div className="p-6 border-b border-slate-50 flex justify-between items-center">
@@ -544,7 +515,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                             </div>
                             <div className="flex items-center gap-2 text-xs text-slate-400 font-medium mt-0.5">
                               <Calendar size={12} />
-                              <span>{new Date(donation.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                              <span>{new Date(donation.date).toLocaleDateString()}</span>
                             </div>
                           </div>
                         </div>
@@ -562,15 +533,9 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                   <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                     <Heart size={48} className="mb-4 opacity-20" />
                     <p className="text-lg font-medium">No donation records found.</p>
-                    <p className="text-sm">Your contributions will appear here once recorded.</p>
                   </div>
                 )}
               </div>
-              {donations.length > 5 && (
-                <div className="p-6 border-t border-slate-50 text-center">
-                   <button className="text-indigo-600 font-bold text-sm hover:underline">View All History</button>
-                </div>
-              )}
             </section>
           </div>
         </div>
@@ -578,10 +543,8 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
 
       <footer className="py-8 text-center text-slate-400 text-xs border-t border-slate-200 mt-auto bg-white">
         <p>&copy; {new Date().getFullYear()} Mt. Herman A.M.E. Church. All rights reserved.</p>
-        <p className="mt-1">Secure stewardship powered by GraceGiver.</p>
       </footer>
 
-      {/* Edit Profile Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
@@ -597,14 +560,13 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
 
             <form onSubmit={handleUpdateProfile} className="p-6 max-h-[80vh] overflow-y-auto space-y-6">
               <div className="space-y-4">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Contact Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">First Name</label>
                     <input
                       required
                       type="text"
-                      className={`w-full px-4 py-2 bg-white border ${formErrors.firstName ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     />
@@ -614,7 +576,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     <input
                       required
                       type="text"
-                      className={`w-full px-4 py-2 bg-white border ${formErrors.lastName ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     />
@@ -625,7 +587,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
                     <input
                       type="email"
-                      className={`w-full px-4 py-2 bg-white border ${formErrors.email ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
@@ -634,7 +596,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
                     <input
                       type="tel"
-                      className={`w-full px-4 py-2 bg-white border ${formErrors.telephone ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
                       value={formData.telephone}
                       onChange={(e) => setFormData({ ...formData, telephone: cleanInput("telephone", e.target.value) })}
                     />
@@ -670,8 +632,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     <input
                       required
                       type="text"
-                      placeholder="ST"
-                      className={`w-full px-4 py-2 bg-white border ${formErrors.state ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: cleanInput("state", e.target.value) })}
                     />
@@ -681,8 +642,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                     <input
                       required
                       type="text"
-                      placeholder="12345"
-                      className={`w-full px-4 py-2 bg-white border ${formErrors.zip ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
                       value={formData.zip}
                       onChange={(e) => setFormData({ ...formData, zip: cleanInput("zip", e.target.value) })}
                     />
@@ -692,21 +652,18 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
 
               <div className="space-y-4 pt-4">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Skills & Interests</h3>
-                <p className="text-[10px] text-slate-400 italic">Helping us match you with the right ministry opportunities.</p>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {formData.skills.map((skill, i) => (
-                    <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100">
+                    <span key={i} className="flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold">
                       {skill}
-                      <button type="button" onClick={() => removeSkill(i)} className="hover:text-indigo-900">
-                        <X size={12} />
-                      </button>
+                      <button type="button" onClick={() => removeSkill(i)}><X size={12} /></button>
                     </span>
                   ))}
                 </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Add a skill (e.g. Teaching, Music)"
+                    placeholder="Add a skill"
                     className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 text-sm"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -716,35 +673,13 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
                       }
                     }}
                   />
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      const input = e.currentTarget.previousSibling as HTMLInputElement;
-                      addSkill(input.value);
-                      input.value = '';
-                    }}
-                    className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-bold text-sm hover:bg-indigo-200 transition-colors"
-                  >
-                    Add
-                  </button>
                 </div>
               </div>
 
-              <div className="pt-6 flex gap-3 sticky bottom-0 bg-white pb-2 border-t border-slate-50">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isSaving ? <Loader2 className="animate-spin" size={18} /> : null}
-                  Save Changes
+              <div className="pt-6 flex gap-3">
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50">Cancel</button>
+                <button type="submit" disabled={isSaving} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50">
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -752,25 +687,15 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
         </div>
       )}
 
-      {/* Security Modal */}
       {isSecurityModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 bg-indigo-900 text-white flex justify-between items-center">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Shield size={20} />
-                Account Security
-              </h2>
-              <button onClick={() => setIsSecurityModalOpen(false)}>
-                <X size={24} />
-              </button>
+              <h2 className="text-xl font-bold flex items-center gap-2"><Shield size={20} /> Security</h2>
+              <button onClick={() => setIsSecurityModalOpen(false)}><X size={24} /></button>
             </div>
             <div className="p-6">
-              <PasswordChange 
-                compact={true} 
-                onSuccess={() => setIsSecurityModalOpen(false)}
-                onCancel={() => setIsSecurityModalOpen(false)}
-              />
+              <PasswordChange compact={true} onSuccess={() => setIsSecurityModalOpen(false)} onCancel={() => setIsSecurityModalOpen(false)} />
             </div>
           </div>
         </div>
@@ -779,56 +704,16 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
   );
 };
 
-// Internal small components
 const ChevronRight = ({ className, size }: { className?: string, size?: number }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="m9 18 6-6-6-6"/>
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>
 );
 
 const X = ({ className, size }: { className?: string, size?: number }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 );
 
 const Info = ({ className, size }: { className?: string, size?: number }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
 );
 
 export default MemberDashboard;

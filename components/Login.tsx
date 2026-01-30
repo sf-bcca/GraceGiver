@@ -68,12 +68,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick }) => {
             </div>
           )}
           <div>
-            <label htmlFor="username" className="block text-sm font-bold text-slate-700 mb-2">Username</label>
+            <label htmlFor="username" className="block text-sm font-bold text-slate-700 mb-2">Username or Email</label>
             <input
               id="username"
               type="text"
               required
               data-testid="username-input"
+              placeholder="e.g. member@example.com"
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
               value={username}
               onChange={(e) => setUsername(e.target.value)}

@@ -62,6 +62,39 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+### Registration
+
+**`POST /api/register`** — Create a new user and linked member record
+
+**Request Body:**
+
+```json
+{
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "email": "jane@example.com",
+  "telephone": "+14155551234",
+  "password": "SecurePassword123!"
+}
+```
+
+**Success Response (201):**
+
+```json
+{
+  "message": "Registration successful",
+  "token": "...",
+  "user": {
+    "id": 1,
+    "username": "jane@example.com",
+    "role": "viewer",
+    "memberId": "uuid-here"
+  }
+}
+```
+
+---
+
 ### Password Management
 
 **`POST /api/users/change-password`** — Change own password
@@ -173,6 +206,39 @@ Returns lifetime giving, donation history, and membership tenure.
 | Permission     | Query Params |
 | -------------- | ------------ |
 | `reports:read` | `year` (req) |
+
+---
+
+## Self-Service (Viewer Role)
+
+These endpoints are specifically for users with the `viewer` role to access their own linked member data.
+
+### Get Own Profile
+
+**`GET /api/self/profile`**
+
+Returns the member record linked to the authenticated user.
+
+### Get Own Donations
+
+**`GET /api/self/donations`**
+
+| Query Params  | Description                         |
+| ------------- | ----------------------------------- |
+| `page`        | Page number (default: 1)            |
+| `limit`       | Results per page (default: 50)      |
+
+### Get Available Statements
+
+**`GET /api/self/statements`**
+
+Returns a list of years for which the member has donation records.
+
+### Get Matched Opportunities
+
+**`GET /api/self/opportunities`**
+
+Returns ministry opportunities that match the member's skills or interests.
 
 ---
 

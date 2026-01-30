@@ -36,6 +36,7 @@ const PERMISSION_HIERARCHY = {
   ],
   viewer: [
     'members:read:own',
+    'members:update:own',
     'donations:read:own',
     'reports:read:own'
   ]

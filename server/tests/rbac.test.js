@@ -385,6 +385,57 @@ describe('requireRole middleware', () => {
   });
 });
 
+describe('requireScopedPermission middleware', () => {
+  let mockRes;
+  let mockNext;
+
+  beforeEach(() => {
+    mockRes = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn()
+    };
+    mockNext = vi.fn();
+  });
+
+  it('should call next() for global permission (admin)', () => {
+    const req = { user: { id: 1, role: 'admin' }, params: { id: 'member-456' } };
+    const middleware = requireScopedPermission('members:update', 'member', (req) => req.params.id);
+    
+    middleware(req, mockRes, mockNext);
+    
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it('should call next() for own resource (viewer)', () => {
+    const req = { user: { id: 1, role: 'viewer', memberId: 'member-123' }, params: { id: 'member-123' } };
+    const middleware = requireScopedPermission('members:update', 'member', (req) => req.params.id);
+    
+    middleware(req, mockRes, mockNext);
+    
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it('should return 403 for someone else\'s resource (viewer)', () => {
+    const req = { user: { id: 1, role: 'viewer', memberId: 'member-123' }, params: { id: 'member-456' } };
+    const middleware = requireScopedPermission('members:update', 'member', (req) => req.params.id);
+    
+    middleware(req, mockRes, mockNext);
+    
+    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockRes.status).toHaveBeenCalledWith(403);
+  });
+
+  it('should set scopedToOwn flag when no ID resolved', () => {
+    const req = { user: { id: 1, role: 'viewer', memberId: 'member-123' }, query: {} };
+    const middleware = requireScopedPermission('members:read', 'member');
+    
+    middleware(req, mockRes, mockNext);
+    
+    expect(mockNext).toHaveBeenCalled();
+    expect(req.scopedToOwn).toBe(true);
+  });
+});
+
 // ============================================================================
 // ROLE_LEVELS Validation
 // ============================================================================

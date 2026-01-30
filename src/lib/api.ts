@@ -9,10 +9,14 @@ function getAuthHeaders() {
 }
 
 async function handleResponse(response: Response) {
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     localStorage.removeItem("token");
     window.location.reload(); // Simple way to reset auth state
     throw new Error("Unauthorized");
+  }
+  if (response.status === 403) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Access denied");
   }
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

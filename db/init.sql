@@ -65,8 +65,23 @@ CREATE TABLE IF NOT EXISTS members (
     state TEXT,
     zip TEXT,
     family_id TEXT,
+    skills TEXT[] DEFAULT '{}',
+    interests TEXT[] DEFAULT '{}',
     joined_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -----------------------------------------------------------------------------
+-- Ministry Opportunities Table (ServantHeart)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ministry_opportunities (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    required_skills TEXT[] DEFAULT '{}',
+    status TEXT DEFAULT 'open', -- 'open', 'filled', 'closed'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- -----------------------------------------------------------------------------
@@ -83,16 +98,42 @@ CREATE TABLE IF NOT EXISTS donations (
 );
 
 -- -----------------------------------------------------------------------------
+-- Fund Campaigns Table (CommunityBridge)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS fund_campaigns (
+    id SERIAL PRIMARY KEY,
+    fund_name TEXT NOT NULL, -- Ties to the 'fund' column in donations
+    title TEXT NOT NULL,
+    description TEXT,
+    goal_amount DECIMAL(12,2) NOT NULL,
+    start_date DATE DEFAULT CURRENT_DATE,
+    end_date DATE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed some initial campaigns based on common church funds
+INSERT INTO fund_campaigns (fund_name, title, description, goal_amount) VALUES
+('Upkeep', 'Roof Restoration Project', 'Critical repairs for the main sanctuary roof.', 25000.00),
+('Church School', 'Youth Mission Trip 2024', 'Supporting our youth program outreach.', 5000.00)
+ON CONFLICT (id) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
 -- Indexes for Performance
 -- -----------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_member_id ON users(member_id);
 CREATE INDEX IF NOT EXISTS idx_members_last_name ON members(last_name);
 CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);
 CREATE INDEX IF NOT EXISTS idx_members_created_at ON members(created_at);
+CREATE INDEX IF NOT EXISTS idx_members_skills ON members USING GIN (skills);
+CREATE INDEX IF NOT EXISTS idx_members_interests ON members USING GIN (interests);
 CREATE INDEX IF NOT EXISTS idx_donations_member_id ON donations(member_id);
 CREATE INDEX IF NOT EXISTS idx_donations_donation_date ON donations(donation_date);
 CREATE INDEX IF NOT EXISTS idx_donations_fund ON donations(fund);
+CREATE INDEX IF NOT EXISTS idx_fund_campaigns_fund ON fund_campaigns (fund_name);
 
 -- -----------------------------------------------------------------------------
 -- NOTE: Initial Admin User

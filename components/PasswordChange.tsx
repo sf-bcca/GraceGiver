@@ -33,8 +33,7 @@ const PasswordChange: React.FC<PasswordChangeProps> = ({ onSuccess, onCancel, is
 
   // Fetch password policy on mount
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-    fetch(`${apiUrl}/api/auth/password-policy`)
+    fetch('/api/auth/password-policy')
       .then(res => res.json())
       .then(data => setPolicy(data))
       .catch(() => {
@@ -106,8 +105,7 @@ const PasswordChange: React.FC<PasswordChangeProps> = ({ onSuccess, onCancel, is
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const response = await fetch(`${apiUrl}/api/users/change-password`, {
+      const response = await fetch('/api/users/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

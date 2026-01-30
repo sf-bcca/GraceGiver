@@ -72,6 +72,15 @@ describe('Self-Service Endpoints', () => {
         res.status(500).json({ error: "Error" });
       }
     });
+
+    app.get('/api/self/opportunities', mockAuth, async (req, res) => {
+      try {
+        const result = await mockPool.query("SELECT * FROM ministry_opportunities WHERE required_skills && (SELECT skills FROM members WHERE id = $1)", [req.user.memberId]);
+        res.json(result.rows);
+      } catch (err) {
+        res.status(500).json({ error: "Error" });
+      }
+    });
   });
 
   it('GET /api/self/profile should return member data', async () => {
@@ -108,6 +117,19 @@ describe('Self-Service Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual([2026, 2025]);
     expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("DISTINCT EXTRACT(YEAR"), ['M1']);
+  });
+
+  it('GET /api/self/opportunities should return matched opportunities', async () => {
+    mockPool.query.mockResolvedValue({
+      rows: [{ id: 1, title: 'Music Ministry' }]
+    });
+
+    const res = await request(app).get('/api/self/opportunities');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].title).toBe('Music Ministry');
+    expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining("FROM ministry_opportunities"), ['M1']);
   });
 
   it('GET /api/self/profile should return 400 for unlinked user', async () => {

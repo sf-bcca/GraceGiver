@@ -28,8 +28,7 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onBackToLogin })
 
   // Fetch password policy on mount
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-    fetch(`${apiUrl}/api/auth/password-policy`)
+    fetch('/api/auth/password-policy')
       .then(res => res.json())
       .then(data => setPolicy(data))
       .catch(() => {
@@ -77,8 +76,7 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onBackToLogin })
 
     setIsLoading(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const response = await fetch(`${apiUrl}/api/register`, {
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -127,7 +125,7 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onBackToLogin })
           <p className="text-indigo-200 mt-2">Create your member account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-8 space-y-4">
           {errors.general && (
             <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl font-medium flex items-center gap-2">
               <AlertCircle size={18} />
@@ -136,97 +134,113 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onBackToLogin })
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">First Name</label>
-              <input
-                required
-                type="text"
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
-                value={formData.firstName}
-                onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Last Name</label>
-              <input
-                required
-                type="text"
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
-                value={formData.lastName}
-                onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                required
-                type="email"
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                required
-                type="password"
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
-                value={formData.password}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
+                        <div>
+                          <label htmlFor="firstName" className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">First Name</label>
+                          <input
+                            required
+                            id="firstName"
+                            type="text"
+                            className={`w-full px-4 py-2 bg-slate-50 border ${errors.firstName ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                            value={formData.firstName}
+                            onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                          />
+                          {errors.firstName && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.firstName}</p>}
+                        </div>
+                        <div>
+                          <label htmlFor="lastName" className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Last Name</label>
+                          <input
+                            required
+                            id="lastName"
+                            type="text"
+                            className={`w-full px-4 py-2 bg-slate-50 border ${errors.lastName ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                            value={formData.lastName}
+                            onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                          />
+                          {errors.lastName && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.lastName}</p>}
+                        </div>
+                      </div>
             
-            {formData.password && (
-              <div className="mt-2">
-                <div className="flex items-center justify-between text-[10px] mb-1">
-                  <span className="text-slate-500 font-bold uppercase tracking-tighter">Strength: {strength.label}</span>
-                </div>
-                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-300 ${strength.percent >= 60 ? 'bg-emerald-500' : strength.percent >= 30 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                    style={{ width: `${strength.percent}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Confirm Password</label>
-            <input
-              required
-              type="password"
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
-              value={formData.confirmPassword}
-              onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-            />
-          </div>
-
-          <div className="bg-slate-50 rounded-xl p-4 space-y-2">
-            {requirements.map((req, i) => (
-              <div key={i} className="flex items-center gap-2 text-[11px] font-medium">
-                {req.met ? <Check size={14} className="text-emerald-500" /> : <X size={14} className="text-slate-300" />}
-                <span className={req.met ? 'text-emerald-700' : 'text-slate-500'}>{req.text}</span>
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading || !requirements.every(r => r.met)}
-            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Create Account'}
-          </button>
+                      <div>
+                        <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Email Address</label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input
+                            required
+                            id="email"
+                            type="email"
+                            className={`w-full pl-10 pr-4 py-2 bg-slate-50 border ${errors.email ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                            value={formData.email}
+                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                          />
+                        </div>
+                        {errors.email ? (
+                          <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.email}</p>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 mt-1">This will also be your username for signing in.</p>
+                        )}
+                      </div>
+            
+                      <div>
+                        <label htmlFor="password" title="password" className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Password</label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input
+                            required
+                            id="password"
+                            type="password"
+                            className={`w-full pl-10 pr-4 py-2 bg-slate-50 border ${errors.password ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                            value={formData.password}
+                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                          />
+                        </div>
+                        {errors.password && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.password}</p>}
+                        
+                        {formData.password && (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between text-[10px] mb-1">
+                              <span className="text-slate-500 font-bold uppercase tracking-tighter">Strength: {strength.label}</span>
+                            </div>
+                            <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all duration-300 ${
+                                  strength.percent >= 60 ? 'bg-emerald-500' : strength.percent >= 30 ? 'bg-amber-500' : 'bg-rose-500'
+                                }`}
+                                style={{ width: `${strength.percent}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+            
+                      <div>
+                        <label htmlFor="confirmPassword" className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Confirm Password</label>
+                        <input
+                          required
+                          id="confirmPassword"
+                          type="password"
+                          className={`w-full px-4 py-2 bg-slate-50 border ${errors.confirmPassword ? "border-red-400 focus:ring-red-500" : "border-slate-200 focus:ring-indigo-500"} rounded-lg outline-none focus:ring-2 text-slate-900 transition-all text-sm`}
+                          value={formData.confirmPassword}
+                          onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        />
+                        {errors.confirmPassword && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.confirmPassword}</p>}
+                      </div>
+            
+                      <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                        {requirements.map((req, i) => (
+                          <div key={i} className="flex items-center gap-2 text-[11px] font-medium">
+                            {req.met ? <Check size={14} className="text-emerald-500" /> : <X size={14} className="text-slate-300" />}
+                            <span className={req.met ? 'text-emerald-700' : 'text-slate-500'}>{req.text}</span>
+                          </div>
+                        ))}
+                      </div>
+            
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Create Account'}
+                      </button>
           
           <button 
             type="button"

@@ -5,6 +5,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const path = require("path");
+const rateLimit = require("express-rate-limit");
 const { validateMember } = require("./validation");
 const { authenticateToken, generateToken } = require("./auth");
 const { bootstrapSuperAdmin } = require("./bootstrap");
@@ -14,13 +15,31 @@ const {
   checkPasswordExpiry,
   getPasswordPolicy,
 } = require("./passwordPolicy");
-const { requirePermission, requireScopedPermission, requireRole, getRoleInfo } = require("./rbac");
-const { getFinancialSummary, generateMemberNarrative } = require("./geminiService");
+const {
+  requirePermission,
+  requireScopedPermission,
+  requireRole,
+  getRoleInfo,
+} = require("./rbac");
+const {
+  getFinancialSummary,
+  generateMemberNarrative,
+} = require("./geminiService");
 const { initializeSocket, emitEvent } = require("./socketManager");
-
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+const pool = new Pool({
+  connectionString:
+    process.env.DATABASE_URL ||
+    `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+});
+
+// Log pool errors
+pool.on("error", (err) => {
+  console.error("Database pool error:", err);
+});
 
 app.use(cors());
 app.use(compression());
@@ -33,73 +52,107 @@ app.use(express.json());
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // Limit each IP to 5 registrations per hour
-  message: 'Too many accounts created from this IP, please try again after an hour',
+  message:
+    "Too many accounts created from this IP, please try again after an hour",
   standardHeaders: true,
   legacyHeaders: false,
+  // Skip rate limiting in test/development environments
+  skip: () =>
+    process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development",
 });
 
 app.post("/api/register", registerLimiter, async (req, res) => {
   const { firstName, lastName, email, telephone, password } = req.body;
 
   // 1. Validate Input
-  const memberValidation = validateMember({ firstName, lastName, email, telephone, state: "MS", zip: "00000" }); // MS/00000 are placeholders for reg
+  const memberValidation = validateMember({
+    firstName,
+    lastName,
+    email,
+    telephone,
+    state: "MS",
+    zip: "00000",
+  }); // MS/00000 are placeholders for reg
   if (!memberValidation.isValid) {
-    return res.status(400).json({ error: "VALIDATION_FAILED", details: memberValidation.errors });
+    return res
+      .status(400)
+      .json({ error: "VALIDATION_FAILED", details: memberValidation.errors });
   }
 
   const passwordValidation = validatePasswordPolicy(password);
   if (!passwordValidation.valid) {
-    return res.status(400).json({ error: "PASSWORD_POLICY_VIOLATION", details: passwordValidation.errors });
+    return res
+      .status(400)
+      .json({
+        error: "PASSWORD_POLICY_VIOLATION",
+        details: passwordValidation.errors,
+      });
   }
 
   try {
     // 2. Check if user already exists
-    const userResult = await pool.query("SELECT id FROM users WHERE email = $1 OR username = $1", [email]);
+    const userResult = await pool.query(
+      "SELECT id FROM users WHERE email = $1 OR username = $1",
+      [email],
+    );
     if (userResult.rows.length > 0) {
-      return res.status(409).json({ 
-        error: "Email already registered", 
-        message: "An account with this email already exists. Please login or reset your password.",
-        code: "EMAIL_EXISTS" 
+      return res.status(409).json({
+        error: "Email already registered",
+        message:
+          "An account with this email already exists. Please login or reset your password.",
+        code: "EMAIL_EXISTS",
       });
     }
 
     // 3. Match or Create Member Record
     let memberId;
     const memberMatch = await pool.query(
-      "SELECT id FROM members WHERE email = $1 OR (telephone = $2 AND $2 IS NOT NULL)", 
-      [email, telephone]
+      "SELECT id FROM members WHERE email = $1 OR (telephone = $2 AND $2 IS NOT NULL)",
+      [email, telephone],
     );
 
     if (memberMatch.rows.length > 0) {
       memberId = memberMatch.rows[0].id;
-      console.log(`[Registration] Linked new user ${email} to existing member ${memberId}`);
+      console.log(
+        `[Registration] Linked new user ${email} to existing member ${memberId}`,
+      );
     } else {
       memberId = crypto.randomUUID();
       await pool.query(
         "INSERT INTO members (id, first_name, last_name, email, telephone, address, city, state, zip) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [memberId, firstName, lastName, email, telephone || null, "New Member", "Update City", "ST", "00000"]
+        [
+          memberId,
+          firstName,
+          lastName,
+          email,
+          telephone || null,
+          "New Member",
+          "Update City",
+          "ST",
+          "00000",
+        ],
       );
-      console.log(`[Registration] Created new member record ${memberId} for ${email}`);
-      emitEvent("member:update", { type: "CREATE", data: { id: memberId, firstName, lastName, email } });
+      console.log(
+        `[Registration] Created new member record ${memberId} for ${email}`,
+      );
+      emitEvent("member:update", {
+        type: "CREATE",
+        data: { id: memberId, firstName, lastName, email },
+      });
     }
 
     // 4. Create User Account
     const passwordHash = await bcrypt.hash(password, 12);
     const newUser = await pool.query(
-      "INSERT INTO users (username, email, password_hash, role, member_id, must_change_password) VALUES ($1, $2, $3, 'viewer', $4, false) RETURNING id, username, role",
-      [email, email, passwordHash, memberId]
+      "INSERT INTO users (username, email, password_hash, role, member_id, must_change_password) VALUES ($1, $2, $3, 'viewer', $4, false) RETURNING id, username, role, member_id",
+      [email, email, passwordHash, memberId],
     );
 
     console.log(`[AUDIT] User registered: ${email} (Role: viewer)`);
     emitEvent("user:update", { type: "CREATE", data: newUser.rows[0] });
 
     // 5. Issue Token for auto-login
-    const token = generateToken({
-      id: newUser.rows[0].id,
-      username: newUser.rows[0].username,
-      role: 'viewer',
-      member_id: memberId
-    });
+    const token = generateToken(newUser.rows[0]);
 
     res.status(201).json({
       message: "Registration successful",
@@ -107,10 +160,10 @@ app.post("/api/register", registerLimiter, async (req, res) => {
       user: {
         id: newUser.rows[0].id,
         username: newUser.rows[0].username,
-        role: 'viewer'
-      }
+        role: "viewer",
+        memberId: newUser.rows[0].member_id,
+      },
     });
-
   } catch (err) {
     console.error("Registration error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -120,9 +173,10 @@ app.post("/api/register", registerLimiter, async (req, res) => {
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   try {
-    const result = await pool.query("SELECT * FROM users WHERE username = $1", [
-      username,
-    ]);
+    const result = await pool.query(
+      "SELECT * FROM users WHERE username = $1 OR email = $1",
+      [username],
+    );
     if (result.rows.length === 0) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -131,7 +185,7 @@ app.post("/api/login", async (req, res) => {
     // Check if account is locked
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
       const remainingMinutes = Math.ceil(
-        (new Date(user.locked_until) - new Date()) / 60000
+        (new Date(user.locked_until) - new Date()) / 60000,
       );
       return res.status(423).json({
         error: "Account temporarily locked",
@@ -151,7 +205,7 @@ app.post("/api/login", async (req, res) => {
       if (newAttempts >= maxAttempts) {
         await pool.query(
           "UPDATE users SET failed_login_attempts = $1, locked_until = NOW() + INTERVAL '$2 minutes' WHERE id = $3",
-          [newAttempts, lockoutMinutes, user.id]
+          [newAttempts, lockoutMinutes, user.id],
         );
         return res.status(423).json({
           error: "Account locked",
@@ -161,7 +215,7 @@ app.post("/api/login", async (req, res) => {
       } else {
         await pool.query(
           "UPDATE users SET failed_login_attempts = $1 WHERE id = $2",
-          [newAttempts, user.id]
+          [newAttempts, user.id],
         );
       }
 
@@ -171,7 +225,7 @@ app.post("/api/login", async (req, res) => {
     // Reset failed attempts on successful login
     await pool.query(
       "UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW() WHERE id = $1",
-      [user.id]
+      [user.id],
     );
 
     const token = generateToken(user);
@@ -192,6 +246,7 @@ app.post("/api/login", async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role,
+        memberId: user.member_id,
         permissions: roleInfo.permissions,
         canManageUsers: roleInfo.canManageUsers,
         canExportData: roleInfo.canExportData,
@@ -246,7 +301,7 @@ app.post("/api/users/change-password", authenticateToken, async (req, res) => {
     // Verify current password
     const validCurrent = await bcrypt.compare(
       currentPassword,
-      user.password_hash
+      user.password_hash,
     );
     if (!validCurrent) {
       return res.status(401).json({ error: "Current password is incorrect" });
@@ -277,7 +332,7 @@ app.post("/api/users/change-password", authenticateToken, async (req, res) => {
           updated_at = NOW()
       WHERE id = $3
     `,
-      [newHash, JSON.stringify([user.password_hash]), userId]
+      [newHash, JSON.stringify([user.password_hash]), userId],
     );
 
     res.json({ message: "Password changed successfully" });
@@ -303,9 +358,11 @@ app.get(
   requireScopedPermission("members:read", "member", (req) => req.user.memberId),
   async (req, res) => {
     if (!req.user.memberId) {
-      return res.status(400).json({ error: "User is not linked to a member record" });
+      return res
+        .status(400)
+        .json({ error: "User is not linked to a member record" });
     }
-    
+
     try {
       const result = await pool.query("SELECT * FROM members WHERE id = $1", [
         req.user.memberId,
@@ -334,17 +391,23 @@ app.get(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Get own donations
 app.get(
   "/api/self/donations",
   authenticateToken,
-  requireScopedPermission("donations:read", "donation", (req) => req.user.memberId),
+  requireScopedPermission(
+    "donations:read",
+    "donation",
+    (req) => req.user.memberId,
+  ),
   async (req, res) => {
     if (!req.user.memberId) {
-      return res.status(400).json({ error: "User is not linked to a member record" });
+      return res
+        .status(400)
+        .json({ error: "User is not linked to a member record" });
     }
 
     const { page = 1, limit = 50 } = req.query;
@@ -353,13 +416,13 @@ app.get(
     try {
       const countResult = await pool.query(
         "SELECT COUNT(*) FROM donations WHERE member_id = $1",
-        [req.user.memberId]
+        [req.user.memberId],
       );
       const total = parseInt(countResult.rows[0].count);
 
       const result = await pool.query(
         "SELECT * FROM donations WHERE member_id = $1 ORDER BY donation_date DESC LIMIT $2 OFFSET $3",
-        [req.user.memberId, limit, offset]
+        [req.user.memberId, limit, offset],
       );
 
       res.json({
@@ -381,7 +444,7 @@ app.get(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Get available statement years
@@ -391,20 +454,22 @@ app.get(
   requireScopedPermission("reports:read", "report", (req) => req.user.memberId),
   async (req, res) => {
     if (!req.user.memberId) {
-      return res.status(400).json({ error: "User is not linked to a member record" });
+      return res
+        .status(400)
+        .json({ error: "User is not linked to a member record" });
     }
 
     try {
       const result = await pool.query(
         "SELECT DISTINCT EXTRACT(YEAR FROM donation_date)::int as year FROM donations WHERE member_id = $1 ORDER BY year DESC",
-        [req.user.memberId]
+        [req.user.memberId],
       );
-      res.json(result.rows.map(r => r.year));
+      res.json(result.rows.map((r) => r.year));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Get matched volunteer opportunities
@@ -414,24 +479,27 @@ app.get(
   requireScopedPermission("members:read", "member", (req) => req.user.memberId),
   async (req, res) => {
     if (!req.user.memberId) {
-      return res.status(400).json({ error: "User is not linked to a member record" });
+      return res
+        .status(400)
+        .json({ error: "User is not linked to a member record" });
     }
 
     try {
       // Find opportunities that match member's skills or interests
+      // If skills/interests are empty, this will just return an empty array (no match)
       const result = await pool.query(
         `SELECT * FROM ministry_opportunities 
-         WHERE required_skills && (SELECT skills FROM members WHERE id = $1)
-         OR required_skills && (SELECT interests FROM members WHERE id = $1)
+         WHERE required_skills && COALESCE((SELECT skills FROM members WHERE id = $1), '{}'::text[])
+         OR required_skills && COALESCE((SELECT interests FROM members WHERE id = $1), '{}'::text[])
          ORDER BY created_at DESC`,
-        [req.user.memberId]
+        [req.user.memberId],
       );
       res.json(result.rows);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Validate password strength (public - for real-time feedback)
@@ -463,7 +531,9 @@ app.get(
       const whereClauses = [];
 
       if (search) {
-        whereClauses.push(`(first_name ILIKE $${params.length + 1} OR last_name ILIKE $${params.length + 1} OR email ILIKE $${params.length + 1})`);
+        whereClauses.push(
+          `(first_name ILIKE $${params.length + 1} OR last_name ILIKE $${params.length + 1} OR email ILIKE $${params.length + 1})`,
+        );
         params.push(`%${search}%`);
       }
 
@@ -514,23 +584,23 @@ app.get(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // ==========================================
 // DATA EXPORT API
 // ==========================================
-const rateLimit = require('express-rate-limit');
 
 const exportLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // limit each IP to 10 requests per windowMs
-  message: 'Too many export requests from this IP, please try again after 15 minutes',
+  message:
+    "Too many export requests from this IP, please try again after 15 minutes",
 });
 
-const { stringify } = require('csv-stringify');
+const { stringify } = require("csv-stringify");
 
-const QueryStream = require('pg-query-stream');
+const QueryStream = require("pg-query-stream");
 
 // Export Donations
 app.get(
@@ -539,14 +609,17 @@ app.get(
   authenticateToken,
   requirePermission("reports:export"),
   async (req, res) => {
-    const { format = 'csv', startDate, endDate, fund } = req.query;
+    const { format = "csv", startDate, endDate, fund } = req.query;
 
     try {
-      let queryText = "SELECT d.id, m.first_name, m.last_name, m.email, d.amount, d.fund, d.donation_date, d.notes FROM donations d JOIN members m ON d.member_id = m.id";
+      let queryText =
+        "SELECT d.id, m.first_name, m.last_name, m.email, d.amount, d.fund, d.donation_date, d.notes FROM donations d JOIN members m ON d.member_id = m.id";
       const params = [];
       const conditions = [];
       if (startDate && endDate) {
-        conditions.push(`d.donation_date >= $${params.length + 1} AND d.donation_date < ($${params.length + 2}::date + INTERVAL '1 day')`);
+        conditions.push(
+          `d.donation_date >= $${params.length + 1} AND d.donation_date < ($${params.length + 2}::date + INTERVAL '1 day')`,
+        );
         params.push(startDate, endDate);
       }
       if (fund) {
@@ -559,15 +632,20 @@ app.get(
       queryText += " ORDER BY d.donation_date DESC";
 
       // Audit logging
-      pool.query(
-        "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
-        [req.user.id, 'donations', { format, startDate, endDate, fund }]
-      ).catch(err => console.error("Audit log failed:", err));
+      pool
+        .query(
+          "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
+          [req.user.id, "donations", { format, startDate, endDate, fund }],
+        )
+        .catch((err) => console.error("Audit log failed:", err));
 
-      if (format === 'json') {
+      if (format === "json") {
         const { rows } = await pool.query(queryText, params);
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', 'attachment; filename=donations_export.json');
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=donations_export.json",
+        );
         return res.json(rows);
       }
 
@@ -576,14 +654,17 @@ app.get(
       const queryStream = new QueryStream(queryText, params);
       const stream = client.query(queryStream);
 
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=donations_export.csv');
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=donations_export.csv",
+      );
 
       const stringifier = stringify({ header: true });
       stream.pipe(stringifier).pipe(res);
 
-      stream.on('end', () => client.release());
-      stream.on('error', (err) => {
+      stream.on("end", () => client.release());
+      stream.on("error", (err) => {
         console.error("Donation export stream error:", err);
         client.release();
         if (!res.headersSent) {
@@ -592,14 +673,13 @@ app.get(
           res.end();
         }
       });
-
     } catch (err) {
       console.error("Donation export setup error:", err);
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to export donations" });
       }
     }
-  }
+  },
 );
 
 // Export Members
@@ -609,20 +689,28 @@ app.get(
   authenticateToken,
   requirePermission("reports:export"),
   async (req, res) => {
-    const { format = 'csv' } = req.query;
-    const queryText = "SELECT id, first_name, last_name, email, telephone, address, city, state, zip, joined_at FROM members ORDER BY last_name, first_name";
+    const { format = "csv" } = req.query;
+    const queryText =
+      "SELECT id, first_name, last_name, email, telephone, address, city, state, zip, joined_at FROM members ORDER BY last_name, first_name";
 
     try {
       // Audit logging
-      pool.query(
-        "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
-        [req.user.id, 'members', { format }]
-      ).catch(err => console.error("Audit log for member export failed:", err));
+      pool
+        .query(
+          "INSERT INTO export_logs (user_id, export_type, filters) VALUES ($1, $2, $3)",
+          [req.user.id, "members", { format }],
+        )
+        .catch((err) =>
+          console.error("Audit log for member export failed:", err),
+        );
 
-      if (format === 'json') {
+      if (format === "json") {
         const { rows } = await pool.query(queryText);
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', 'attachment; filename=members_export.json');
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=members_export.json",
+        );
         return res.json(rows);
       }
 
@@ -630,14 +718,17 @@ app.get(
       const queryStream = new QueryStream(queryText);
       const stream = client.query(queryStream);
 
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=members_export.csv');
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=members_export.csv",
+      );
 
       const stringifier = stringify({ header: true });
       stream.pipe(stringifier).pipe(res);
 
-      stream.on('end', () => client.release());
-      stream.on('error', (err) => {
+      stream.on("end", () => client.release());
+      stream.on("error", (err) => {
         console.error("Member export stream error:", err);
         client.release();
         if (!res.headersSent) {
@@ -652,7 +743,7 @@ app.get(
         res.status(500).json({ error: "Failed to export members" });
       }
     }
-  }
+  },
 );
 
 app.get(
@@ -687,7 +778,7 @@ app.get(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.post(
@@ -740,9 +831,9 @@ app.post(
           city,
           state,
           zip,
-          familyId,
+          familyId || null,
           joinedAt || null,
-        ]
+        ],
       );
       emitEvent("member:update", { type: "CREATE", data: result.rows[0] });
       res.status(201).json(result.rows[0]);
@@ -750,13 +841,13 @@ app.post(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.put(
   "/api/members/:id",
   authenticateToken,
-  requirePermission("members:update"),
+  requireScopedPermission("members:update", "member", (req) => req.params.id),
   async (req, res) => {
     const { id } = req.params;
     const {
@@ -799,10 +890,10 @@ app.put(
           city,
           state,
           zip,
-          familyId,
+          familyId || null,
           joinedAt || null,
           id,
-        ]
+        ],
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Member not found" });
@@ -813,7 +904,7 @@ app.put(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // ServantHeart: Get Member Skills & Interests
@@ -826,7 +917,7 @@ app.get(
     try {
       const result = await pool.query(
         "SELECT skills, interests FROM members WHERE id = $1",
-        [id]
+        [id],
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Member not found" });
@@ -836,21 +927,21 @@ app.get(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // ServantHeart: Update Member Skills & Interests
 app.put(
   "/api/members/:id/skills",
   authenticateToken,
-  requirePermission("members:update"),
+  requireScopedPermission("members:update", "member", (req) => req.params.id),
   async (req, res) => {
     const { id } = req.params;
     const { skills, interests } = req.body;
     try {
       const result = await pool.query(
         "UPDATE members SET skills = $1, interests = $2 WHERE id = $3 RETURNING skills, interests",
-        [skills, interests, id]
+        [skills, interests, id],
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Member not found" });
@@ -860,7 +951,7 @@ app.put(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.delete(
@@ -872,7 +963,7 @@ app.delete(
     try {
       const result = await pool.query(
         "DELETE FROM members WHERE id = $1 RETURNING *",
-        [id]
+        [id],
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Member not found" });
@@ -883,7 +974,7 @@ app.delete(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.get(
@@ -941,7 +1032,7 @@ app.get(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // NOTE: /summary MUST come before /:id to avoid "summary" being matched as an ID parameter
@@ -983,8 +1074,12 @@ app.get(
       const monthly = monthResult.rows[0];
 
       // 3. Members Count & Weekly Growth
-      const totalMembersResult = await pool.query("SELECT COUNT(*) as total FROM members");
-      const newMembersResult = await pool.query("SELECT COUNT(*) as new_this_week FROM members WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'");
+      const totalMembersResult = await pool.query(
+        "SELECT COUNT(*) as total FROM members",
+      );
+      const newMembersResult = await pool.query(
+        "SELECT COUNT(*) as new_this_week FROM members WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'",
+      );
 
       // 4. Avg Donation Trend (last 30 days vs 30-60 days ago)
       let trendQuery = `
@@ -1014,14 +1109,13 @@ app.get(
         currentMonthDonations: parseFloat(monthly.current_month) || 0,
         lastMonthDonations: parseFloat(monthly.last_month) || 0,
         avgRecent: parseFloat(trends.avg_recent) || 0,
-        avgPrevious: parseFloat(trends.avg_previous) || 0
+        avgPrevious: parseFloat(trends.avg_previous) || 0,
       });
-
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // stewardship insight
@@ -1033,7 +1127,9 @@ app.post(
     try {
       const { donations, members } = req.body;
       if (!donations || !members) {
-        return res.status(400).json({ error: "Donations and members are required" });
+        return res
+          .status(400)
+          .json({ error: "Donations and members are required" });
       }
 
       const insight = await getFinancialSummary(donations, members);
@@ -1042,9 +1138,8 @@ app.post(
       console.error("AI Insight error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
-
 
 app.get(
   "/api/donations/:id",
@@ -1062,10 +1157,14 @@ app.get(
       const row = result.rows[0];
 
       // Ownership check for non-global actors
-      if (!hasPermission(req.user.role, "donations:read") && 
-          hasPermission(req.user.role, "donations:read:own") &&
-          row.member_id !== req.user.memberId) {
-        return res.status(403).json({ error: "Access denied to this donation" });
+      if (
+        !hasPermission(req.user.role, "donations:read") &&
+        hasPermission(req.user.role, "donations:read:own") &&
+        row.member_id !== req.user.memberId
+      ) {
+        return res
+          .status(403)
+          .json({ error: "Access denied to this donation" });
       }
       res.json({
         id: row.id.toString(),
@@ -1081,7 +1180,7 @@ app.get(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.post(
@@ -1089,11 +1188,19 @@ app.post(
   authenticateToken,
   requirePermission("donations:create"),
   async (req, res) => {
-    const { memberId, amount, fund, notes, enteredBy, donationDate, date } = req.body;
+    const { memberId, amount, fund, notes, enteredBy, donationDate, date } =
+      req.body;
     try {
       const result = await pool.query(
         "INSERT INTO donations (member_id, amount, fund, notes, entered_by, donation_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-        [memberId, amount, fund, notes, enteredBy, donationDate || date || new Date()]
+        [
+          memberId,
+          amount,
+          fund,
+          notes,
+          enteredBy,
+          donationDate || date || new Date(),
+        ],
       );
       emitEvent("donation:update", { type: "CREATE", data: result.rows[0] });
       res.status(201).json(result.rows[0]);
@@ -1101,7 +1208,7 @@ app.post(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.put(
@@ -1114,7 +1221,7 @@ app.put(
     try {
       const result = await pool.query(
         "UPDATE donations SET amount = $1, fund = $2, notes = $3, entered_by = $4, donation_date = $5 WHERE id = $6 RETURNING *",
-        [amount, fund, notes, enteredBy, donationDate, id]
+        [amount, fund, notes, enteredBy, donationDate, id],
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Donation not found" });
@@ -1125,7 +1232,7 @@ app.put(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.delete(
@@ -1137,7 +1244,7 @@ app.delete(
     try {
       const result = await pool.query(
         "DELETE FROM donations WHERE id = $1 RETURNING *",
-        [id]
+        [id],
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Donation not found" });
@@ -1148,7 +1255,7 @@ app.delete(
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 const {
@@ -1158,7 +1265,10 @@ const {
   getMemberStatement,
 } = require("./reports");
 
-const { generateMemberReportPDF, generateAnnualStatementPDF } = require("./reports/memberReport");
+const {
+  generateMemberReportPDF,
+  generateAnnualStatementPDF,
+} = require("./reports/memberReport");
 
 console.log("--- REPORT HANDLER TYPES ---");
 console.log("generateBatchStatement:", typeof generateBatchStatement);
@@ -1190,7 +1300,7 @@ app.get(
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=statements-${year}.pdf`
+        `attachment; filename=statements-${year}.pdf`,
       );
 
       await generateBatchStatement(pool, year, res);
@@ -1206,7 +1316,7 @@ app.get(
         res.end();
       }
     }
-  }
+  },
 );
 
 app.get(
@@ -1223,26 +1333,30 @@ app.get(
 
     try {
       const statement = await getMemberStatement(pool, id, year);
-      
+
       if (!statement) {
         return res.status(404).json({ error: "Member not found" });
       }
 
-      if (format === 'pdf') {
-        const narrative = await generateMemberNarrative(statement.member, statement.donations, year);
-        
+      if (format === "pdf") {
+        const narrative = await generateMemberNarrative(
+          statement.member,
+          statement.donations,
+          year,
+        );
+
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
           "Content-Disposition",
-          `attachment; filename=statement-${year}-${statement.member.lastName}.pdf`
+          `attachment; filename=statement-${year}-${statement.member.lastName}.pdf`,
         );
-        
+
         return generateAnnualStatementPDF(
-          statement.member, 
-          statement.donations, 
-          statement.summary, 
-          narrative, 
-          res
+          statement.member,
+          statement.donations,
+          statement.summary,
+          narrative,
+          res,
         );
       }
 
@@ -1253,7 +1367,7 @@ app.get(
         res.status(500).json({ error: "Failed to generate member statement" });
       }
     }
-  }
+  },
 );
 
 app.get(
@@ -1270,15 +1384,20 @@ app.get(
 
     try {
       const statement = await getMemberStatement(pool, id, year);
-      if (!statement) return res.status(404).json({ error: "Member not found" });
+      if (!statement)
+        return res.status(404).json({ error: "Member not found" });
 
-      const narrative = await generateMemberNarrative(statement.member, statement.donations, year);
+      const narrative = await generateMemberNarrative(
+        statement.member,
+        statement.donations,
+        year,
+      );
       res.json({ narrative });
     } catch (err) {
       console.error("Member narrative error:", err);
       res.status(500).json({ error: "Failed to generate narrative" });
     }
-  }
+  },
 );
 
 app.get(
@@ -1293,7 +1412,7 @@ app.get(
       res.setHeader("Content-Type", "text/csv");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=donations-${year}.csv`
+        `attachment; filename=donations-${year}.csv`,
       );
 
       await exportTransactions(pool, year, res);
@@ -1304,7 +1423,7 @@ app.get(
         res.status(500).json({ error: "Internal server error generating CSV" });
       }
     }
-  }
+  },
 );
 
 // Phase 2: Missing Email Report
@@ -1325,7 +1444,7 @@ app.get(
       console.error("Missing emails report error:", err);
       res.status(500).json({ error: "Failed to fetch missing emails report" });
     }
-  }
+  },
 );
 
 // Phase 2: New Donor List (Last 30 Days)
@@ -1351,7 +1470,7 @@ app.get(
       console.error("New donors report error:", err);
       res.status(500).json({ error: "Failed to fetch new donors report" });
     }
-  }
+  },
 );
 
 // Phase 3: Top 10 Fund Distributions
@@ -1373,12 +1492,11 @@ app.get(
       ORDER BY total DESC
       LIMIT 10
     `,
-        [year]
+        [year],
       );
       res.json(result.rows);
-    } catch (err) {
-    }
-  }
+    } catch (err) {}
+  },
 );
 
 // ServantHeart: Manage Ministry Opportunities
@@ -1389,14 +1507,14 @@ app.get(
   async (req, res) => {
     try {
       const result = await pool.query(
-        "SELECT * FROM ministry_opportunities ORDER BY created_at DESC"
+        "SELECT * FROM ministry_opportunities ORDER BY created_at DESC",
       );
       res.json(result.rows);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 app.post(
@@ -1408,14 +1526,14 @@ app.post(
     try {
       const result = await pool.query(
         "INSERT INTO ministry_opportunities (title, description, required_skills) VALUES ($1, $2, $3) RETURNING *",
-        [title, description, requiredSkills]
+        [title, description, requiredSkills],
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // ServantHeart: AI-Powered Talent Match
@@ -1428,7 +1546,7 @@ app.get(
     try {
       const oppResult = await pool.query(
         "SELECT * FROM ministry_opportunities WHERE id = $1",
-        [id]
+        [id],
       );
       if (oppResult.rows.length === 0) {
         return res.status(404).json({ error: "Opportunity not found" });
@@ -1441,33 +1559,30 @@ app.get(
          FROM members 
          WHERE skills && $1 OR interests && $1
          LIMIT 10`,
-        [opportunity.required_skills]
+        [opportunity.required_skills],
       );
 
       res.json({
         opportunity,
-        matches: matchResult.rows.map(m => ({
+        matches: matchResult.rows.map((m) => ({
           memberId: m.id,
           name: `${m.first_name} ${m.last_name}`,
           skills: m.skills,
-          matchScore: 0.85
-        }))
+          matchScore: 0.85,
+        })),
       });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // CommunityBridge: Manage Stewardship Campaigns
-app.get(
-  "/api/stewardship/campaigns",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      // Get all active campaigns and their current progress
-      const result = await pool.query(`
+app.get("/api/stewardship/campaigns", authenticateToken, async (req, res) => {
+  try {
+    // Get all active campaigns and their current progress
+    const result = await pool.query(`
         SELECT 
           c.*,
           COALESCE(SUM(d.amount), 0) as current_amount
@@ -1477,13 +1592,12 @@ app.get(
         GROUP BY c.id
         ORDER BY c.created_at DESC
       `);
-      res.json(result.rows);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Internal server error" });
-    }
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
   }
-);
+});
 
 app.post(
   "/api/stewardship/campaigns",
@@ -1494,14 +1608,14 @@ app.post(
     try {
       const result = await pool.query(
         "INSERT INTO fund_campaigns (fund_name, title, description, goal_amount, end_date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [fundName, title, description, goalAmount, endDate]
+        [fundName, title, description, goalAmount, endDate],
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 );
 
 // Phase 3: Quarterly Progress Summary
@@ -1524,14 +1638,14 @@ app.get(
       GROUP BY quarter
       ORDER BY quarter
     `,
-        [year]
+        [year],
       );
       res.json(result.rows);
     } catch (err) {
       console.error("Quarterly progress error:", err);
       res.status(500).json({ error: "Failed to fetch quarterly progress" });
     }
-  }
+  },
 );
 
 // GraceForecast: At-Risk Donor Prediction
@@ -1547,7 +1661,7 @@ app.get(
       console.error("Forecast error:", err);
       res.status(500).json({ error: "Failed to generate forecast" });
     }
-  }
+  },
 );
 
 // Phase 3: Trend Analysis (3 Year)
@@ -1571,7 +1685,7 @@ app.get(
       console.error("Trend analysis error:", err);
       res.status(500).json({ error: "Failed to fetch trend analysis" });
     }
-  }
+  },
 );
 
 // ==========================================
@@ -1590,40 +1704,55 @@ app.get(
     const { id } = req.params;
     try {
       // 1. Fetch Member
-      const memberRes = await pool.query("SELECT * FROM members WHERE id = $1", [id]);
+      const memberRes = await pool.query(
+        "SELECT * FROM members WHERE id = $1",
+        [id],
+      );
       if (memberRes.rows.length === 0) {
         return res.status(404).json({ error: "Member not found" });
       }
       const member = memberRes.rows[0];
 
       // 2. Fetch Aggregates
-      const statsRes = await pool.query(`
+      const statsRes = await pool.query(
+        `
         SELECT
           COALESCE(SUM(amount), 0) as lifetime_total,
           MAX(donation_date) as last_donation_date,
           COUNT(*) as donation_count
         FROM donations
         WHERE member_id = $1
-      `, [id]);
+      `,
+        [id],
+      );
       const stats = statsRes.rows[0];
 
       // 3. Last Donation Amount
-      const lastDonationRes = await pool.query(`
+      const lastDonationRes = await pool.query(
+        `
         SELECT amount FROM donations
         WHERE member_id = $1
         ORDER BY donation_date DESC
         LIMIT 1
-      `, [id]);
-      const lastDonationAmount = lastDonationRes.rows.length > 0 ? parseFloat(lastDonationRes.rows[0].amount) : 0;
+      `,
+        [id],
+      );
+      const lastDonationAmount =
+        lastDonationRes.rows.length > 0
+          ? parseFloat(lastDonationRes.rows[0].amount)
+          : 0;
 
       // 4. Recent Activity
-      const historyRes = await pool.query(`
+      const historyRes = await pool.query(
+        `
         SELECT id, amount, fund, donation_date
         FROM donations
         WHERE member_id = $1
         ORDER BY donation_date DESC
         LIMIT 20
-      `, [id]);
+      `,
+        [id],
+      );
 
       // 5. Calculate Tenure
       let yearsOfMembership = 0;
@@ -1631,7 +1760,9 @@ app.get(
         const joinDate = new Date(member.joined_at);
         const now = new Date();
         const diffTime = Math.abs(now - joinDate);
-        yearsOfMembership = parseFloat((diffTime / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1));
+        yearsOfMembership = parseFloat(
+          (diffTime / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1),
+        );
       }
 
       res.json({
@@ -1640,28 +1771,27 @@ app.get(
           firstName: member.first_name,
           lastName: member.last_name,
           email: member.email,
-          joinedAt: member.joined_at
+          joinedAt: member.joined_at,
         },
         stats: {
           lifetimeGiving: parseFloat(stats.lifetime_total),
           lastDonationDate: stats.last_donation_date,
           lastDonationAmount,
           donationCount: parseInt(stats.donation_count),
-          yearsOfMembership
+          yearsOfMembership,
         },
-        recentActivity: historyRes.rows.map(row => ({
+        recentActivity: historyRes.rows.map((row) => ({
           id: row.id,
           amount: parseFloat(row.amount),
           fund: row.fund,
-          date: row.donation_date
-        }))
+          date: row.donation_date,
+        })),
       });
-
     } catch (err) {
       console.error("Member report error:", err);
       res.status(500).json({ error: "Failed to generate member report" });
     }
-  }
+  },
 );
 
 // Get Single Member Report PDF
@@ -1675,7 +1805,7 @@ app.get(
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=member-report-${id}.pdf`
+        `attachment; filename=member-report-${id}.pdf`,
       );
       await generateMemberReportPDF(pool, id, res);
     } catch (err) {
@@ -1686,7 +1816,7 @@ app.get(
         res.end();
       }
     }
-  }
+  },
 );
 
 app.get(
@@ -1719,13 +1849,13 @@ app.get(
           lockedUntil: user.locked_until,
           failedAttempts: user.failed_login_attempts,
           mustChangePassword: user.must_change_password,
-        }))
+        })),
       );
     } catch (err) {
       console.error("List users error:", err);
       res.status(500).json({ error: "Failed to fetch users" });
     }
-  }
+  },
 );
 
 // Create new user (admin+)
@@ -1764,7 +1894,7 @@ app.post(
       // Check if username exists
       const existing = await pool.query(
         "SELECT id FROM users WHERE username = $1",
-        [username]
+        [username],
       );
       if (existing.rows.length > 0) {
         return res.status(409).json({ error: "Username already exists" });
@@ -1778,11 +1908,17 @@ app.post(
       VALUES ($1, $2, $3, $4, true, $5)
       RETURNING id, username, role, email, created_at, must_change_password, member_id
     `,
-        [username, passwordHash, requestedRole, email || null, memberId || null]
+        [
+          username,
+          passwordHash,
+          requestedRole,
+          email || null,
+          memberId || null,
+        ],
       );
 
       console.log(
-        `[AUDIT] User created: ${username} with role ${requestedRole} by ${req.user.username}`
+        `[AUDIT] User created: ${username} with role ${requestedRole} by ${req.user.username}`,
       );
 
       emitEvent("user:update", { type: "CREATE", data: result.rows[0] });
@@ -1799,7 +1935,7 @@ app.post(
       console.error("Create user error:", err);
       res.status(500).json({ error: "Failed to create user" });
     }
-  }
+  },
 );
 
 // Update user (username, role, email) - admin+
@@ -1827,7 +1963,7 @@ app.put(
       // Get target user
       const targetUser = await pool.query(
         "SELECT role FROM users WHERE id = $1",
-        [id]
+        [id],
       );
       if (targetUser.rows.length === 0) {
         return res.status(404).json({ error: "User not found" });
@@ -1853,7 +1989,7 @@ app.put(
       if (username) {
         const existing = await pool.query(
           "SELECT id FROM users WHERE username = $1 AND id != $2",
-          [username, id]
+          [username, id],
         );
         if (existing.rows.length > 0) {
           return res.status(409).json({ error: "Username already exists" });
@@ -1892,7 +2028,7 @@ app.put(
       WHERE id = $${paramCount}
       RETURNING id, username, role, email
     `,
-        values
+        values,
       );
 
       console.log(
@@ -1900,7 +2036,7 @@ app.put(
           username,
           role,
           email,
-        })}`
+        })}`,
       );
 
       emitEvent("user:update", { type: "UPDATE", data: result.rows[0] });
@@ -1914,7 +2050,7 @@ app.put(
       console.error("Update user error:", err);
       res.status(500).json({ error: "Failed to update user" });
     }
-  }
+  },
 );
 
 // Delete/disable user (admin+)
@@ -1937,7 +2073,7 @@ app.delete(
       // Get target user
       const targetUser = await pool.query(
         "SELECT username, role FROM users WHERE id = $1",
-        [id]
+        [id],
       );
       if (targetUser.rows.length === 0) {
         return res.status(404).json({ error: "User not found" });
@@ -1962,7 +2098,7 @@ app.delete(
       await pool.query("DELETE FROM users WHERE id = $1", [id]);
 
       console.log(
-        `[AUDIT] User ${targetUser.rows[0].username} (${id}) deleted by ${req.user.username}`
+        `[AUDIT] User ${targetUser.rows[0].username} (${id}) deleted by ${req.user.username}`,
       );
 
       emitEvent("user:update", { type: "DELETE", id });
@@ -1972,7 +2108,7 @@ app.delete(
       console.error("Delete user error:", err);
       res.status(500).json({ error: "Failed to delete user" });
     }
-  }
+  },
 );
 
 // Unlock user account (admin+)
@@ -1991,7 +2127,7 @@ app.post(
       WHERE id = $1
       RETURNING id, username
     `,
-        [id]
+        [id],
       );
 
       if (result.rows.length === 0) {
@@ -1999,7 +2135,7 @@ app.post(
       }
 
       console.log(
-        `[AUDIT] User ${result.rows[0].username} unlocked by ${req.user.username}`
+        `[AUDIT] User ${result.rows[0].username} unlocked by ${req.user.username}`,
       );
 
       res.json({ message: "Account unlocked successfully" });
@@ -2007,7 +2143,7 @@ app.post(
       console.error("Unlock user error:", err);
       res.status(500).json({ error: "Failed to unlock user" });
     }
-  }
+  },
 );
 
 // Force password reset (admin+)
@@ -2036,7 +2172,7 @@ app.post(
       // Get target user
       const targetUser = await pool.query(
         "SELECT username, role FROM users WHERE id = $1",
-        [id]
+        [id],
       );
       if (targetUser.rows.length === 0) {
         return res.status(404).json({ error: "User not found" });
@@ -2063,11 +2199,11 @@ app.post(
           failed_login_attempts = 0
       WHERE id = $2
     `,
-        [passwordHash, id]
+        [passwordHash, id],
       );
 
       console.log(
-        `[AUDIT] Password reset for ${targetUser.rows[0].username} by ${req.user.username}`
+        `[AUDIT] Password reset for ${targetUser.rows[0].username} by ${req.user.username}`,
       );
 
       res.json({
@@ -2078,7 +2214,7 @@ app.post(
       console.error("Reset password error:", err);
       res.status(500).json({ error: "Failed to reset password" });
     }
-  }
+  },
 );
 
 // Get available roles (for dropdowns)
@@ -2094,7 +2230,7 @@ app.get(
 
     const assignableRoles = Object.entries(ROLE_LEVELS)
       .filter(
-        ([role, level]) => level < userLevel || req.user.role === "super_admin"
+        ([role, level]) => level < userLevel || req.user.role === "super_admin",
       )
       .map(([role, level]) => ({
         name: role,
@@ -2104,7 +2240,7 @@ app.get(
       .sort((a, b) => b.level - a.level);
 
     res.json(assignableRoles);
-  }
+  },
 );
 
 // ==========================================
@@ -2114,7 +2250,9 @@ app.get(
 // Get current settings (publicly accessible)
 app.get("/api/settings", async (req, res) => {
   try {
-    const result = await pool.query("SELECT name, address, phone, email, tax_id FROM settings WHERE singleton_id = true");
+    const result = await pool.query(
+      "SELECT name, address, phone, email, tax_id FROM settings WHERE singleton_id = true",
+    );
     if (result.rows.length === 0) {
       // This should ideally not happen if seeding works
       return res.status(404).json({ error: "Settings not found" });
@@ -2125,7 +2263,7 @@ app.get("/api/settings", async (req, res) => {
       address: settings.address,
       phone: settings.phone,
       email: settings.email,
-      taxId: settings.tax_id
+      taxId: settings.tax_id,
     });
   } catch (err) {
     console.error("Get settings error:", err);
@@ -2153,7 +2291,7 @@ app.put(
         WHERE singleton_id = true
         RETURNING name, address, phone, email, tax_id
       `,
-        [name, address, phone, email, taxId]
+        [name, address, phone, email, taxId],
       );
 
       const updatedSettings = result.rows[0];
@@ -2167,13 +2305,13 @@ app.put(
         address: updatedSettings.address,
         phone: updatedSettings.phone,
         email: updatedSettings.email,
-        taxId: updatedSettings.tax_id
+        taxId: updatedSettings.tax_id,
       });
     } catch (err) {
       console.error("Update settings error:", err);
       res.status(500).json({ error: "Failed to update settings" });
     }
-  }
+  },
 );
 
 // Startup function with bootstrap

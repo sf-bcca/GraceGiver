@@ -140,7 +140,8 @@ To interact with or trigger these agents, follow these simple protocols:
 2. **Architect (Planning)**: Ask for a complex feature or a structural change. I will automatically switch to **Architect** mode and present an `implementation_plan.md` for your approval before I start coding.
 3. **Linter & Security (Guardians)**: These run automatically. When you run `git commit`, our security agent scans for secrets and linting errors. If it finds any, it will prevent the commit to keep the codebase safe.
 4. **Test & QA (Verification)**: After I (Antigravity) finish a task, I will perform verification. You can also explicitly say: _"Verify the latest changes"_ or _"Run the E2E tests"_ to trigger this agent.
-5. **Data Integrity (Validation)**: This runs automatically on form submission. The backend will reject any data that doesn't conform to the standards defined in `server/validation.js`.
+5. **Documentation (Master)**: Use specialized commands or ask to sync documentation. For example: _"Check for documentation drift"_ or _"Update the API reference"_.
+6. **Data Integrity (Validation)**: This runs automatically on form submission. The backend will reject any data that doesn't conform to the standards defined in `server/validation.js`.
 
 > **Note:** Real-time features (record locking, live sync) require Redis. See `REDIS_URL` configuration in `.env`.
 
@@ -157,7 +158,7 @@ To ensure harmonious and efficient collaboration between human developers and AI
 
 ---
 
-## 6. Technical Reference & System Implementation
+## 7. Technical Reference & System Implementation
 
 This section details the concrete implementation of the core systems, serving as a reference for Developers and Agents.
 
@@ -227,10 +228,16 @@ The system uses PostgreSQL with the following core entities (`db/init.sql`):
 RESTful endpoints provided by `server/index.js`. For complete documentation, see [docs/API_REFERENCE.md](docs/API_REFERENCE.md).
 
 - **Auth**:
+  - `POST /api/register`: Register new user and linked member.
   - `POST /api/login`: Authenticate user, returns JWT with role permissions.
   - `POST /api/users/change-password`: Change own password.
   - `GET /api/auth/password-policy`: Get password requirements.
 - **Members**: `GET /api/members` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
+- **Self-Service** (viewer+):
+  - `GET /api/self/profile`: Get own member record.
+  - `GET /api/self/donations`: Get own donation history.
+  - `GET /api/self/statements`: Get available statement years.
+  - `GET /api/self/opportunities`: Get matched volunteer opportunities.
 - **Donations**: `GET /api/donations` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
 - **User Management** (admin+ only):
   - `GET /api/users`: List all users.
@@ -258,6 +265,9 @@ RESTful endpoints provided by `server/index.js`. For complete documentation, see
   - `PUT /api/members/:id/skills`: Update member skills/interests.
   - `GET /api/opportunities`: List ministry roles.
   - `GET /api/opportunities/:id/matches`: AI-powered volunteer matching.
+- **CommunityBridge (Campaigns)**:
+  - `GET /api/stewardship/campaigns`: List active campaigns and progress.
+  - `POST /api/stewardship/campaigns`: Create new stewardship goal.
 - **Intelligence & AI**:
   - `POST /api/ai/stewardship-insight`: Secure backend Gemini analysis.
   - `GET /api/donations/summary`: Real-time dashboard stats with historical growth metrics (MoM, WoW).
