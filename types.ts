@@ -65,4 +65,5 @@ export type ViewState =
   | "USERS"
   | "VOLUNTEER"
   | "STEWARDSHIP"
-  | "MEMBER_DASHBOARD";
+  | "MEMBER_DASHBOARD"
+  | "REGISTER";

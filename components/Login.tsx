@@ -4,9 +4,10 @@ import { Lock, AlertTriangle } from 'lucide-react';
 
 interface LoginProps {
   onLoginSuccess: (mustChangePassword: boolean) => void;
+  onRegisterClick: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -96,6 +97,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Signing In...' : 'Sign In'}
+          </button>
+          
+          <button 
+            type="button"
+            onClick={onRegisterClick}
+            className="w-full text-sm font-bold text-indigo-600 hover:text-indigo-700 py-2"
+          >
+            New here? Join Mt. Herman A.M.E.
           </button>
         </form>
       </div>

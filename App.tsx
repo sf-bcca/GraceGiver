@@ -21,6 +21,7 @@ const StewardshipPortal = React.lazy(
   () => import("./components/StewardshipPortal")
 );
 const MemberDashboard = React.lazy(() => import("./components/MemberDashboard"));
+const Register = React.lazy(() => import("./components/Register"));
 
 import {
   fetchMembers,
@@ -346,9 +347,22 @@ const AppContent: React.FC<{
     );
   };
 
-  // Not logged in - show login page
+  // Not logged in - show login or register page
   if (!token) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    if (view === "REGISTER") {
+      return (
+        <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><Loader2 className="animate-spin text-indigo-600" /></div>}>
+          <Register 
+            onRegisterSuccess={(token, user) => {
+              setToken(token);
+              setView("MEMBER_DASHBOARD");
+            }} 
+            onBackToLogin={() => setView("DASHBOARD")} 
+          />
+        </Suspense>
+      );
+    }
+    return <Login onLoginSuccess={handleLoginSuccess} onRegisterClick={() => setView("REGISTER")} />;
   }
 
   // Logged in but must change password - show password change page (forced)
