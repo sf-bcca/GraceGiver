@@ -12,11 +12,12 @@ import {
   Mail,
   Award,
   Download,
-  Loader2,
-  Clock,
-  HeartHandshake
-} from 'lucide-react';
-import { Member, Donation, ChurchSettings } from '../types';
+    Loader2, 
+    Clock,
+    HeartHandshake,
+    Shield,
+    Edit2
+  } from 'lucide-react';import { Member, Donation, ChurchSettings } from '../types';
 import { 
   fetchSelfProfile, 
   fetchSelfDonations, 
@@ -26,6 +27,7 @@ import {
   updateMemberSkills
 } from '../src/lib/api';
 import { formatPhoneNumber, cleanInput } from '../src/lib/utils';
+import PasswordChange from './PasswordChange';
 
 interface MemberDashboardProps {
   churchSettings: ChurchSettings;
@@ -67,6 +69,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -271,9 +274,9 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
           </div>
           <div className="flex items-center gap-2 md:gap-4">
             <button 
-              onClick={onOpenSettings}
+              onClick={() => setIsSecurityModalOpen(true)}
               className="p-2.5 hover:bg-indigo-800 rounded-xl transition-colors text-indigo-100"
-              title="Settings"
+              title="Security Settings"
             >
               <Settings size={22} />
             </button>
@@ -733,6 +736,30 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
           </div>
         </div>
       )}
+
+      {/* Security Modal */}
+      {isSecurityModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-indigo-900 text-white flex justify-between items-center">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Shield size={20} />
+                Account Security
+              </h2>
+              <button onClick={() => setIsSecurityModalOpen(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6">
+              <PasswordChange 
+                compact={true} 
+                onSuccess={() => setIsSecurityModalOpen(false)}
+                onCancel={() => setIsSecurityModalOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -769,23 +796,6 @@ const X = ({ className, size }: { className?: string, size?: number }) => (
     className={className}
   >
     <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-  </svg>
-);
-
-const Edit2 = ({ className, size }: { className?: string, size?: number }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
   </svg>
 );
 
