@@ -16,6 +16,7 @@ const {
   getPasswordPolicy,
 } = require("./passwordPolicy");
 const {
+  hasPermission,
   requirePermission,
   requireScopedPermission,
   requireRole,
