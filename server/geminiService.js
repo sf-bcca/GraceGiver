@@ -1,5 +1,8 @@
 const { GoogleGenAI } = require("@google/genai");
 
+// Centralized model configuration
+const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
+
 // Instantiate lazily to prevent boot crash if key is missing
 let genAI = null;
 
@@ -48,7 +51,7 @@ const getFinancialSummary = async (donations, members) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite", 
+      model: GEMINI_MODEL, 
       contents: promptText
     });
     
@@ -93,7 +96,7 @@ const generateMemberNarrative = async (member, donations, year) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite", 
+      model: GEMINI_MODEL, 
       contents: promptText
     });
 
