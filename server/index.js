@@ -1149,6 +1149,7 @@ app.post(
   authenticateToken,
   requirePermission("reports:read"),
   async (req, res) => {
+    const startTime = Date.now();
     try {
       const { donations, members } = req.body;
       if (!donations || !members) {
@@ -1157,10 +1158,14 @@ app.post(
           .json({ error: "Donations and members are required" });
       }
 
+      console.log(`[API] AI Stewardship Insight requested for ${donations.length} donations.`);
       const insight = await getFinancialSummary(donations, members);
+      const duration = Date.now() - startTime;
+      console.log(`[API] AI Stewardship Insight generated in ${duration}ms.`);
+      
       res.json({ insight });
     } catch (err) {
-      console.error("AI Insight error:", err);
+      console.error("[API] AI Insight error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   },

@@ -95,6 +95,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const handleGenerateInsight = async () => {
     setLoadingAi(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s dashboard timeout
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
@@ -108,14 +111,16 @@ const Dashboard: React.FC<DashboardProps> = ({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ donations, members }),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeoutId);
+
       if (response.status === 401) {
-        // Token expired or invalid
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.reload(); // Force app to re-render in login state
+        window.location.reload();
         return;
       }
 
@@ -124,15 +129,16 @@ const Dashboard: React.FC<DashboardProps> = ({
         setAiInsight(data.insight);
       } else {
         const errorData = await response.json();
-        setAiInsight(
-          `Error: ${errorData.error || "Failed to generate insight"}`
-        );
+        setAiInsight(`Error: ${errorData.error || "Server error"}`);
       }
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error("AI Insight Error:", error);
-      setAiInsight(
-        "AI analysis is currently unavailable. Please try again later."
-      );
+      if (error.name === "AbortError") {
+        setAiInsight("Request timed out. The local inference server might be under heavy load.");
+      } else {
+        setAiInsight("Unable to connect to the AI service. Please ensure the backend is running.");
+      }
     } finally {
       setLoadingAi(false);
     }
