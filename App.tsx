@@ -54,8 +54,10 @@ const AppContent: React.FC<{
     newMembersThisWeek: 0,
     currentMonthDonations: 0,
     lastMonthDonations: 0,
+    currentYearDonations: 0,
     avgRecent: 0,
     avgPrevious: 0,
+    fundDistribution: [] as {name: string; value: number}[],
   });
 
   const [loading, setLoading] = useState(!!token);

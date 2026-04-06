@@ -26,7 +26,8 @@ import {
   fetchSelfOpportunities,
   updateMember,
   updateMemberSkills,
-  downloadMemberStatement
+  downloadMemberStatement,
+  fetchDonationSummary
 } from '../src/lib/api';
 import { formatPhoneNumber, cleanInput } from '../src/lib/utils';
 import PasswordChange from './PasswordChange';
@@ -74,6 +75,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [downloadingYear, setDownloadingYear] = useState<number | null>(null);
+  const [summary, setSummary] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -95,14 +97,15 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
       const token = localStorage.getItem("token");
       const apiUrl = import.meta.env.VITE_API_URL || ""; // Using relative via proxy is best
       
-      const [profileRes, donationsRes, statementsRes, campaignsRes, opportunitiesRes] = await Promise.all([
+      const [profileRes, donationsRes, statementsRes, campaignsRes, opportunitiesRes, fetchDonationSummaryRes] = await Promise.all([
         fetchSelfProfile(),
         fetchSelfDonations(),
         fetchSelfStatements(),
         fetch(`${apiUrl}/api/stewardship/campaigns`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(res => res.json()),
-        fetchSelfOpportunities()
+        fetchSelfOpportunities(),
+        fetchDonationSummary()
       ]);
       
       setProfile(profileRes);
@@ -110,6 +113,7 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
       setStatements(statementsRes || []);
       setCampaigns(campaignsRes || []);
       setOpportunities(opportunitiesRes || []);
+      setSummary(fetchDonationSummaryRes || { currentYearDonations: 0, fundDistribution: [] });
 
       // Set initial form data
       setFormData({
@@ -221,14 +225,11 @@ const MemberDashboard: React.FC<MemberDashboardProps> = ({ churchSettings, onLog
     }
   };
 
-  const totalGivenThisYear = donations
-    .filter(d => new Date(d.date).getFullYear() === new Date().getFullYear())
-    .reduce((sum, d) => sum + d.amount, 0);
+  const totalGivenThisYear = summary ? summary.currentYearDonations : 0;
 
   const getCampaignProgress = (campaign: Campaign) => {
-    const memberGivingToFund = donations
-      .filter(d => d.fund === campaign.fund_name)
-      .reduce((sum, d) => sum + d.amount, 0);
+    const fundMatch = summary?.fundDistribution?.find((f: any) => f.name === campaign.fund_name);
+    const memberGivingToFund = fundMatch ? fundMatch.value : 0;
     
     return {
       memberAmount: memberGivingToFund,

@@ -40,6 +40,7 @@ interface DashboardProps {
     lastMonthDonations: number;
     avgRecent: number;
     avgPrevious: number;
+    fundDistribution?: {name: string; value: number}[];
   };
 }
 
@@ -83,7 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, []);
 
   // Data for Charts
-  const fundData = Object.values(FundType)
+  const fundData = summary.fundDistribution || Object.values(FundType)
     .map((fund) => ({
       name: fund,
       value: donations

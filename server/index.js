@@ -1065,13 +1065,14 @@ app.get(
       const allTimeResult = await pool.query(allTimeQuery, allTimeParams);
       const allTime = allTimeResult.rows[0];
 
-      // 2. Current Month vs Last Month
+      // 2. Current/Last Month and Current Year
       const monthParams = [...allTimeParams];
       let monthQuery = `
         SELECT 
           SUM(CASE WHEN donation_date >= date_trunc('month', CURRENT_DATE) THEN amount ELSE 0 END) as current_month,
           SUM(CASE WHEN donation_date >= date_trunc('month', CURRENT_DATE - INTERVAL '1 month') 
-                    AND donation_date < date_trunc('month', CURRENT_DATE) THEN amount ELSE 0 END) as last_month
+                    AND donation_date < date_trunc('month', CURRENT_DATE) THEN amount ELSE 0 END) as last_month,
+          SUM(CASE WHEN donation_date >= date_trunc('year', CURRENT_DATE) THEN amount ELSE 0 END) as current_year
         FROM donations
       `;
       if (req.scopedToOwn && req.user.memberId) {
@@ -1101,6 +1102,21 @@ app.get(
       const trendResult = await pool.query(trendQuery, allTimeParams);
       const trends = trendResult.rows[0];
 
+      // 5. Fund Distribution (All-Time)
+      let fundDistQuery = `
+        SELECT fund, SUM(amount) as total
+        FROM donations
+      `;
+      if (req.scopedToOwn && req.user.memberId) {
+        fundDistQuery += " WHERE member_id = $1";
+      }
+      fundDistQuery += " GROUP BY fund ORDER BY total DESC";
+      const fundDistResult = await pool.query(fundDistQuery, allTimeParams);
+      const fundDistribution = fundDistResult.rows.map(row => ({
+        name: row.fund,
+        value: parseFloat(row.total)
+      }));
+
       const totalDonations = parseFloat(allTime.total) || 0;
       const donationCount = parseInt(allTime.count) || 0;
       const donorCount = parseInt(allTime.donor_count) || 0;
@@ -1115,8 +1131,10 @@ app.get(
         newMembersThisWeek: parseInt(newMembersResult.rows[0].new_this_week),
         currentMonthDonations: parseFloat(monthly.current_month) || 0,
         lastMonthDonations: parseFloat(monthly.last_month) || 0,
+        currentYearDonations: parseFloat(monthly.current_year) || 0,
         avgRecent: parseFloat(trends.avg_recent) || 0,
         avgPrevious: parseFloat(trends.avg_previous) || 0,
+        fundDistribution,
       });
     } catch (err) {
       console.error(err);
