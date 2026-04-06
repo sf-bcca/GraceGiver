@@ -31,6 +31,10 @@ GraceGiver includes a suite of specialized CLI tools (AI Skills) to assist with 
   ```bash
   node conductor/grace-doc-master/scripts/check_doc_drift.cjs
   ```
+- **`synology-docker-ops`**: Manages Docker deployments and environment health on Synology NAS.
+  ```bash
+  bash conductor/synology-docker-ops/scripts/syno_check.sh
+  ```
 - **`grace-qa-sentinel`**: Smart test runner that executes relevant tests based on changed files.
   ```bash
   bash conductor/grace-qa-sentinel/scripts/run_smart_tests.sh
@@ -211,7 +215,7 @@ We welcome contributions from the community! Please follow these steps:
 
 ### Coding Standards
 
-- We use **TypeScript** for both frontend and backend.
+- We use **TypeScript** for the frontend and **JavaScript (Node.js)** for the backend.
 - Code linting is enforced via **Husky** and **SecretLint**. Ensure all pre-commit hooks pass.
 
 ---
