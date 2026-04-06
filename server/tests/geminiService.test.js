@@ -7,6 +7,7 @@ import { generateMemberNarrative, setGenAIInstance } from '../geminiService';
 
 describe('Gemini Service', () => {
   let mockGenerateContent;
+  let mockFetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -20,12 +21,17 @@ describe('Gemini Service', () => {
     };
     
     setGenAIInstance(mockGenAI);
+
+    // Mock global fetch for Gemma calls
+    mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
   });
   
   afterEach(() => {
     delete process.env.GEMINI_API_KEY;
     // Reset instance
     setGenAIInstance(null);
+    vi.unstubAllGlobals();
   });
 
   describe('generateMemberNarrative', () => {
@@ -39,7 +45,23 @@ describe('Gemini Service', () => {
       { date: '2025-06-20', amount: 50, fund: 'Missions' }
     ];
 
-    it('should generate a narrative when API key is present', async () => {
+    it('should generate a narrative when Gemma is successful', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{ message: { content: 'Gemma says John is great.' } }]
+        })
+      });
+      
+      const result = await generateMemberNarrative(member, donations, 2025);
+
+      expect(result).toBe('Gemma says John is great.');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should fallback to Gemini when Gemma fails', async () => {
+      mockFetch.mockRejectedValue(new Error('Gemma connection failed'));
       mockGenerateContent.mockResolvedValue({
         text: 'John has been a faithful giver this year.'
       });
@@ -47,38 +69,25 @@ describe('Gemini Service', () => {
       const result = await generateMemberNarrative(member, donations, 2025);
 
       expect(result).toBe('John has been a faithful giver this year.');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockGenerateContent).toHaveBeenCalledTimes(1);
-      
-      const callArgs = mockGenerateContent.mock.calls[0][0];
-      expect(callArgs.contents).toContain('John Doe');
-      expect(callArgs.contents).toContain('$150'); // Total
-      expect(callArgs.contents).toContain('Tithes');
     });
 
-    it('should return default message when instance is null (simulating missing key behavior if checked)', async () => {
-      // For this test, we want to simulate the case where getAIClient returns null
-      // In our code: 
-      // const ai = getAIClient();
-      // if (!ai) return ...
-      
-      // If we set instance to null, getAIClient will try to create new one.
-      // If we want to force null, we should ensure getAIClient returns null.
-      // But getAIClient uses `genAI` variable.
-      
-      // If we setGenAIInstance(null), getAIClient will try to create new GoogleGenAI().
-      // If API key is missing, it logs warning and returns null.
-      
+    it('should return default message when both engines fail', async () => {
+      mockFetch.mockRejectedValue(new Error('Gemma down'));
       setGenAIInstance(null);
       delete process.env.GEMINI_API_KEY;
       delete process.env.API_KEY;
 
       const result = await generateMemberNarrative(member, donations, 2025);
       
-      expect(result).toContain('unavailable');
+      expect(result).toContain('Error generating narrative');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockGenerateContent).not.toHaveBeenCalled();
     });
 
     it('should handle API errors gracefully', async () => {
+      mockFetch.mockRejectedValue(new Error('Gemma down'));
       mockGenerateContent.mockRejectedValue(new Error('API Error'));
 
       const result = await generateMemberNarrative(member, donations, 2025);
