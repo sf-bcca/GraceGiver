@@ -25,7 +25,7 @@ const callGemma = async (prompt) => {
   console.log(`[AI] Attempting local inference via Gemma 4 (${GEMMA_MODEL})...`);
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s local timeout
 
     const response = await fetch(GEMMA_ENDPOINT, {
       method: "POST",
@@ -66,12 +66,23 @@ const callGemini = async (prompt) => {
   if (!ai) throw new Error("Gemini client not initialized (missing API key)");
 
   try {
-    const response = await ai.models.generateContent({
+    // Use a custom timeout for cloud fallback if supported, or handle via Promise.race
+    const generatePromise = ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: prompt
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
+
+    // 20s timeout for Gemini
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini request timed out after 20s")), 20000)
+    );
+
+    const response = await Promise.race([generatePromise, timeoutPromise]);
     
+    // In newer SDK, text is a property. In older ones, it might be a function. 
+    // The test mock uses a property. Let's handle both.
     const text = typeof response.text === 'function' ? response.text() : response.text;
+    
     console.log("[AI] Gemini inference successful.");
     return text;
   } catch (error) {
