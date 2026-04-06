@@ -101,9 +101,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_URL || "http://localhost:3001"
-        }/api/ai/stewardship-insight`,
+        "/api/ai/stewardship-insight",
         {
           method: "POST",
           headers: {

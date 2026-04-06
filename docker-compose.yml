@@ -39,8 +39,10 @@ services:
       # Node environment
       NODE_ENV: ${NODE_ENV:-production}
       
-      # AI Features (Gemini)
+      # AI Features (Gemma & Gemini)
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMMA_ENDPOINT: ${GEMMA_ENDPOINT:-http://100.115.102.53:8080/v1/chat/completions}
+      GEMMA_MODEL: ${GEMMA_MODEL:-gemma-4-E4B-it.litertlm}
       
       # Redis Config
       REDIS_URL: redis://redis:6379

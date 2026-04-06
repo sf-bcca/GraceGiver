@@ -1,7 +1,7 @@
 const { GoogleGenAI } = require("@google/genai");
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
-const GEMMA_ENDPOINT = "http://100.115.102.53:8080/v1/chat/completions";
-const GEMMA_MODEL = "gemma-4-E4B-it.litertlm";
+const GEMMA_ENDPOINT = process.env.GEMMA_ENDPOINT || "http://100.115.102.53:8080/v1/chat/completions";
+const GEMMA_MODEL = process.env.GEMMA_MODEL || "gemma-4-E4B-it.litertlm";
 
 // Instantiate lazily
 let genAI = null;
