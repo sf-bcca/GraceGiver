@@ -41,7 +41,11 @@ const generateBatchStatement = async (pool, year, res) => {
         };
       }
       membersData[row.member_id].donations.push({
-        date: new Date(row.donation_date).toLocaleDateString(),
+        date: new Date(row.donation_date).toLocaleDateString(undefined, { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit' 
+        }),
         fund: row.fund,
         amount: parseFloat(row.amount),
         notes: row.notes
@@ -158,8 +162,9 @@ const exportTransactions = async (pool, year, res) => {
     stringifier.pipe(res);
     
     result.rows.forEach(row => {
-        // format date slightly better if needed, or leave raw
-        row.donation_date = new Date(row.donation_date).toISOString().split('T')[0];
+        // format date in application timezone (YYYY-MM-DD)
+        const d = new Date(row.donation_date);
+        row.donation_date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         stringifier.write(row);
     });
     

@@ -20,7 +20,13 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [amount, setAmount] = useState('');
   const [fund, setFund] = useState<FundType>(FundType.TITHES);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Initialize with local date string (YYYY-MM-DD) to prevent UTC day-shifts
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+  
   const [notes, setNotes] = useState('');
   const [success, setSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -121,6 +127,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
           fund,
           notes,
           enteredBy: 'Admin',
+          // Send as ISO string including the target time (noon local) to ensure server stores it correctly
           donationDate: new Date(date + 'T12:00:00').toISOString()
         });
         setIsEditing(null);
@@ -183,7 +190,8 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
     // Populate the date field from the donation's date or timestamp
     const donationDate = donation.date || donation.timestamp;
     if (donationDate) {
-      setDate(new Date(donationDate).toISOString().split('T')[0]);
+      const d = new Date(donationDate);
+      setDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
     }
     setIsEditing(donation.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -427,7 +435,14 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
                   return (
                     <tr key={donation.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4 text-sm text-slate-600">
-                         {new Date(donation.timestamp || donation.date).toLocaleDateString()}
+                         {(() => {
+                           const d = new Date(donation.timestamp || donation.date);
+                           return d.toLocaleDateString(undefined, { 
+                             year: 'numeric', 
+                             month: '2-digit', 
+                             day: '2-digit' 
+                           });
+                         })()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-900 text-sm">{donor ? `${donor.firstName} ${donor.lastName}` : `Member ${donation.memberId}`}</div>

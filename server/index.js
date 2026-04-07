@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const compression = require("compression");
 const { Pool } = require("pg");
@@ -35,6 +36,15 @@ const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
     `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+});
+
+// Configure session timezone on every new client connection
+// This ensures PostgreSQL functions like CURRENT_DATE and NOW() match the app timezone.
+pool.on("connect", (client) => {
+  const tz = process.env.TZ || "UTC";
+  client.query(`SET TIME ZONE '${tz}'`).catch(err => {
+    console.error(`Failed to set session timezone to ${tz}:`, err);
+  });
 });
 
 // Log pool errors
