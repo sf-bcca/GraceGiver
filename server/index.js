@@ -1706,12 +1706,13 @@ app.get(
       const result = await pool.query(
         `
       SELECT 
-        EXTRACT(QUARTER FROM donation_date) as quarter, 
+        EXTRACT(YEAR FROM donation_date)::int as year,
+        EXTRACT(QUARTER FROM donation_date)::int as quarter, 
         SUM(amount) as total
       FROM donations
-      WHERE EXTRACT(YEAR FROM donation_date) = $1
-      GROUP BY quarter
-      ORDER BY quarter
+      WHERE EXTRACT(YEAR FROM donation_date) IN ($1::int, $1::int - 1)
+      GROUP BY year, quarter
+      ORDER BY year, quarter
     `,
         [year],
       );

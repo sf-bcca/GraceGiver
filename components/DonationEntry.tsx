@@ -137,7 +137,8 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
           amount: parseFloat(amount),
           fund,
           notes,
-          enteredBy: 'Admin'
+          enteredBy: 'Admin',
+          donationDate: new Date(date + 'T12:00:00').toISOString()
         });
       }
 
