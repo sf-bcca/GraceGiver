@@ -38,6 +38,7 @@ services:
       
       # Node environment
       NODE_ENV: ${NODE_ENV:-production}
+      TZ: ${TZ:-UTC}
       
       # AI Features (Gemma & Gemini)
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
