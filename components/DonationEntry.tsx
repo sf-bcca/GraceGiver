@@ -86,8 +86,8 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
       setHistoryDonations(result.data);
       setTotalPages(result.pagination.totalPages);
 
-      // Resolve members for history items that aren't in our cache
-      const uniqueMemberIds = Array.from(new Set(result.data.map((d: Donation) => d.memberId))) as string[];
+      // Resolve members for history items that aren't in our cache (filtering out null/guest IDs)
+      const uniqueMemberIds = Array.from(new Set(result.data.map((d: Donation) => d.memberId))).filter(Boolean) as string[];
       const missingIds = uniqueMemberIds.filter(id => !resolvedMembers[id]);
 
       if (missingIds.length > 0) {
@@ -133,7 +133,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
         setIsEditing(null);
       } else {
         await createDonation({
-          memberId: selectedMember.id,
+          memberId: selectedMember.id === 'guest' ? null : selectedMember.id,
           amount: parseFloat(amount),
           fund,
           notes,
@@ -173,18 +173,30 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
 
   const handleEditClick = async (donation: Donation) => {
     // Try to find member in resolved cache, or fetch it
-    let member = resolvedMembers[donation.memberId];
-    if (!member) {
-      try {
-        member = await getMember(donation.memberId);
-        setResolvedMembers(prev => ({ ...prev, [member.id]: member }));
-      } catch (e) {
-        console.error("Could not fetch member for edit", e);
-        return;
+    if (!donation.memberId) {
+      setSelectedMember({
+        id: 'guest',
+        firstName: 'Guest',
+        lastName: 'Non-Member',
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        createdAt: '',
+      });
+    } else {
+      let member = resolvedMembers[donation.memberId];
+      if (!member) {
+        try {
+          member = await getMember(donation.memberId);
+          setResolvedMembers(prev => ({ ...prev, [member.id]: member }));
+        } catch (e) {
+          console.error("Could not fetch member for edit", e);
+          return;
+        }
       }
+      if (member) setSelectedMember(member);
     }
-
-    if (member) setSelectedMember(member);
     setAmount(donation.amount.toString());
     setFund(donation.fund);
     setNotes(donation.notes || '');
@@ -306,6 +318,29 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
                 </div>
               )}
             </div>
+            {!isEditing && !selectedMember && (
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMember({
+                      id: 'guest',
+                      firstName: 'Guest',
+                      lastName: 'Non-Member',
+                      address: '',
+                      city: '',
+                      state: '',
+                      zip: '',
+                      createdAt: '',
+                    });
+                    amountInputRef.current?.focus();
+                  }}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                >
+                  ✨ Or record as Guest / Non-Member
+                </button>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2. Amount ($)</label>
@@ -446,8 +481,13 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
                          })()}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-bold text-slate-900 text-sm">{donor ? `${donor.firstName} ${donor.lastName}` : `Member ${donation.memberId}`}</div>
-                        <div className="text-xs text-slate-400">ID: {donation.memberId}</div>
+                        <div className="font-bold text-slate-900 text-sm">
+                          {donation.memberId 
+                            ? (donor ? `${donor.firstName} ${donor.lastName}` : `Member ${donation.memberId}`) 
+                            : 'Guest / Non-Member'
+                          }
+                        </div>
+                        {donation.memberId && <div className="text-xs text-slate-400">ID: {donation.memberId}</div>}
                       </td>
                       <td className="px-6 py-4">
                         <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold uppercase">{donation.fund}</span>
