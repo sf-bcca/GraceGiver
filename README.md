@@ -20,33 +20,16 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 GraceGiver includes a suite of specialized CLI tools (AI Skills) to assist with development and project health.
 
 - **`grace-database-steward`**: Automates idempotent migrations and schema syncing.
-  ```bash
-  node conductor/grace-database-steward/scripts/generate_migration.cjs "migration_name"
-  ```
 - **`pii-guardian`**: Enforces privacy standards and audits logs for sensitive data leaks.
-  ```bash
-  node conductor/pii-guardian/scripts/audit_pii.cjs
-  ```
 - **`grace-doc-master`**: Detects "documentation drift" between code and API references.
-  ```bash
-  node conductor/grace-doc-master/scripts/check_doc_drift.cjs
-  ```
 - **`synology-docker-ops`**: Manages Docker deployments and environment health on Synology NAS.
-  ```bash
-  bash conductor/synology-docker-ops/scripts/syno_check.sh
-  ```
 - **`grace-qa-sentinel`**: Smart test runner that executes relevant tests based on changed files.
-  ```bash
-  bash conductor/grace-qa-sentinel/scripts/run_smart_tests.sh
-  ```
 - **`ai-stewardship-tuner`**: Specialized environment for testing and refining Gemini AI prompts.
-  ```bash
-  node conductor/ai-stewardship-tuner/scripts/test_prompts.cjs
-  ```
 
 ---
 
 ## 🚀 Features
+
 
 - **Dashboard:** Real-time visibility into totals, fund distribution, and **historical growth metrics** (MoM and weekly trends).
 - **Member Directory:** Comprehensive management of church members with contact details and giving history.
@@ -194,7 +177,7 @@ The backend API runs on port `3000` internally. When running via Docker Compose,
 
 The `GraceGiver` repository features a fully automated **Continuous Deployment (CD)** pipeline using GitHub Actions.
 
-- **Target:** Synology NAS (`brookwood.tail6e8dc.ts.net`)
+- **Target:** Synology NAS (Host address configured via environment/Tailscale)
 - **Mechanism:**
   1.  **Build & Publish:** On every push to `main` (or tag), Docker images are built and pushed to GitHub Container Registry (GHCR).
   2.  **Deploy:** A `deploy-production` workflow connects to the private Tailscale network, SSHs into the NAS, pulls the new images, and restarts the containers with zero downtime.
