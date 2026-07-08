@@ -202,7 +202,8 @@ Respond with ONLY the narrative text as plain paragraphs.`;
   private async fetchStatementData(memberId: string, year: string) {
     try {
       const token = localStorage.getItem("token");
-      const url = new URL(`${API_URL}/api/reports/member-statement/${encodeURIComponent(memberId)}`);
+      const base = API_URL.startsWith("http") ? API_URL : `${window.location.origin}${API_URL}`;
+      const url = new URL(`${base}/api/reports/member-statement/${encodeURIComponent(memberId)}`);
       url.searchParams.set("year", year);
       const response = await fetch(url.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -303,7 +304,8 @@ Respond with ONLY the narrative text as plain paragraphs.`;
   ): Promise<MemberNarrativeResult> {
     try {
       const token = localStorage.getItem("token");
-      const url = new URL(`${API_URL}/api/reports/member-narrative/${encodeURIComponent(memberId)}`);
+      const base = API_URL.startsWith("http") ? API_URL : `${window.location.origin}${API_URL}`;
+      const url = new URL(`${base}/api/reports/member-narrative/${encodeURIComponent(memberId)}`);
       url.searchParams.set("year", year);
       const response = await fetch(url.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
