@@ -10,6 +10,8 @@ import {
   Loader2,
   AlertCircle,
   ChevronRight,
+  Activity,
+  AlertTriangle,
 } from "lucide-react";
 import {
   BarChart,
@@ -24,6 +26,9 @@ import {
   Pie,
 } from "recharts";
 import CustomTooltip from "./CustomTooltip";
+
+import { graceAIService, AIInsightData } from "../src/lib/GraceAIService";
+import type { WebGPUEngineState } from "../src/lib/GraceWebGPUEngine";
 
 interface DashboardProps {
   members: Member[];
@@ -52,10 +57,12 @@ const Dashboard: React.FC<DashboardProps> = ({
   churchSettings,
   summary,
 }) => {
-  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiInsight, setAiInsight] = useState<AIInsightData | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const [atRiskDonors, setAtRiskDonors] = useState<any[]>([]);
   const [loadingForecast, setLoadingForecast] = useState(false);
+  const [engineState, setEngineState] = useState<WebGPUEngineState>(() => graceAIService.getState());
+  const [activeProvider, setActiveProvider] = useState<"webgpu" | "server">(() => graceAIService.getProvider());
 
   useEffect(() => {
     const fetchForecast = async () => {
@@ -83,6 +90,27 @@ const Dashboard: React.FC<DashboardProps> = ({
     fetchForecast();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const latest = graceAIService.getState();
+      setEngineState(prev => {
+        if (
+          prev.isReady === latest.isReady &&
+          prev.modelLoaded === latest.modelLoaded &&
+          prev.downloading === latest.downloading &&
+          prev.downloadProgress === latest.downloadProgress &&
+          prev.errorMessage === latest.errorMessage &&
+          prev.isAvailable === latest.isAvailable
+        ) {
+          return prev;
+        }
+        return latest;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+
   // Data for Charts
   const fundData = summary.fundDistribution || Object.values(FundType)
     .map((fund) => ({
@@ -96,47 +124,35 @@ const Dashboard: React.FC<DashboardProps> = ({
   const handleGenerateInsight = async () => {
     setLoadingAi(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s dashboard timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "/api/ai/stewardship-insight",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ donations, members }),
-          signal: controller.signal,
-        }
+      const donationData = donations.map(d => ({
+        date: d.timestamp || d.donation_date || '',
+        amount: parseFloat(String(d.amount)),
+        fund: d.fund,
+      }));
+
+      const result = await graceAIService.generateInsight(
+        donationData,
+        churchSettings.name || 'Church'
       );
 
       clearTimeout(timeoutId);
-
-      if (response.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.reload();
-        return;
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setAiInsight(data.insight);
-      } else {
-        const errorData = await response.json();
-        setAiInsight(`Error: ${errorData.error || "Server error"}`);
-      }
+      setAiInsight(result as AIInsightData);
+      setActiveProvider(graceAIService.getProvider());
     } catch (error: any) {
       clearTimeout(timeoutId);
       console.error("AI Insight Error:", error);
-      if (error.name === "AbortError") {
-        setAiInsight("Request timed out. The local inference server might be under heavy load.");
-      } else {
-        setAiInsight("Unable to connect to the AI service. Please ensure the backend is running.");
-      }
+      setAiInsight({
+        narrative: error.name === "AbortError"
+          ? "Request timed out. The local inference server might be under heavy load."
+          : "Unable to connect to the AI service. Please ensure the backend is running.",
+        sentiment: "neutral",
+        stewardshipGrowth: 0,
+        recommendedFocus: [],
+        isClientGenerated: false,
+      });
     } finally {
       setLoadingAi(false);
     }
@@ -272,12 +288,75 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* AI Insight Box */}
       {aiInsight && (
         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 shadow-sm animate-in slide-in-from-top duration-500">
-          <div className="flex items-center gap-2 text-indigo-700 font-bold mb-3">
-            <Sparkles size={20} />
-            <span>AI Stewardship Insight</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-indigo-700 font-bold">
+              <Sparkles size={20} />
+              <span>AI Stewardship Insight</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {aiInsight.isClientGenerated && (
+                <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
+                  CLIENT INFERRED
+                </span>
+              )}
+              {activeProvider && (
+                <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
+                  {activeProvider === 'webgpu' ? '🔥 WEBGPU' : 'SERVER'}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">
-            {aiInsight}
+          <div className="flex items-center gap-3 mb-4 text-xs">
+            {(aiInsight.sentiment === 'positive' || aiInsight.sentiment === 'growing') && (
+              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200">
+                <TrendingUp size={12} /> {aiInsight.sentiment.toUpperCase()}
+              </span>
+            )}
+            {(aiInsight.sentiment === 'neutral') && (
+              <span className="inline-flex items-center gap-1 text-slate-700 bg-slate-50 px-2 py-1 rounded-full border border-slate-200">
+                <Activity size={12} /> {aiInsight.sentiment.toUpperCase()}
+              </span>
+            )}
+            {(aiInsight.sentiment === 'concerned') && (
+              <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-1 rounded-full border border-amber-200">
+                <AlertTriangle size={12} /> {aiInsight.sentiment.toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-indigo-600 mb-1 uppercase tracking-wider">Growth Score</p>
+            {(() => {
+              const rawGrowth = aiInsight.stewardshipGrowth;
+              const growthScore = rawGrowth <= 1 && rawGrowth > 0 ? Math.round(rawGrowth * 100) : rawGrowth;
+              return (
+                <>
+                  <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-700 ${growthScore >= 70 ? 'bg-emerald-500' : growthScore >= 40 ? 'bg-amber-500' : 'bg-red-500'}`}
+                      style={{ width: `${Math.min(growthScore, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">{growthScore}/100</p>
+                </>
+              );
+            })()}
+          </div>
+          {aiInsight.recommendedFocus && aiInsight.recommendedFocus.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-indigo-600 mb-1.5 uppercase tracking-wider">Recommended Focus</p>
+              <div className="flex flex-wrap gap-1.5">
+                {aiInsight.recommendedFocus.map((tag: string, idx: number) => (
+                  <span key={idx} className="text-[10px] font-semibold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="border-t border-indigo-100/50 pt-3 mt-3">
+            <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">
+              {aiInsight.narrative}
+            </p>
           </div>
         </div>
       )}
