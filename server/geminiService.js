@@ -10,7 +10,7 @@ const getAIClient = () => {
   if (genAI) return genAI;
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   if (!apiKey) {
-    console.warn("Gemini API Key missing. Cloud fallback will be disabled.");
+    console.warn("Gemini API Key missing. Cloud fallback will be unavailable.");
     return null;
   }
   // vertexai: false is REQUIRED for API key usage with preview models in @google/genai
@@ -19,13 +19,13 @@ const getAIClient = () => {
 };
 
 /**
- * Call the local Gemma 4 Inference engine on Proxmox
+ * Call the local Gemma 4 Inference engine on Proxmox (preferred over cloud)
  */
 const callGemma = async (prompt) => {
   console.log(`[AI] Attempting local inference via Gemma 4 (${GEMMA_MODEL})...`);
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s local timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s local timeout
 
     const response = await fetch(GEMMA_ENDPOINT, {
       method: "POST",
@@ -58,23 +58,22 @@ const callGemma = async (prompt) => {
 };
 
 /**
- * Call Gemini 3.1 (Cloud Fallback)
+ * Call Gemini 3.1 (Cloud - last resort due to API costs)
  */
 const callGemini = async (prompt) => {
-  console.log(`[AI] Attempting cloud inference via Gemini 3.1 (${GEMINI_MODEL})...`);
+  console.log(`[AI] Attempting cloud inference via Gemini (${GEMINI_MODEL})...`);
   const ai = getAIClient();
   if (!ai) throw new Error("Gemini client not initialized (missing API key)");
 
   try {
-    // Use a custom timeout for cloud fallback if supported, or handle via Promise.race
     const generatePromise = ai.models.generateContent({
       model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
 
-    // 20s timeout for Gemini
+    // 10s timeout for Gemini
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Gemini request timed out after 20s")), 20000)
+      setTimeout(() => reject(new Error("Gemini request timed out after 10s")), 10000)
     );
 
     const response = await Promise.race([generatePromise, timeoutPromise]);
@@ -118,15 +117,16 @@ const getFinancialSummary = async (donations, members) => {
     Format the response as a clear, professional message.
   `;
 
-  // Strategy: Try Gemma (Local) -> Fallback to Gemini (Cloud)
+  // Strategy: Gemma (local network) -> Gemini (cloud last resort)
   try {
     return await callGemma(promptText);
   } catch (err) {
+    console.warn("[AI] Gemma failed, falling back to cloud:", err.message);
     try {
       return await callGemini(promptText);
     } catch (geminiErr) {
-      console.error("[AI] Both AI engines failed.");
-      return "AI analysis is currently unavailable. Please check backend logs or inference server connectivity.";
+      console.error("[AI] AI processing unavailable.");
+      return "Financial analysis is currently unavailable.";
     }
   }
 };
@@ -157,13 +157,15 @@ const generateMemberNarrative = async (member, donations, year) => {
     - Focus on the impact of their generosity.
   `;
 
+  // Strategy: Gemma (local network) -> Gemini (cloud last resort)
   try {
     return await callGemma(promptText);
   } catch (err) {
+    console.warn("[AI] Gemma failed, falling back to cloud:", err.message);
     try {
       return await callGemini(promptText);
     } catch (geminiErr) {
-      return "Error generating narrative. We appreciate your faithful support.";
+      return "We appreciate your faithful support.";
     }
   }
 };

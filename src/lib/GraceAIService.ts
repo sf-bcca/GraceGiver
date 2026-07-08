@@ -141,49 +141,85 @@ Provide a JSON response with these fields (no markdown, no code blocks):
     year: string,
     options: AIGenerationOptions = {},
   ): Promise<MemberNarrativeResult> {
-    try {
-      const response = await fetch(`${API_URL}/api/reports/member-narrative/${memberId}?year=${year}&client=true`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch narrative data");
-      }
+    const data = await this.fetchStatementData(memberId, year);
+    
+    const effectiveMemberName = data?.memberName || "Unknown";
+    const effectiveTotalGiving = data?.totalGiving ?? 0;
+    const effectiveGiftCount = data?.giftCount ?? 0;
+    const effectiveFirstDonation = data?.firstDonation;
+    const effectiveMostRecentDonation = data?.mostRecentDonation;
+    const effectiveTopFunds: typeof data["topFunds"] = data?.topFunds || [];
 
-      const data = await response.json();
-      const prompt = `You are a pastoral stewardship advisor. Write a warm, personalized narrative for this parishioner's ${year} annual giving statement.
+    if (!data) {
+      console.warn("No server data available for narrative - using local generation with placeholder values");
+    }
 
-Member: ${escapePrompt(data.memberName || "Unknown")}
-Total Giving: $${(data.totalGiving ?? 0).toFixed(2)}
-Number of Gifts: ${data.giftCount ?? 0}
+    const prompt = `You are a pastoral stewardship advisor. Write a warm, personalized narrative for this parishioner's ${year} annual giving statement.
 
-Giving Details:
-${(data.topFunds || []).map(f => `- ${escapePrompt(f.fund)}: $${(f.total ?? 0).toFixed(2)}`).join("\n")}
+Member: ${escapePrompt(effectiveMemberName)}
+Total Giving: $${effectiveTotalGiving.toFixed(2)}
+Number of Gifts: ${effectiveGiftCount}
+First Gift: ${effectiveFirstDonation || "Unknown"}
+Most Recent Gift: ${effectiveMostRecentDonation || "Unknown"}
 
-${data.firstDonation ? `First Gift: ${escapePrompt(data.firstDonation)}` : ""}
-${data.mostRecentDonation ? `Most Recent Gift: ${escapePrompt(data.mostRecentDonation)}` : ""}
+Fund Breakdown:
+${effectiveTopFunds.map(f => `- ${escapePrompt(f.fund)}: $${f.total.toFixed(2)}`).join("\n")}
 
 Write a heartfelt, pastoral narrative (3-4 paragraphs) that:
-1. Acknowledges their specific giving pattern
+1. Acknowledges their specific giving pattern and amounts
 2. Connects their gifts to the church's mission
 3. Expresses genuine gratitude
 4. Has a warm, personal tone (not generic)
 
-Respond with ONLY the narrative text. No JSON, no markdown formatting.`;
+Respond with ONLY the narrative text as plain paragraphs.`;
 
-      let fullResponse = "";
-      await graceWebGPUEngine.generate(prompt, (chunk) => {
-        options.onChunk?.(chunk);
-        fullResponse += chunk;
-      }, 768);
+    let fullResponse = "";
+    await graceWebGPUEngine.generate(prompt, (chunk) => {
+      options.onChunk?.(chunk);
+      fullResponse += chunk;
+    }, 768);
+
+    return {
+      memberName: effectiveMemberName,
+      year,
+      totalGiving: effectiveTotalGiving,
+      giftCount: effectiveGiftCount,
+      firstDonation: effectiveFirstDonation,
+      mostRecentDonation: effectiveMostRecentDonation,
+      topFunds: effectiveTopFunds,
+      narrative: fullResponse || "(Narrative generation did not produce output)",
+      isClientGenerated: true,
+      provider: "webgpu",
+    };
+  }
+
+  private async fetchStatementData(memberId: string, year: string) {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/reports/member-narrative/${memberId}?year=${year}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) throw new Error(`Failed to fetch data (${response.status})`);
+      
+      const raw = await response.json();
+      
+      const memberName = raw.memberName || raw.name || "Unknown";
+      const totalGiving = typeof raw.totalGiving === "number" ? raw.totalGiving : 0;
+      const giftCount = typeof raw.giftCount === "number" ? raw.giftCount : 0;
 
       return {
-        ...data,
-        narrative: fullResponse || data.narrative,
-        isClientGenerated: true,
-        provider: "webgpu",
+        memberName,
+        year,
+        totalGiving,
+        giftCount,
+        firstDonation: raw.firstDonation || undefined,
+        mostRecentDonation: raw.mostRecentDonation || undefined,
+        topFunds: Array.isArray(raw.topFunds) ? raw.topFunds : [],
       };
     } catch (err) {
-      console.warn("WebGPU narrative generation failed, using server fallback", err);
-      return await this.generateNarrativeServer(memberId, year, options);
+      console.warn("Fetch statement data failed:", err);
+      return null;
     }
   }
 
