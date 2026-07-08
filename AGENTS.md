@@ -98,9 +98,9 @@ The Test/QA Agent ensures that all changes are verified against the specified re
 The Documentation Agent prevents "documentation drift" by ensuring that technical references always match the current state of the codebase.
 - **Documentation Agent (The Master)**:
 
-- **Key Capabilities/Skills**
+  - **Key Capabilities/Skills**
 
-  - Automated API route coverage auditing (**grace-doc-master**).
+    - Automated API route coverage auditing.
   - Synchronization between database migrations and `db/init.sql`.
   - Maintenance of the project manifest and setup guides.
 - **Interaction Protocols/APIs**

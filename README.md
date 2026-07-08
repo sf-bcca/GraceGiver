@@ -7,7 +7,7 @@
 [![E2E Tests](https://github.com/sf-bcca/GraceGiver/actions/workflows/e2e.yml/badge.svg)](https://github.com/sf-bcca/GraceGiver/actions/workflows/e2e.yml)
 [![Security](https://github.com/sf-bcca/GraceGiver/actions/workflows/security.yml/badge.svg)](https://github.com/sf-bcca/GraceGiver/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](CONTRIBUTING.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sf-bcca/GraceGiver/blob/main/CONTRIBUTING.md)
 
 </div>
 
@@ -17,7 +17,7 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 ## 🛠️ Development Suite
 
-GraceGiver includes a suite of specialized CLI tools (AI Skills) to assist with development and project health.
+GraceGiver includes a suite of specialized **Agent Skills** (AI personas) to assist with development and project health. These skills are configured in the `.agents/skills/` directory and loaded automatically by AI coding assistants:
 
 - **`grace-database-steward`**: Automates idempotent migrations and schema syncing.
 - **`pii-guardian`**: Enforces privacy standards and audits logs for sensitive data leaks.

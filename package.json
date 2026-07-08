@@ -2,7 +2,7 @@
   "name": "gracegiver---secure-church-donation-management",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "dev": "NODE_ENV=development concurrently \"cd server && node index.js\" \"vite\"",
     "build": "vite build",
