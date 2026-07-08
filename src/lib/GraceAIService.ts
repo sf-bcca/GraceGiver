@@ -85,7 +85,13 @@ class GraceAIService {
     await this.initialize();
 
     if (this.provider === "webgpu") {
-      return await this.generateNarrativeWebGPU(memberId, year, options);
+      try {
+        return await this.generateNarrativeWebGPU(memberId, year, options);
+      } catch (err) {
+        console.warn("WebGPU narrative generation failed, falling back to server:", err);
+        this.provider = "server";
+        return await this.generateNarrativeServer(memberId, year, options);
+      }
     }
 
     return await this.generateNarrativeServer(memberId, year, options);
@@ -196,7 +202,9 @@ Respond with ONLY the narrative text as plain paragraphs.`;
   private async fetchStatementData(memberId: string, year: string) {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/reports/member-narrative/${memberId}?year=${year}`, {
+      const url = new URL(`${API_URL}/api/reports/member-statement/${encodeURIComponent(memberId)}`);
+      url.searchParams.set("year", year);
+      const response = await fetch(url.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
@@ -204,18 +212,42 @@ Respond with ONLY the narrative text as plain paragraphs.`;
       
       const raw = await response.json();
       
-      const memberName = raw.memberName || raw.name || "Unknown";
-      const totalGiving = typeof raw.totalGiving === "number" ? raw.totalGiving : 0;
-      const giftCount = typeof raw.giftCount === "number" ? raw.giftCount : 0;
+      const memberName = raw.member ? `${raw.member.firstName} ${raw.member.lastName}` : "Unknown";
+      const totalGiving = typeof raw.summary?.totalAmount === "number" ? raw.summary.totalAmount : 0;
+      const giftCount = Array.isArray(raw.donations) ? raw.donations.length : 0;
+
+      const sortedDonations = Array.isArray(raw.donations)
+        ? [...raw.donations].sort((a, b) => {
+            const da = new Date(a.date).getTime();
+            const db = new Date(b.date).getTime();
+            if (isNaN(da)) return 1;
+            if (isNaN(db)) return -1;
+            return da - db;
+          })
+        : [];
+      const firstDonation = sortedDonations[0]?.date;
+      const mostRecentDonation = sortedDonations[sortedDonations.length - 1]?.date;
+
+      const fundMap: Record<string, number> = {};
+      if (Array.isArray(raw.donations)) {
+        for (const d of raw.donations) {
+          const fund = d.fund || "General";
+          const amountVal = Number(d.amount);
+          fundMap[fund] = (fundMap[fund] || 0) + (Number.isFinite(amountVal) ? amountVal : 0);
+        }
+      }
+      const topFunds = Object.entries(fundMap)
+        .map(([fund, total]) => ({ fund, total }))
+        .sort((a, b) => b.total - a.total);
 
       return {
         memberName,
         year,
         totalGiving,
         giftCount,
-        firstDonation: raw.firstDonation || undefined,
-        mostRecentDonation: raw.mostRecentDonation || undefined,
-        topFunds: Array.isArray(raw.topFunds) ? raw.topFunds : [],
+        firstDonation,
+        mostRecentDonation,
+        topFunds,
       };
     } catch (err) {
       console.warn("Fetch statement data failed:", err);
@@ -271,7 +303,9 @@ Respond with ONLY the narrative text as plain paragraphs.`;
   ): Promise<MemberNarrativeResult> {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/reports/member-narrative/${memberId}?year=${year}`, {
+      const url = new URL(`${API_URL}/api/reports/member-narrative/${encodeURIComponent(memberId)}`);
+      url.searchParams.set("year", year);
+      const response = await fetch(url.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       
