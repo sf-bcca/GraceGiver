@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Calendar, DollarSign, User, FileText, RefreshCw, Sparkles } from 'lucide-react';
 import * as api from '../src/lib/api';
+import { graceAIService } from '../src/lib/GraceAIService';
 
 interface MemberStatementModalProps {
   memberId: string;
@@ -38,12 +39,20 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
   const [loadingNarrative, setLoadingNarrative] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [activeProvider, setActiveProvider] = useState<"webgpu" | "server">(() => graceAIService.getProvider());
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
+        await graceAIService.reset();
+        
+        // Re-evaluate provider after reset since initialized flag is cleared.
+        // initialize() checks WebGPU availability synchronously before each use.
+        await graceAIService.initialize();
+        setActiveProvider(graceAIService.getProvider());
+        
         const result = await api.fetchMemberStatement(memberId, year);
         setData(result);
         
@@ -61,10 +70,11 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
   const fetchNarrative = async () => {
     setLoadingNarrative(true);
     try {
-      const result = await api.fetchMemberNarrative(memberId, year);
+      const result = await graceAIService.generateMemberNarrative(memberId, year);
+      setActiveProvider(graceAIService.getProvider());
       setNarrative(result.narrative);
     } catch (err) {
-      console.error('Failed to fetch narrative', err);
+      console.error('Failed to generate narrative', err);
       setNarrative('Unable to load AI narrative at this time.');
     } finally {
       setLoadingNarrative(false);
@@ -166,14 +176,21 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
                     <span className="bg-amber-200 text-amber-800 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide">AI Insight</span>
                     Impact Summary
                   </h3>
-                  <button 
-                    onClick={fetchNarrative}
-                    disabled={loadingNarrative}
-                    className="p-1 text-amber-600 hover:bg-amber-200 rounded transition-colors disabled:opacity-50"
-                    title="Regenerate Narrative"
-                  >
-                    <RefreshCw size={14} className={loadingNarrative ? 'animate-spin' : ''} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {activeProvider && (
+                      <span className="text-[9px] font-bold bg-white text-slate-500 px-1.5 py-0.5 rounded border border-amber-100">
+                        {activeProvider === 'webgpu' ? '🔥 WEBGPU' : 'SERVER'}
+                      </span>
+                    )}
+                    <button 
+                      onClick={fetchNarrative}
+                      disabled={loadingNarrative}
+                      className="p-1 text-amber-600 hover:bg-amber-200 rounded transition-colors disabled:opacity-50"
+                      title="Regenerate Narrative"
+                    >
+                      <RefreshCw size={14} className={loadingNarrative ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
                 </div>
                 
                 {loadingNarrative ? (
@@ -181,7 +198,9 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
                     <div className="h-2 w-2 bg-amber-400 rounded-full"></div>
                     <div className="h-2 w-2 bg-amber-400 rounded-full animate-bounce"></div>
                     <div className="h-2 w-2 bg-amber-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                    <span className="text-xs font-medium italic">Gemini is reflecting on their generosity...</span>
+                    <span className="text-xs font-medium italic">
+                      {activeProvider === 'webgpu' ? 'Local model is reflecting on their generosity...' : 'Gemini is reflecting on their generosity...'}
+                    </span>
                   </div>
                 ) : (
                   <p className="text-amber-900/80 text-sm italic leading-relaxed">
