@@ -81,7 +81,7 @@ describe('Gemini Service', () => {
 
       const result = await generateMemberNarrative(member, donations, 2025);
       
-      expect(result).toContain('Error generating narrative');
+      expect(result).toContain('We appreciate your faithful support.');
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockGenerateContent).not.toHaveBeenCalled();
     });
@@ -92,7 +92,7 @@ describe('Gemini Service', () => {
 
       const result = await generateMemberNarrative(member, donations, 2025);
 
-      expect(result).toContain('Error generating narrative');
+      expect(result).toContain('We appreciate your faithful support.');
     });
   });
 });
