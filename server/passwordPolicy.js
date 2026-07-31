@@ -5,7 +5,7 @@
  * All settings can be overridden via environment variables.
  * 
  * Environment Variables:
- * - PASSWORD_MIN_LENGTH: Minimum password length (default: 12)
+ * - PASSWORD_MIN_LENGTH: Minimum password length (default: 18)
  * - PASSWORD_REQUIRE_UPPERCASE: Require uppercase letter (default: true)
  * - PASSWORD_REQUIRE_LOWERCASE: Require lowercase letter (default: true)
  * - PASSWORD_REQUIRE_DIGIT: Require digit (default: true)
@@ -19,7 +19,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 // Configuration with environment variable overrides
 const config = {
-  minLength: parseInt(process.env.PASSWORD_MIN_LENGTH) || 12,
+  minLength: parseInt(process.env.PASSWORD_MIN_LENGTH) || 18,
   requireUppercase: process.env.PASSWORD_REQUIRE_UPPERCASE !== 'false',
   requireLowercase: process.env.PASSWORD_REQUIRE_LOWERCASE !== 'false',
   requireDigit: process.env.PASSWORD_REQUIRE_DIGIT !== 'false',

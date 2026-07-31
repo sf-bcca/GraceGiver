@@ -1,7 +1,26 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
 const { GoogleGenAI } = require("@google/genai");
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
-const GEMMA_ENDPOINT = process.env.GEMMA_ENDPOINT || "http://100.115.102.53:8080/v1/chat/completions";
-const GEMMA_MODEL = process.env.GEMMA_MODEL || "gemma-4-E4B-it.litertlm";
+
+// SECURITY: Must be configured via environment variable — no hardcoded fallbacks
+const GEMMA_ENDPOINT = process.env.GEMMA_ENDPOINT;
+if (!GEMMA_ENDPOINT) {
+  if (process.env.NODE_ENV === 'test') {
+    console.warn('[AI] Gemma offline in test mode – AI analysis unavailable');
+  } else {
+    console.error('='.repeat(60));
+    console.error('❌ CRITICAL: GEMMA_ENDPOINT env var is required');
+    console.error('='.repeat(60));
+    console.error('Set it in .env or environment:');
+    console.error('  GEMMA_ENDPOINT=http://<internal-host>:8080/v1/chat/completions');
+    console.error('='.repeat(60));
+    process.exit(1);
+  }
+}
+
+const GEMMA_MODEL = process.env.GEMMA_MODEL || 'gemma-4-E4B-it.litertlm';
 
 // Instantiate lazily
 let genAI = null;

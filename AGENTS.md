@@ -214,7 +214,7 @@ The system uses PostgreSQL with the following core entities (`db/init.sql`):
   - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `telephone` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `skills` (text[]), `interests` (text[]), `joined_at` (timestamptz), `created_at` (timestamptz).
 - **Donations**: Financial records linked to Members.
   - Columns: `id` (serial), `member_id` (text), `amount` (numeric), `fund` (text), `notes` (text), `entered_by` (text), `donation_date` (timestamptz).
-- **Settings**: Global application settings.
+- **Settings**: Global application settings for church info (`singleton_id` marks the single allowed row):
   - Columns: `singleton_id` (boolean), `name`, `address`, `phone`, `email`, `tax_id`.
 - **Export Logs**: Audit trail for data exports.
   - Columns: `id` (serial), `user_id`, `export_type`, `filters` (jsonb), `created_at`.
@@ -235,11 +235,10 @@ RESTful endpoints provided by `server/index.js`. For complete documentation, see
   - `POST /api/users/change-password`: Change own password.
   - `GET /api/auth/password-policy`: Get password requirements.
 - **Members**: `GET /api/members` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
-- **Self-Service** (viewer+):
-  - `GET /api/self/profile`: Get own member record.
-  - `GET /api/self/donations`: Get own donation history.
-  - `GET /api/self/statements`: Get available statement years.
-  - `GET /api/self/opportunities`: Get matched volunteer opportunities.
+- **Self-Service** (viewer+): *Note: these endpoints are planned but not yet implemented – see AGENTS.md issue tracker.*
+  - *(Pending)* `/api/self/profile` — Get own member record.
+  - *(Pending)* `/api/self/donations` — Get own donation history.
+  - *(Pending)* `/api/self/statements` — Get available statement years.
 - **Donations**: `GET /api/donations` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
 - **User Management** (admin+ only):
   - `GET /api/users`: List all users.
@@ -259,14 +258,14 @@ RESTful endpoints provided by `server/index.js`. For complete documentation, see
   - `GET /api/reports/trend-analysis`: 3-year historical bar chart data.
   - `GET /api/members/:id/report`: Individual Member Report (JSON).
   - `GET /api/members/:id/report/pdf`: Individual Member Report (PDF).
-- **Settings** (admin+ only):
-  - `GET /api/settings`: Fetch application-wide settings.
-  - `PUT /api/settings`: Update church information (name, address, tax_id, etc.).
+- **Settings**:
+  - `GET /api/settings`: Fetch application-wide settings (**public**).
+  - `PUT /api/settings` (admin+): Update church information (name, address, tax_id, etc.).
 - **ServantHeart (Volunteers)**:
   - `GET /api/members/:id/skills`: Get member skills/interests.
   - `PUT /api/members/:id/skills`: Update member skills/interests.
   - `GET /api/opportunities`: List ministry roles.
-  - `GET /api/opportunities/:id/matches`: AI-powered volunteer matching.
+  - `GET /api/opportunities/:id/matches`: Volunteer matching via SQL array overlap (skills/interests).
 - **CommunityBridge (Campaigns)**:
   - `GET /api/stewardship/campaigns`: List active campaigns and progress.
   - `POST /api/stewardship/campaigns`: Create new stewardship goal.

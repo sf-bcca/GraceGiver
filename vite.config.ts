@@ -10,9 +10,12 @@ export default defineConfig(({ mode }) => {
     return {
       test: {
         globals: true,
-        environment: 'happy-dom',
-        setupFiles: './src/test/setup.ts',
+        environment: 'jsdom',
+        setupFiles: ['./src/test/setup.ts'],
         include: ['src/**/*.{test,spec}.{ts,tsx}'],
+      },
+      ssr: {
+        noExternal: ['react', 'react-dom'],
       },
       server: {
         port: 5173,
@@ -26,7 +29,11 @@ export default defineConfig(({ mode }) => {
         },
       },
       plugins: [
-        react(),
+        react({
+          babel: {
+            plugins: [],
+          },
+        }),
         VitePWA({
           registerType: 'autoUpdate',
           includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
@@ -77,7 +84,7 @@ export default defineConfig(({ mode }) => {
                   },
                   cacheableResponse: {
                     statuses: [0, 200]
-                  },
+                  }
                 }
               }
             ]
@@ -91,6 +98,7 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
+          'react-dom/test-utils': path.resolve(__dirname, 'src/test/react-dom-test-utils-shim.ts'),
         }
       }
     };

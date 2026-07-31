@@ -52,9 +52,29 @@ pool.on("error", (err) => {
   console.error("Database pool error:", err);
 });
 
-app.use(cors());
+// strict CORS - allowlist only (never true in production)
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map(o => o.trim())
+  : [];
+
+const corsOptions = {
+  credentials: true,
+};
+
+// If CORS_ORIGIN is set, restrict to that list; otherwise block all origins (null/none)
+if (allowedOrigins.length > 0) {
+  corsOptions.origin = function (_origin, cb) {
+    // Allow requests with no Origin header (Postman, curl, server-to-server)
+    if (!_origin) return cb(null, true);
+    if (allowedOrigins.includes(_origin)) return cb(null, true);
+    return cb(new Error("Not allowed by CORS"));
+  };
+}
+
+app.use(cors(corsOptions));
 app.use(compression());
-app.use(express.json());
+app.use("/api/ai", express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "100kb" }));
 
 // ==========================================
 // REGISTRATION API
@@ -186,7 +206,20 @@ app.post("/api/register", registerLimiter, async (req, res) => {
   }
 });
 
-app.post("/api/login", async (req, res) => {
+// Login rate limiter - prevents brute force attacks on auth
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: { error: 'Too many login attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post('/api/login', (req, res, next) =>
+    process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development'
+      ? next()
+      : loginLimiter(req, res, next),
+  async (req, res) => {
   const { username, password } = req.body;
   try {
     const result = await pool.query(
@@ -1224,17 +1257,25 @@ app.post(
   authenticateToken,
   requirePermission("donations:create"),
   async (req, res) => {
-    const { memberId, amount, fund, notes, enteredBy, donationDate, date } =
-      req.body;
+    const { memberId, amount, fund, notes, donationDate, date } = req.body;
+    // SECURITY: Donor-supplied input — no enteredBy or other internal fields allowed
+    if (!memberId || !amount) {
+      return res.status(400).json({ error: "VALIDATION_FAILED", details: ["memberId and amount are required"] });
+    }
+    if (typeof amount !== "number" || amount <= 0) {
+      return res.status(400).json({ error: "INVALID_AMOUNT", details: ["Amount must be a positive number"] });
+    }
+    // Enforce max 2 decimal places for currency
+    const numericAmount = parseFloat(amount.toFixed(2));
     try {
       const result = await pool.query(
         "INSERT INTO donations (member_id, amount, fund, notes, entered_by, donation_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         [
           memberId,
-          amount,
-          fund,
-          notes,
-          enteredBy,
+          numericAmount,
+          fund || null,
+          notes || null,
+          req.user.username,
           donationDate || date || new Date(),
         ],
       );
@@ -1259,9 +1300,50 @@ app.put(
 
     const { id } = req.params;
 
-    const { amount, fund, notes, enteredBy, donationDate } = req.body;
+    // SECURITY: Whitelist fields — removed enteredBy (mass assignment risk)
+    const { amount, fund, notes, donationDate } = req.body;
 
+    // Validate amount if provided
+    let numericAmount = undefined;
+    if (amount !== undefined && amount !== null) {
+      if (typeof amount !== "number" || amount <= 0 || isNaN(amount)) {
+        return res.status(400).json({ error: "INVALID_AMOUNT", details: ["Amount must be a positive number"] });
+      }
+      numericAmount = parseFloat(amount.toFixed(2));
+    }
 
+    // Build dynamic update set — only include fields that were provided
+    const queryFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    if (numericAmount !== undefined) { 
+      queryFields.push(`amount = $${paramIndex++}`); 
+      queryParams.push(numericAmount); 
+    }
+    if (fund !== undefined && fund !== null) { 
+      queryFields.push(`fund = $${paramIndex++}`); 
+      queryParams.push(fund); 
+    }
+    if (notes !== undefined && notes !== null) { 
+      queryFields.push(`notes = $${paramIndex++}`); 
+      queryParams.push(notes); 
+    }
+    if (donationDate !== undefined && donationDate !== null) { 
+      queryFields.push(`donation_date = $${paramIndex++}`); 
+      queryParams.push(donationDate); 
+    }
+
+    if (queryFields.length === 0) {
+      return res.status(400).json({ error: "No valid fields to update" });
+    }
+
+    // Admins can update entered_by; non-admins cannot
+    if (hasPermission(req.user.role, "donations:update") && req.scopedToOwn === false) {
+      queryFields.push(`entered_by = $${paramIndex++}`);
+      // Only set entered_by for admin role — never from user input
+      queryParams.push(req.user.username);
+    }
 
     try {
       // If scoped to own, verify ownership first
@@ -1281,8 +1363,8 @@ app.put(
 
 
       const result = await pool.query(
-        "UPDATE donations SET amount = $1, fund = $2, notes = $3, entered_by = $4, donation_date = $5 WHERE id = $6 RETURNING *",
-        [amount, fund, notes, enteredBy, donationDate, id],
+        `UPDATE donations SET ${queryFields.join(", ")} WHERE id = $${paramIndex} RETURNING *`,
+        [...queryParams, id],
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Donation not found" });
@@ -1940,16 +2022,22 @@ app.post(
   authenticateToken,
   requirePermission("users:write"),
   async (req, res) => {
-    const { username, password, role, email, memberId } = req.body;
+    // SECURITY: Whitelist only allowed fields (mass assignment prevention)
+    const { username: wUsername, password: wPassword, role: wRole, email: wEmail, memberId: wMemberId } = req.body || {};
 
-    if (!username || !password) {
+    if (!wUsername || !wPassword) {
       return res
         .status(400)
         .json({ error: "Username and password are required" });
     }
 
+    // Validate username format (lowercase alphanumeric + underscore/hyphen, 3-50 chars)
+    if (!/^[a-zA-Z0-9_-]{3,50}$/.test(wUsername)) {
+      return res.status(400).json({ error: "Username must be 3-50 characters (alphanumeric, -, _)" });
+    }
+
     // Validate password policy
-    const policyCheck = validatePasswordPolicy(password);
+    const policyCheck = validatePasswordPolicy(wPassword);
     if (!policyCheck.valid) {
       return res.status(400).json({
         error: "Password policy violation",
@@ -1957,9 +2045,31 @@ app.post(
       });
     }
 
+    // Validate email format if provided
+    let wEmailValidated = null;
+    if (wEmail && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(wEmail)) {
+      wEmailValidated = wEmail.toLowerCase().trim();
+    } else if (wEmail) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    // Validate role only against assignable list (role escalation prevention)
+    let validatedRole = null;
+    if (wRole && wRole !== "") {
+      const assignableRoles = getAssignableRoles(req.user.role);
+      if (assignableRoles.includes(wRole)) {
+        validatedRole = wRole;
+      } else {
+        return res.status(400).json({ error: "Invalid role value" });
+      }
+    }
+
+    // Validate memberId format (UUID-like) if provided
+    const wMemberIdValidated = (wMemberId && typeof wMemberId === "string" && wMemberId.length <= 64) ? wMemberId : null;
+
     // Check if current user can assign the requested role
-    const requestedRole = role || "viewer";
-    if (!canManageRole(req.user.role, requestedRole)) {
+    const finalRole = validatedRole || "viewer";
+    if (!canManageRole(req.user.role, finalRole)) {
       return res.status(403).json({
         error: "Cannot assign role equal to or higher than your own",
         code: "ROLE_ESCALATION",
@@ -1970,13 +2080,13 @@ app.post(
       // Check if username exists
       const existing = await pool.query(
         "SELECT id FROM users WHERE username = $1",
-        [username],
+        [wUsername],
       );
       if (existing.rows.length > 0) {
         return res.status(409).json({ error: "Username already exists" });
       }
 
-      const passwordHash = await bcrypt.hash(password, 12);
+      const passwordHash = await bcrypt.hash(wPassword, 12);
 
       const result = await pool.query(
         `
@@ -1985,16 +2095,16 @@ app.post(
       RETURNING id, username, role, email, created_at, must_change_password, member_id
     `,
         [
-          username,
+          wUsername,
           passwordHash,
-          requestedRole,
-          email || null,
-          memberId || null,
+          finalRole,
+          wEmailValidated || null,
+          wMemberIdValidated || null,
         ],
       );
 
       console.log(
-        `[AUDIT] User created: ${username} with role ${requestedRole} by ${req.user.username}`,
+        `[AUDIT] User created: ${wUsername} with role ${finalRole} by ${req.user.username}`,
       );
 
       emitEvent("user:update", { type: "CREATE", data: result.rows[0] });
@@ -2021,22 +2131,88 @@ app.put(
   requirePermission("users:write"),
   async (req, res) => {
     const { id } = req.params;
-    const { username, role, email, memberId } = req.body;
+    // SECURITY: Whitelist only allowed fields (mass assignment prevention)
+    const sanitized = req.body;
+    const wUsername = sanitized.username;
+    const wRole = sanitized.role;
+    const wEmail = sanitized.email;
+    const wMemberId = sanitized.memberId;
 
-    // Prevent self-demotion or changing own username in this endpoint
+    // Validate username format if provided
+    if (wUsername !== undefined && wUsername !== null && !/^[a-zA-Z0-9_-]{3,50}$/.test(wUsername)) {
+      return res.status(400).json({ error: "Username must be 3-50 characters (alphanumeric, -, _)" });
+    }
+
+    // Validate email format if provided
+    let wEmailValidated = undefined;
+    if (wEmail !== undefined && wEmail !== null) {
+      if (wEmail === "") {
+        wEmailValidated = null;
+      } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(wEmail)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      } else {
+        wEmailValidated = wEmail.toLowerCase().trim();
+      }
+    }
+
+    // Validate role against assignable list if provided
+    let wRoleValidated = undefined;
+    if (wRole !== undefined && wRole !== null) {
+      const assignableRoles = getAssignableRoles(req.user.role);
+      if (!assignableRoles.includes(wRole)) {
+        return res.status(400).json({ error: "Invalid role value" });
+      }
+      wRoleValidated = wRole;
+    }
+
+    // Validate memberId format if provided
+    const wMemberIdValidated = (wMemberId !== undefined && wMemberId !== null && typeof wMemberId === "string" && wMemberId.length <= 64) ? wMemberId : undefined;
+
+    // Determine if any non-empty updates are requested — ignore absent fields
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (wUsername !== undefined && wUsername !== null) {
+      updates.push(`username = $${paramCount++}`);
+      values.push(wUsername);
+    }
+    if (wRoleValidated !== undefined) {
+      updates.push(`role = $${paramCount++}`);
+      values.push(wRoleValidated);
+    }
+    if (wEmailValidated !== undefined) {
+      updates.push(`email = $${paramCount++}`);
+      values.push(wEmailValidated);
+    }
+    if (wMemberIdValidated !== undefined) {
+      updates.push(`member_id = $${paramCount++}`);
+      values.push(wMemberIdValidated);
+    }
+
+    // Self modification guard still applies with sanitized vars
     if (
       parseInt(id) === req.user.id &&
-      ((role && role !== req.user.role) || username)
+      ((wRoleValidated && !canManageRole(req.user.role, wRoleValidated)) || wUsername)
     ) {
       return res.status(403).json({
-        error:
-          "Cannot change your own role or username. Please use account settings.",
+        error: "Cannot change your own role or username. Please use account settings.",
         code: "SELF_MODIFICATION",
       });
     }
 
+    // Only apply role escalation checks if a new role is being set
+    let finalRoleValidated = wRoleValidated;
+    if (finalRoleValidated !== undefined) {
+      if (!canManageRole(req.user.role, finalRoleValidated)) {
+        return res.status(403).json({
+          error: "Cannot assign role equal to or higher than your own",
+          code: "ROLE_ESCALATION",
+        });
+      }
+    }
+
     try {
-      // Get target user
       const targetUser = await pool.query(
         "SELECT role FROM users WHERE id = $1",
         [id],
@@ -2045,73 +2221,35 @@ app.put(
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Check if can manage target user's current role
-      if (!canManageRole(req.user.role, targetUser.rows[0].role)) {
-        return res.status(403).json({
-          error: "Cannot modify user with role equal to or higher than yours",
-          code: "INSUFFICIENT_PRIVILEGE",
-        });
-      }
-
-      // Check if can assign new role
-      if (role && !canManageRole(req.user.role, role)) {
-        return res.status(403).json({
-          error: "Cannot assign role equal to or higher than your own",
-          code: "ROLE_ESCALATION",
-        });
-      }
-
       // If username is being changed, check for conflicts
-      if (username) {
+      if (wUsername !== undefined && wUsername !== null) {
         const existing = await pool.query(
           "SELECT id FROM users WHERE username = $1 AND id != $2",
-          [username, id],
+          [wUsername, parseInt(id)],
         );
         if (existing.rows.length > 0) {
           return res.status(409).json({ error: "Username already exists" });
         }
       }
 
-      const updates = [];
-      const values = [];
-      let paramCount = 1;
-
-      if (username) {
-        updates.push(`username = $${paramCount++}`);
-        values.push(username);
-      }
-      if (role) {
-        updates.push(`role = $${paramCount++}`);
-        values.push(role);
-      }
-      if (email !== undefined) {
-        updates.push(`email = $${paramCount++}`);
-        values.push(email || null);
-      }
-      if (memberId !== undefined) {
-        updates.push(`member_id = $${paramCount++}`);
-        values.push(memberId || null);
-      }
-
       if (updates.length === 0) {
-        return res.status(400).json({ error: "No fields to update" });
+        return res.status(400).json({ error: "No valid fields to update" });
       }
 
-      values.push(id);
+      // Append the WHERE clause ID to the end of values array
+      values.push(parseInt(id));
+      
       const result = await pool.query(
-        `
-      UPDATE users SET ${updates.join(", ")}, updated_at = NOW()
-      WHERE id = $${paramCount}
-      RETURNING id, username, role, email
-    `,
+        `UPDATE users SET ${updates.join(", ")}, updated_at = NOW()
+         WHERE id = $${paramCount}
+         RETURNING id, username, role, email`,
         values,
       );
 
       console.log(
         `[AUDIT] User ${id} updated by ${req.user.username}: ${JSON.stringify({
-          username,
-          role,
-          email,
+          role: wRoleValidated,
+          email: wEmailValidated,
         })}`,
       );
 
@@ -2353,36 +2491,38 @@ app.put(
   authenticateToken,
   requirePermission("settings:write"),
   async (req, res) => {
-    const { name, address, phone, email, taxId } = req.body;
-
+    const name = req.body.name;
+    const address = req.body.address !== undefined ? req.body.address : null;
+    const phone = req.body.phone !== undefined ? req.body.phone : null;
+    const email = req.body.email !== undefined ? req.body.email : null;
+    const taxIdInput = req.body.taxId !== undefined ? req.body.taxId : null;
     if (!name) {
       return res.status(400).json({ error: "Church name is required" });
     }
-
+    // Type coercion & validation per field
+    const safeAddress = address !== null ? String(address).trim() : null;
+    const safePhone = phone !== null ? String(phone) : null;
+    const safeEmail = email !== null && email.trim() !== '' ? String(email).trim().toLowerCase() : null;
+    const safeTaxId = taxIdInput !== null ? String(taxIdInput) : null;
     try {
       const result = await pool.query(
-        `
-        UPDATE settings
-        SET name = $1, address = $2, phone = $3, email = $4, tax_id = $5, updated_at = NOW()
-        WHERE singleton_id = true
-        RETURNING name, address, phone, email, tax_id
-      `,
-        [name, address, phone, email, taxId],
+        `UPDATE settings
+         SET name = $1, address = $2, phone = $3, email = $4, tax_id = $5, updated_at = NOW()
+         WHERE singleton_id = true
+         RETURNING name, address, phone, email, tax_id`,
+        [name.trim(), safeAddress, safePhone, safeEmail, safeTaxId],
       );
-
-      const updatedSettings = result.rows[0];
-
+      const rawSettings = result.rows[0];
+      const updatedSettings = {
+        name: rawSettings.name,
+        address: rawSettings.address,
+        phone: rawSettings.phone,
+        email: rawSettings.email,
+        taxId: rawSettings.tax_id,
+      };
       console.log(`[AUDIT] Settings updated by ${req.user.username}`);
-
       emitEvent("settings:update", updatedSettings);
-
-      res.json({
-        name: updatedSettings.name,
-        address: updatedSettings.address,
-        phone: updatedSettings.phone,
-        email: updatedSettings.email,
-        taxId: updatedSettings.tax_id,
-      });
+      res.json(updatedSettings);
     } catch (err) {
       console.error("Update settings error:", err);
       res.status(500).json({ error: "Failed to update settings" });

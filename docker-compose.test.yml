@@ -63,6 +63,9 @@ services:
       INITIAL_ADMIN_USERNAME: ""
       INITIAL_ADMIN_PASSWORD: ""
       
+      # AI endpoint (required even if offline in test mode)
+      GEMMA_ENDPOINT: http://localhost:8080/v1/chat/completions
+      
       # Node environment
       NODE_ENV: test
       TZ: ${TZ:-UTC}

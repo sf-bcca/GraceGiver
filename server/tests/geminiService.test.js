@@ -3,6 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+process.env.GEMMA_ENDPOINT = process.env.GEMMA_ENDPOINT || 'http://localhost:8080/v1/chat/completions';
+
 import { generateMemberNarrative, setGenAIInstance } from '../geminiService';
 
 describe('Gemini Service', () => {

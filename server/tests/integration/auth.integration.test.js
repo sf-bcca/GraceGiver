@@ -103,7 +103,7 @@ describe('Authentication API', () => {
     it('should validate strong password', async () => {
       const res = await api()
         .post('/api/auth/validate-password')
-        .send({ password: 'StrongPass123!@#' });
+        .send({ password: 'StrongPass123!@#LongOne' });
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('meetsRequirements');

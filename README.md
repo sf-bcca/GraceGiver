@@ -15,16 +15,16 @@ GraceGiver is a premium, secure, and intuitive church management platform design
 
 ---
 
-## 🛠️ Development Suite
+## 🤖 Development Agents
 
-GraceGiver includes a suite of specialized **Agent Skills** (AI personas) to assist with development and project health. These skills are configured in the `.agents/skills/` directory and loaded automatically by AI coding assistants:
+This project defines a set of AI agent roles in `AGENTS.md` that govern how code, tests, and docs are managed during development. These roles describe responsibilities and protocols — not standalone services or skill directories:
 
-- **`grace-database-steward`**: Automates idempotent migrations and schema syncing.
-- **`pii-guardian`**: Enforces privacy standards and audits logs for sensitive data leaks.
-- **`grace-doc-master`**: Detects "documentation drift" between code and API references.
-- **`synology-docker-ops`**: Manages Docker deployments and environment health on Synology NAS.
-- **`grace-qa-sentinel`**: Smart test runner that executes relevant tests based on changed files.
-- **`ai-stewardship-tuner`**: Specialized environment for testing and refining Gemini AI prompts.
+- **Antigravity**: Primary coding agent for implementation.
+- **Architect**: Handles design planning via `implementation_plan.md` artifacts.
+- **Guardians (Linter & Security)**: SecretLint, secret scanning, CI checks.
+- **Test/QA Agent**: Vitest tests and browser-based verification.
+- **Documentation Agent (The Master)**: Maintains API reference sync.
+- **Data Integrity Agent**: Validation rules enforcement via `server/validation.js`.
 
 ---
 
@@ -80,10 +80,17 @@ GraceGiver includes a suite of specialized **Agent Skills** (AI personas) to ass
    cp .env.example .env
    ```
 
-   Then open `.env` and add your Gemini API key:
+   Required changes include (for full list see `.env.example`):
 
    ```env
+   # Gemini AI key (optional — AI features disabled without it)
    VITE_GEMINI_API_KEY=your_gemini_api_key_here
+
+   # Database password (required)
+   DB_PASSWORD=CHANGE_ME_use_strong_password_32chars_minimum
+
+   # JWT secret (required, min 32 characters)
+   JWT_SECRET=generate_with_crypto_randomBytes
    ```
 
 3. **Start with Docker (Recommended):**
@@ -139,12 +146,12 @@ Additional documentation:
 - **[Error Codes](docs/ERROR_CODES.md)** — All structured error responses
 - **[WebSocket](docs/WEBSOCKET.md)** — Real-time sync and record locking
 
-The backend API runs on port `3000` internally. When running via Docker Compose, it is mapped to host port `3001` to avoid conflicts.
+The backend API runs on port `3000` internally (mapped to host port `3001` via Docker Compose). The frontend dev server runs on port `5173`; when proxied through Nginx or the combined Docker setup it is accessible at port `8085`.
 
-| Endpoint                     | Method       | Description                    | Auth Required      |
-| :--------------------------- | :----------- | :----------------------------- | :----------------- |
-| `/api/login`                 | `POST`       | Authenticate user, returns JWT | No                 |
-| `/api/users/change-password` | `POST`       | Change own password            | Yes                |
+| Endpoint                           | Method       | Description                    | Auth Required      |
+| :--------------------------------- | :----------- | :----------------------------- | :----------------- |
+| `/api/login`                       | `POST`       | Authenticate user, returns JWT | No                 |
+| `/api/users/change-password`       | `POST`       | Change own password            | Yes                |
 | `/api/auth/password-policy`  | `GET`        | Get password requirements      | No                 |
 | `/api/members`               | `GET`        | Retrieve all members           | Yes                |
 | `/api/members`               | `POST`       | Create a new member            | Yes (data_entry+)  |
@@ -158,6 +165,8 @@ The backend API runs on port `3000` internally. When running via Docker Compose,
 | `/api/forecast/at-risk`      | `GET`        | Get at-risk donors summary     | Yes (reports:read) |
 | `/api/opportunities`         | `GET/POST`   | List/Create ministry roles     | Yes                |
 | `/api/stewardship/campaigns` | `GET/POST`   | Manage Stewardship goals       | Yes                |
+| `/api/export/donations`      | `GET`        | Export donations (CSV/JSON)    | Yes (manager+)     |
+| `/api/export/members`        | `GET`        | Export member list (CSV/JSON)  | Yes (manager+)     |
 | `/api/reports/*`             | `GET`        | PDF, CSV, and Chart data       | Yes (manager+)     |
 
 ### Role Hierarchy

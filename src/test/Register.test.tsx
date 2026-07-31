@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Register from '../../components/Register';
 import React from 'react';
@@ -35,15 +35,17 @@ describe('Register Component', () => {
     });
   });
 
-  it('displays the username hint below the email field', () => {
+  it('displays the username hint below the email field', async () => {
     render(<Register onRegisterSuccess={mockOnRegisterSuccess} onBackToLogin={mockOnBackToLogin} />);
     
-    expect(screen.getByText(/This will also be your username for signing in/i)).toBeInTheDocument();
+    expect(await screen.findByText(/This will also be your username for signing in/i)).toBeInTheDocument();
   });
 
-  it('renders the email label correctly', () => {
+  it('renders the email label correctly', async () => {
     render(<Register onRegisterSuccess={mockOnRegisterSuccess} onBackToLogin={mockOnBackToLogin} />);
     
-    expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
+    });
   });
 });

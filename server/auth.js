@@ -18,7 +18,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
 
-// Validate JWT secret on module load
+// SECURITY: JWT secret MUST be provided via environment variable. No fallback allowed.
 if (!JWT_SECRET) {
   console.error('='.repeat(60));
   console.error('❌ CRITICAL SECURITY ERROR');
@@ -30,20 +30,13 @@ if (!JWT_SECRET) {
   console.error('  JWT_SECRET=your-secure-random-string-at-least-32-chars');
   console.error('');
   console.error('Generate one with:');
-  console.error('  node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+  console.error("  node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"");
   console.error('='.repeat(60));
   
-  // In development, warn but continue with a fallback (will still log error)
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET must be set in production');
-  }
+  process.exit(1);
 }
 
-// Fallback for development only (with warning)
-const SECRET = JWT_SECRET || (() => {
-  console.warn('⚠️  WARNING: Using insecure fallback JWT secret for development');
-  return 'INSECURE_DEV_SECRET_CHANGE_IN_PRODUCTION';
-})();
+const SECRET = JWT_SECRET;
 
 /**
  * Express middleware to authenticate JWT tokens

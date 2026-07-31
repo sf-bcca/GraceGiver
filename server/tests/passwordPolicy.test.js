@@ -18,7 +18,7 @@ import {
 describe('validatePasswordPolicy', () => {
   describe('valid passwords', () => {
     it('should accept password meeting all requirements', () => {
-      const result = validatePasswordPolicy('SecurePass123!');
+      const result = validatePasswordPolicy('VerySecurePassword123!');
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
@@ -90,7 +90,7 @@ describe('validatePasswordPolicy', () => {
       const specials = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '=', '[', ']', '{', '}', '|', ':', "'", '"', ',', '.', '<', '>', '/', '?', '\\'];
       
       for (const char of specials) {
-        const password = `SecurePass123${char}`;
+        const password = `VerySecurePassword123${char}`;
         const result = validatePasswordPolicy(password);
         expect(result.valid).toBe(true);
       }
