@@ -1267,13 +1267,14 @@ app.post(
     }
     // Enforce max 2 decimal places for currency
     const numericAmount = parseFloat(amount.toFixed(2));
+    const safeFund = (fund && typeof fund === "string" && fund.trim()) ? fund.trim() : "General";
     try {
       const result = await pool.query(
         "INSERT INTO donations (member_id, amount, fund, notes, entered_by, donation_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         [
           memberId,
           numericAmount,
-          fund || null,
+          safeFund,
           notes || null,
           req.user.username,
           donationDate || date || new Date(),
@@ -2529,6 +2530,24 @@ app.put(
     }
   },
 );
+
+// Global Express Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled Express error:", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({ error: "Internal server error" });
+});
+
+// Process Error Guard
+process.on("uncaughtException", (err) => {
+  console.error("CRITICAL: Uncaught Exception in Node process:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("CRITICAL: Unhandled Rejection at:", promise, "reason:", reason);
+});
 
 // Startup function with bootstrap
 async function startServer() {

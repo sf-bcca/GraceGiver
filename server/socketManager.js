@@ -29,12 +29,19 @@ async function initializeSocket(server) {
     redisClient = createClient({ url: REDIS_URL });
     subClient = redisClient.duplicate();
 
+    redisClient.on("error", (err) => {
+      console.error("Redis client error:", err.message);
+    });
+    subClient.on("error", (err) => {
+      console.error("Redis subClient error:", err.message);
+    });
+
     await Promise.all([redisClient.connect(), subClient.connect()]);
 
     io.adapter(createAdapter(redisClient, subClient));
     console.log("Redis Adapter initialized for Socket.io");
   } catch (err) {
-    console.error("Redis connection failed, falling back to in-memory adapter:", err);
+    console.error("Redis connection failed, falling back to in-memory adapter:", err.message);
   }
 
   // Middleware: Authentication

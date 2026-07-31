@@ -4,19 +4,13 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const { GoogleGenAI } = require("@google/genai");
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
-// SECURITY: Must be configured via environment variable — no hardcoded fallbacks
-const GEMMA_ENDPOINT = process.env.GEMMA_ENDPOINT;
-if (!GEMMA_ENDPOINT) {
+// Local Gemma AI Inference Endpoint Configuration
+const GEMMA_ENDPOINT = process.env.GEMMA_ENDPOINT || 'http://localhost:8080/v1/chat/completions';
+if (!process.env.GEMMA_ENDPOINT) {
   if (process.env.NODE_ENV === 'test') {
-    console.warn('[AI] Gemma offline in test mode – AI analysis unavailable');
+    console.warn('[AI] GEMMA_ENDPOINT not specified – using default test endpoint');
   } else {
-    console.error('='.repeat(60));
-    console.error('❌ CRITICAL: GEMMA_ENDPOINT env var is required');
-    console.error('='.repeat(60));
-    console.error('Set it in .env or environment:');
-    console.error('  GEMMA_ENDPOINT=http://<internal-host>:8080/v1/chat/completions');
-    console.error('='.repeat(60));
-    process.exit(1);
+    console.warn('⚠️ GEMMA_ENDPOINT env var is not set. Defaulting to:', GEMMA_ENDPOINT);
   }
 }
 
