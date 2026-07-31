@@ -14,8 +14,8 @@ const path = require('path');
 // Load environment variables FIRST
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-// SECURITY: JWT secret MUST be provided via environment variable in production
-const JWT_SECRET = process.env.JWT_SECRET;
+// SECURITY: JWT secret MUST be provided via environment variable in production (fallback only allowed during testing)
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'test-jwt-secret-key-at-least-32-chars-long' : undefined);
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
 
 // SECURITY: JWT secret MUST be provided via environment variable. No fallback allowed.

@@ -11,6 +11,8 @@ export interface Member {
   familyId?: string;
   joinedAt?: string;
   createdAt: string;
+  skills?: string[];
+  interests?: string[];
 }
 
 export enum FundType {
@@ -35,6 +37,7 @@ export interface Donation {
   notes?: string;
   enteredBy: string;
   timestamp: string;
+  donation_date?: string;
 }
 
 export interface ChurchSettings {

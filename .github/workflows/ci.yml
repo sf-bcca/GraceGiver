@@ -51,6 +51,10 @@ jobs:
     name: Backend Unit Tests
     runs-on: ubuntu-latest
 
+    env:
+      NODE_ENV: test
+      JWT_SECRET: test-jwt-secret-key-at-least-32-chars-long
+
     defaults:
       run:
         working-directory: ./server

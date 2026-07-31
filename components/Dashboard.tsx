@@ -34,7 +34,7 @@ interface DashboardProps {
   members: Member[];
   donations: Donation[];
   churchSettings: ChurchSettings;
-  summary: {
+  summary?: {
     totalDonations: number;
     donationCount: number;
     avgDonation: number;
@@ -55,8 +55,27 @@ const Dashboard: React.FC<DashboardProps> = ({
   members,
   donations,
   churchSettings,
-  summary,
+  summary: propSummary,
 }) => {
+  const summary = propSummary || (() => {
+    const totalDonations = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+    const donationCount = donations.length;
+    const avgDonation = donationCount > 0 ? totalDonations / donationCount : 0;
+    const uniqueDonors = new Set(donations.map((d) => d.memberId)).size;
+    return {
+      totalDonations,
+      donationCount,
+      avgDonation,
+      donorCount: uniqueDonors,
+      totalMembers: members.length,
+      newMembersThisWeek: 0,
+      currentMonthDonations: totalDonations,
+      lastMonthDonations: 0,
+      avgRecent: avgDonation,
+      avgPrevious: 0,
+      fundDistribution: undefined,
+    };
+  })();
   const [aiInsight, setAiInsight] = useState<AIInsightData | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const [atRiskDonors, setAtRiskDonors] = useState<any[]>([]);

@@ -32,17 +32,19 @@ function mapMember(row: any) {
   if (!row) return null;
   return {
     id: row.id,
-    firstName: row.first_name,
-    lastName: row.last_name,
+    firstName: row.first_name || row.firstName,
+    lastName: row.last_name || row.lastName,
     email: row.email,
     telephone: row.telephone,
     address: row.address,
     city: row.city,
     state: row.state,
     zip: row.zip,
-    familyId: row.family_id,
-    joinedAt: row.joined_at,
-    createdAt: row.created_at,
+    familyId: row.family_id || row.familyId,
+    joinedAt: row.joined_at || row.joinedAt,
+    createdAt: row.created_at || row.createdAt,
+    skills: row.skills || [],
+    interests: row.interests || [],
   };
 }
 
@@ -280,7 +282,8 @@ export async function fetchSelfProfile() {
   const response = await fetch(`${API_URL}/api/self/profile`, {
     headers: getAuthHeaders(),
   });
-  return handleResponse(response);
+  const data = await handleResponse(response);
+  return mapMember(data);
 }
 
 export async function fetchSelfDonations(page = 1, limit = 50) {
