@@ -36,7 +36,7 @@ test.describe('Member Registration Flow', () => {
     await page.getByRole('button', { name: /create account/i }).click();
     
     // Should be redirected to Member Portal
-    await expect(page.getByText(/member portal/i).or(page.getByRole('heading', { name: /welcome/i }))).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/member portal/i).or(page.getByRole('heading', { name: /welcome/i })).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('should match existing member by email', async ({ page }) => {
@@ -51,7 +51,7 @@ test.describe('Member Registration Flow', () => {
     
     // Check for either success or the specific "already registered" error
     const error = page.getByText(/account with this email/i).or(page.getByText(/already exists/i));
-    const dashboard = page.getByText(/member portal/i).or(page.getByRole('heading', { name: /welcome/i }));
+    const dashboard = page.getByText(/member portal/i).or(page.getByRole('heading', { name: /welcome/i })).first();
     
     await expect(error.or(dashboard)).toBeVisible({ timeout: 15000 });
   });
