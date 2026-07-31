@@ -82,7 +82,6 @@ jobs:
           tags: ${{ steps.meta-app.outputs.tags }}
           labels: ${{ steps.meta-app.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha
           platforms: linux/amd64
 
       - name: Build and push API image
@@ -94,5 +93,4 @@ jobs:
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha
           platforms: linux/amd64
