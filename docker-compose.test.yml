@@ -79,6 +79,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
+      args:
+        VITE_API_URL: http://localhost:8086
     container_name: gracegiver-app-test
     restart: "no"
     ports:
