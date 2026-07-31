@@ -29,8 +29,8 @@ test.describe('Member Registration Flow', () => {
     await page.getByLabel(/first name/i).fill('Test');
     await page.getByLabel(/last name/i).fill('User');
     await page.getByLabel(/email address/i).fill(randomEmail);
-    await page.locator('input[type="password"]').first().fill('SecurePass123!');
-    await page.locator('input[type="password"]').last().fill('SecurePass123!');
+    await page.locator('input[type="password"]').first().fill('SecurePass123!abcd');
+    await page.locator('input[type="password"]').last().fill('SecurePass123!abcd');
     
     // Submit registration
     await page.getByRole('button', { name: /create account/i }).click();
@@ -44,8 +44,8 @@ test.describe('Member Registration Flow', () => {
     await page.getByLabel(/first name/i).fill('Lock');
     await page.getByLabel(/last name/i).fill('TestMember');
     await page.getByLabel(/email address/i).fill('viewertest@example.com');
-    await page.locator('input[type="password"]').first().fill('SecurePass123!');
-    await page.locator('input[type="password"]').last().fill('SecurePass123!');
+    await page.locator('input[type="password"]').first().fill('SecurePass123!abcd');
+    await page.locator('input[type="password"]').last().fill('SecurePass123!abcd');
     
     await page.getByRole('button', { name: /create account/i }).click();
     
