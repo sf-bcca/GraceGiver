@@ -60,11 +60,11 @@ jobs:
             # Login to GHCR (required if repo is private)
             echo "$GH_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Pull new images
-            docker-compose pull
+            # Pull latest git commit and rebuild containers
+            git pull origin main || git pull
 
-            # Restart containers (zero-downtime if possible, but recreating to ensure new image)
-            docker-compose up -d --remove-orphans
+            # Rebuild and restart containers
+            docker-compose up -d --build --remove-orphans
 
             # Prune old images to save space
             docker image prune -f
