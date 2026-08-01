@@ -39,7 +39,6 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
   const [loadingNarrative, setLoadingNarrative] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState(new Date().getFullYear().toString());
-  const [activeProvider, setActiveProvider] = useState<"server">("server");
 
   useEffect(() => {
     let cancelled = false;
@@ -189,9 +188,6 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
                     Impact Summary
                   </h3>
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold bg-white text-slate-500 px-1.5 py-0.5 rounded border border-amber-100">
-                      SERVER
-                    </span>
                     <button 
                       onClick={() => fetchNarrative()}
                       disabled={loadingNarrative}
