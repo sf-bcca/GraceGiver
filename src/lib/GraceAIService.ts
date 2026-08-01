@@ -1,4 +1,4 @@
-import { graceWebGPUEngine, WebGPUEngineState, checkAvailability, isModelCached } from "./GraceWebGPUEngine";
+import { WebGPUEngineState } from "./GraceWebGPUEngine";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -14,7 +14,7 @@ export interface AIInsightData {
   stewardshipGrowth: number;
   recommendedFocus: string[];
   isClientGenerated: boolean;
-  provider?: "webgpu" | "server";
+  provider?: "server";
 }
 
 export interface MemberNarrativeResult {
@@ -27,44 +27,27 @@ export interface MemberNarrativeResult {
   mostRecentDonation?: string;
   topFunds: Array<{ fund: string; total: number }>;
   isClientGenerated: boolean;
-  provider?: "webgpu" | "server";
+  provider?: "server";
 }
-
-function escapePrompt(value: string): string {
-  return value.replace(/[\\`${}]/g, '\\$&');
-}
-
-type AIProvider = "webgpu" | "server";
 
 class GraceAIService {
-  private provider: AIProvider = "server";
-  private initialized = false;
-
   async initialize(): Promise<void> {
-    if (this.initialized) return;
-    
-    // Server AI (OpenRouter) is the primary authoritative provider.
-    // WebGPU in-browser inference is only selected if the engine is explicitly loaded & ready.
-    const engineState = graceWebGPUEngine.getState();
-    if (engineState.isReady && engineState.modelLoaded && !engineState.errorMessage) {
-      this.provider = "webgpu";
-    } else {
-      this.provider = "server";
-    }
-    
-    this.initialized = true;
+    // Server AI via OpenRouter is the authoritative AI provider.
   }
 
-  setProvider(provider: AIProvider): void {
-    this.provider = provider;
-  }
-
-  getProvider(): AIProvider {
-    return this.provider;
+  getProvider(): "server" {
+    return "server";
   }
 
   getState(): WebGPUEngineState {
-    return graceWebGPUEngine.getState();
+    return {
+      isReady: true,
+      modelLoaded: false,
+      downloading: false,
+      downloadProgress: null,
+      errorMessage: null,
+      isAvailable: false,
+    };
   }
 
   async generateInsight(
@@ -72,19 +55,7 @@ class GraceAIService {
     memberName: string,
     options: AIGenerationOptions = {},
   ): Promise<AIInsightData> {
-    await this.initialize();
-
-    if (this.provider === "webgpu") {
-      try {
-        return await this.generateInsightWebGPU(donationData, memberName, options);
-      } catch (err) {
-        console.warn("WebGPU insight generation failed, falling back to server:", err);
-        this.provider = "server";
-        return await this.generateInsightServer(donationData, memberName, options);
-      }
-    }
-
-    return await this.generateInsightServer(donationData, memberName, options);
+    return this.generateInsightServer(donationData, memberName, options);
   }
 
   async generateMemberNarrative(
@@ -92,173 +63,7 @@ class GraceAIService {
     year: string,
     options: AIGenerationOptions = {},
   ): Promise<MemberNarrativeResult> {
-    await this.initialize();
-
-    if (this.provider === "webgpu") {
-      try {
-        return await this.generateNarrativeWebGPU(memberId, year, options);
-      } catch (err) {
-        console.warn("WebGPU narrative generation failed, falling back to server:", err);
-        this.provider = "server";
-        return await this.generateNarrativeServer(memberId, year, options);
-      }
-    }
-
-    return await this.generateNarrativeServer(memberId, year, options);
-  }
-
-  private async generateInsightWebGPU(
-    donationData: Array<{ date: string; amount: number; fund?: string }>,
-    memberName: string,
-    options: AIGenerationOptions = {},
-  ): Promise<AIInsightData> {
-    const prompt = `You are a pastoral stewardship advisor. Analyze this parishioner's giving pattern and provide insights for their stewardship journey.
-
-Member: ${escapePrompt(memberName)}
-
-Giving History:
-${donationData.map(d => `- ${d.date}: $${d.amount.toFixed(2)}${d.fund ? ` (${escapePrompt(d.fund)})` : ""}`).join("\n")}
-
-Provide a JSON response with these fields (no markdown, no code blocks):
-{
-  "narrative": "A warm, pastoral paragraph about their stewardship journey and growth.",
-  "sentiment": "positive|neutral|concerned|growing",
-  "stewardshipGrowth": 0.85,
-  "recommendedFocus": ["focus-area-1", "focus-area-2"]
-}`;
-
-    let fullResponse = "";
-    await graceWebGPUEngine.generate(prompt, (chunk) => {
-      options.onChunk?.(chunk);
-      fullResponse += chunk;
-    }, options.maxTokens || 512);
-
-    // Parse JSON from the response
-    const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        ...parsed,
-        isClientGenerated: true,
-        provider: "webgpu",
-      };
-    }
-
-    throw new Error("Invalid model output");
-  }
-
-  private async generateNarrativeWebGPU(
-    memberId: string,
-    year: string,
-    options: AIGenerationOptions = {},
-  ): Promise<MemberNarrativeResult> {
-    const data = await this.fetchStatementData(memberId, year);
-    
-    const effectiveMemberName = data?.memberName || "Unknown";
-    const effectiveTotalGiving = data?.totalGiving ?? 0;
-    const effectiveGiftCount = data?.giftCount ?? 0;
-    const effectiveFirstDonation = data?.firstDonation;
-    const effectiveMostRecentDonation = data?.mostRecentDonation;
-    const effectiveTopFunds: typeof data["topFunds"] = data?.topFunds || [];
-
-    if (!data) {
-      console.warn("No server data available for narrative - using local generation with placeholder values");
-    }
-
-    const prompt = `You are a pastoral stewardship advisor. Write a warm, personalized narrative for this parishioner's ${year} annual giving statement.
-
-Member: ${escapePrompt(effectiveMemberName)}
-Total Giving: $${effectiveTotalGiving.toFixed(2)}
-Number of Gifts: ${effectiveGiftCount}
-First Gift: ${effectiveFirstDonation || "Unknown"}
-Most Recent Gift: ${effectiveMostRecentDonation || "Unknown"}
-
-Fund Breakdown:
-${effectiveTopFunds.map(f => `- ${escapePrompt(f.fund)}: $${f.total.toFixed(2)}`).join("\n")}
-
-Write a heartfelt, pastoral narrative (3-4 paragraphs) that:
-1. Acknowledges their specific giving pattern and amounts
-2. Connects their gifts to the church's mission
-3. Expresses genuine gratitude
-4. Has a warm, personal tone (not generic)
-
-Respond with ONLY the narrative text as plain paragraphs.`;
-
-    let fullResponse = "";
-    await graceWebGPUEngine.generate(prompt, (chunk) => {
-      options.onChunk?.(chunk);
-      fullResponse += chunk;
-    }, 768);
-
-    return {
-      memberName: effectiveMemberName,
-      year,
-      totalGiving: effectiveTotalGiving,
-      giftCount: effectiveGiftCount,
-      firstDonation: effectiveFirstDonation,
-      mostRecentDonation: effectiveMostRecentDonation,
-      topFunds: effectiveTopFunds,
-      narrative: fullResponse || "(Narrative generation did not produce output)",
-      isClientGenerated: true,
-      provider: "webgpu",
-    };
-  }
-
-  private async fetchStatementData(memberId: string, year: string) {
-    try {
-      const token = localStorage.getItem("token");
-      const base = API_URL.startsWith("http") ? API_URL : `${window.location.origin}${API_URL}`;
-      const url = new URL(`${base}/api/reports/member-statement/${encodeURIComponent(memberId)}`);
-      url.searchParams.set("year", year);
-      const response = await fetch(url.toString(), {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (!response.ok) throw new Error(`Failed to fetch data (${response.status})`);
-      
-      const raw = await response.json();
-      
-      const memberName = raw.member ? `${raw.member.firstName} ${raw.member.lastName}` : "Unknown";
-      const totalGiving = typeof raw.summary?.totalAmount === "number" ? raw.summary.totalAmount : 0;
-      const giftCount = Array.isArray(raw.donations) ? raw.donations.length : 0;
-
-      const sortedDonations = Array.isArray(raw.donations)
-        ? [...raw.donations].sort((a, b) => {
-            const da = new Date(a.date).getTime();
-            const db = new Date(b.date).getTime();
-            if (isNaN(da)) return 1;
-            if (isNaN(db)) return -1;
-            return da - db;
-          })
-        : [];
-      const firstDonation = sortedDonations[0]?.date;
-      const mostRecentDonation = sortedDonations[sortedDonations.length - 1]?.date;
-
-      const fundMap: Record<string, number> = {};
-      if (Array.isArray(raw.donations)) {
-        for (const d of raw.donations) {
-          const fund = d.fund || "General";
-          const amountVal = Number(d.amount);
-          fundMap[fund] = (fundMap[fund] || 0) + (Number.isFinite(amountVal) ? amountVal : 0);
-        }
-      }
-      const topFunds = Object.entries(fundMap)
-        .map(([fund, total]) => ({ fund, total }))
-        .sort((a, b) => b.total - a.total);
-
-      return {
-        memberName,
-        year,
-        totalGiving,
-        giftCount,
-        firstDonation,
-        mostRecentDonation,
-        topFunds,
-      };
-    } catch (err) {
-      console.warn("Fetch statement data failed:", err);
-      return null;
-    }
+    return this.generateNarrativeServer(memberId, year, options);
   }
 
   private async generateInsightServer(
@@ -270,9 +75,9 @@ Respond with ONLY the narrative text as plain paragraphs.`;
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/ai/stewardship-insight`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : "",
+          Authorization: token ? `Bearer ${token}` : "",
         },
         body: JSON.stringify({
           donorName: memberName,
@@ -286,7 +91,6 @@ Respond with ONLY the narrative text as plain paragraphs.`;
 
       const data = await response.json();
 
-      // Server returns { insight: string } or structured fields — normalize to AIInsightData
       const narrative = typeof data.insight === "string" ? data.insight : null;
       return {
         narrative: narrative || data.narrative || "",
@@ -297,8 +101,8 @@ Respond with ONLY the narrative text as plain paragraphs.`;
         provider: "server",
       };
     } catch (err) {
-      console.warn("Server AI fallback also failed", err);
-      return this.buildFallbackInsight(donationData, memberName, false, "server");
+      console.warn("Server AI fallback failed", err);
+      return this.buildFallbackInsight(donationData, memberName);
     }
   }
 
@@ -315,7 +119,7 @@ Respond with ONLY the narrative text as plain paragraphs.`;
       const response = await fetch(url.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to generate narrative");
       }
@@ -334,8 +138,6 @@ Respond with ONLY the narrative text as plain paragraphs.`;
   private buildFallbackInsight(
     donationData: Array<{ date: string; amount: number; fund?: string }>,
     memberName: string,
-    isClientGenerated: boolean,
-    provider: "webgpu" | "server" = "server",
   ): AIInsightData {
     const totalGiving = donationData.reduce((sum, d) => sum + d.amount, 0);
     const giftCount = donationData.length;
@@ -345,15 +147,13 @@ Respond with ONLY the narrative text as plain paragraphs.`;
       sentiment: totalGiving > 1000 ? "growing" : "neutral",
       stewardshipGrowth: giftCount > 5 ? Math.round((60 + Math.random() * 35) * 10) / 10 : Math.round((40 + Math.random() * 15) * 10) / 10,
       recommendedFocus: ["expanding-giving-horizons", "spiritual-connection-to-giving"],
-      isClientGenerated,
-      provider,
+      isClientGenerated: false,
+      provider: "server",
     };
   }
 
-  // Re-initialize provider (for when user loads a different member)
   async reset(): Promise<void> {
-    await graceWebGPUEngine.reset();
-    this.initialized = false;
+    // No-op for server-only AI pipeline
   }
 }
 
