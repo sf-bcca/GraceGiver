@@ -141,7 +141,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       console.error("AI Insight Error:", error);
       setAiInsight({
         narrative: error.name === "AbortError"
-          ? "Request timed out. The local inference server might be under heavy load."
+          ? "Request timed out. The backend AI service might be taking longer than expected."
           : "Unable to connect to the AI service. Please ensure the backend is running.",
         sentiment: "neutral",
         stewardshipGrowth: 0,
