@@ -39,7 +39,7 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
   const [loadingNarrative, setLoadingNarrative] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState(new Date().getFullYear().toString());
-  const [activeProvider, setActiveProvider] = useState<"webgpu" | "server">(() => graceAIService.getProvider());
+  const [activeProvider, setActiveProvider] = useState<"server">("server");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,11 +47,7 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
       setError(null);
       try {
         await graceAIService.reset();
-        
-        // Re-evaluate provider after reset since initialized flag is cleared.
-        // initialize() checks WebGPU availability synchronously before each use.
         await graceAIService.initialize();
-        setActiveProvider(graceAIService.getProvider());
         
         const result = await api.fetchMemberStatement(memberId, year);
         setData(result);
@@ -71,7 +67,6 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
     setLoadingNarrative(true);
     try {
       const result = await graceAIService.generateMemberNarrative(memberId, year);
-      setActiveProvider(graceAIService.getProvider());
       setNarrative(result.narrative);
     } catch (err) {
       console.error('Failed to generate narrative', err);
@@ -177,11 +172,9 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
                     Impact Summary
                   </h3>
                   <div className="flex items-center gap-2">
-                    {activeProvider && (
-                      <span className="text-[9px] font-bold bg-white text-slate-500 px-1.5 py-0.5 rounded border border-amber-100">
-                        {activeProvider === 'webgpu' ? '🔥 WEBGPU' : 'SERVER'}
-                      </span>
-                    )}
+                    <span className="text-[9px] font-bold bg-white text-slate-500 px-1.5 py-0.5 rounded border border-amber-100">
+                      SERVER
+                    </span>
                     <button 
                       onClick={fetchNarrative}
                       disabled={loadingNarrative}
@@ -199,7 +192,7 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
                     <div className="h-2 w-2 bg-amber-400 rounded-full animate-bounce"></div>
                     <div className="h-2 w-2 bg-amber-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
                     <span className="text-xs font-medium italic">
-                      {activeProvider === 'webgpu' ? 'Local model is reflecting on their generosity...' : 'Grace AI is reflecting on their generosity...'}
+                      Grace AI is reflecting on their generosity...
                     </span>
                   </div>
                 ) : (

@@ -28,7 +28,6 @@ import {
 import CustomTooltip from "./CustomTooltip";
 
 import { graceAIService, AIInsightData } from "../src/lib/GraceAIService";
-import type { WebGPUEngineState } from "../src/lib/GraceWebGPUEngine";
 
 interface DashboardProps {
   members: Member[];
@@ -80,8 +79,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [loadingAi, setLoadingAi] = useState(false);
   const [atRiskDonors, setAtRiskDonors] = useState<any[]>([]);
   const [loadingForecast, setLoadingForecast] = useState(false);
-  const [engineState, setEngineState] = useState<WebGPUEngineState>(() => graceAIService.getState());
-  const [activeProvider, setActiveProvider] = useState<"webgpu" | "server">(() => graceAIService.getProvider());
 
   useEffect(() => {
     const fetchForecast = async () => {
@@ -107,26 +104,6 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     };
     fetchForecast();
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const latest = graceAIService.getState();
-      setEngineState(prev => {
-        if (
-          prev.isReady === latest.isReady &&
-          prev.modelLoaded === latest.modelLoaded &&
-          prev.downloading === latest.downloading &&
-          prev.downloadProgress === latest.downloadProgress &&
-          prev.errorMessage === latest.errorMessage &&
-          prev.isAvailable === latest.isAvailable
-        ) {
-          return prev;
-        }
-        return latest;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
   }, []);
 
 
@@ -159,7 +136,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       clearTimeout(timeoutId);
       setAiInsight(result as AIInsightData);
-      setActiveProvider(graceAIService.getProvider());
     } catch (error: any) {
       clearTimeout(timeoutId);
       console.error("AI Insight Error:", error);
@@ -313,16 +289,9 @@ const Dashboard: React.FC<DashboardProps> = ({
               <span>AI Stewardship Insight</span>
             </div>
             <div className="flex items-center gap-2">
-              {aiInsight.isClientGenerated && (
-                <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
-                  CLIENT INFERRED
-                </span>
-              )}
-              {activeProvider && (
-                <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
-                  {activeProvider === 'webgpu' ? '🔥 WEBGPU' : 'SERVER'}
-                </span>
-              )}
+              <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
+                SERVER AI
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-3 mb-4 text-xs">
