@@ -235,10 +235,10 @@ RESTful endpoints provided by `server/index.js`. For complete documentation, see
   - `POST /api/users/change-password`: Change own password.
   - `GET /api/auth/password-policy`: Get password requirements.
 - **Members**: `GET /api/members` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
-- **Self-Service** (viewer+): *Note: these endpoints are planned but not yet implemented – see AGENTS.md issue tracker.*
-  - *(Pending)* `/api/self/profile` — Get own member record.
-  - *(Pending)* `/api/self/donations` — Get own donation history.
-  - *(Pending)* `/api/self/statements` — Get available statement years.
+|- **Self-Service** (viewer+): Endpoints for users to access their own linked member data:
+  - `GET /api/self/profile` — Get own member record (returns firstName, lastName, email, skills, interests, etc.).
+  - `GET /api/self/donations` — Get own donation history (paginated with `data` + `pagination`).
+  - `GET /api/self/statements` — Get years with donation records (returns array of integers).
 - **Donations**: `GET /api/donations` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
 - **User Management** (admin+ only):
   - `GET /api/users`: List all users.
