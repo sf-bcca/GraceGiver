@@ -135,10 +135,17 @@ const cleanNarrative = (text) => {
     cleaned = cleaned.slice(1, -1).trim();
   }
   
-  // Strip introductory meta phrases like "Here's a narrative...", "Certainly...", "Sure, ..."
-  cleaned = cleaned.replace(/^(?:Here's|Here is|Certainly|Sure|Below is|This is)[^:\n]*:\s*/i, '');
+  // Drop leading conversational preamble paragraphs
+  const paragraphs = cleaned.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  if (paragraphs.length > 1 && /^(?:Here's|Here is|Certainly|Sure|Below is|This is|Draft|Narrative|Statement)/i.test(paragraphs[0])) {
+    paragraphs.shift();
+    cleaned = paragraphs.join('\n\n');
+  }
+
+  // Strip single-line meta intro phrases ending with colon
+  cleaned = cleaned.replace(/^(?:Here's|Here is|Certainly|Sure|Below is|This is|Draft|Narrative)[^:\n]*:\s*/i, '');
   
-  // Re-strip wrapping quotes if present after removing meta phrase
+  // Re-strip wrapping quotes
   if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
     cleaned = cleaned.slice(1, -1).trim();
   }
