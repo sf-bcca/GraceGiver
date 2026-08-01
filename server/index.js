@@ -223,7 +223,7 @@ app.post('/api/login', (req, res, next) =>
   const { username, password } = req.body;
   try {
     const result = await pool.query(
-      "SELECT * FROM users WHERE username = $1 OR email = $1",
+      "SELECT * FROM users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)",
       [username],
     );
     if (result.rows.length === 0) {
@@ -253,7 +253,7 @@ app.post('/api/login', (req, res, next) =>
 
       if (newAttempts >= maxAttempts) {
         await pool.query(
-          "UPDATE users SET failed_login_attempts = $1, locked_until = NOW() + INTERVAL '$2 minutes' WHERE id = $3",
+          "UPDATE users SET failed_login_attempts = $1, locked_until = NOW() + ($2 * INTERVAL '1 minute') WHERE id = $3",
           [newAttempts, lockoutMinutes, user.id],
         );
         return res.status(423).json({
