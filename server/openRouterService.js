@@ -6,7 +6,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
  */
 const config = {
   endpoint: process.env.OPENROUTER_API_ENDPOINT || 'https://openrouter.ai/api/v1/chat/completions',
-  model: process.env.OPENROUTER_MODEL || 'google/gemma-3-27b-it:free',
+  model: process.env.OPENROUTER_MODEL || 'google/gemma-3-27b-it',
   timeoutSeconds: parseInt(process.env.AI_TIMEOUT, 10) || 20,
 };
 

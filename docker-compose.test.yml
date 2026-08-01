@@ -65,7 +65,7 @@ services:
       
       # AI endpoint (OpenRouter — mocked in tests)
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemma-3-27b-it:free}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemma-3-27b-it}
       
       # Node environment
       NODE_ENV: test
