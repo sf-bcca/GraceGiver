@@ -1032,7 +1032,7 @@ app.get(
   authenticateToken,
   requireScopedPermission("donations:read", "donation"),
   async (req, res) => {
-    const { page = 1, limit = 50 } = req.query;
+    const { page = 1, limit = 50, memberId, donorFilter, fund, startDate, endDate } = req.query;
     const offset = (page - 1) * limit;
 
     try {
@@ -1044,6 +1044,29 @@ app.get(
       if (req.scopedToOwn && req.user.memberId) {
         whereClauses.push(`member_id = $${params.length + 1}`);
         params.push(req.user.memberId);
+      } else if (memberId === "guest" || memberId === "null" || donorFilter === "guest") {
+        whereClauses.push(`member_id IS NULL`);
+      } else if (donorFilter === "members") {
+        whereClauses.push(`member_id IS NOT NULL`);
+      } else if (memberId) {
+        whereClauses.push(`member_id = $${params.length + 1}`);
+        params.push(memberId);
+      }
+
+      if (fund) {
+        whereClauses.push(`fund = $${params.length + 1}`);
+        params.push(fund);
+      }
+
+      if (startDate) {
+        whereClauses.push(`donation_date >= $${params.length + 1}`);
+        params.push(startDate);
+      }
+
+      if (endDate) {
+        const formattedEndDate = endDate.includes("T") ? endDate : `${endDate}T23:59:59.999Z`;
+        whereClauses.push(`donation_date <= $${params.length + 1}`);
+        params.push(formattedEndDate);
       }
 
       if (whereClauses.length > 0) {
@@ -1259,8 +1282,8 @@ app.post(
   async (req, res) => {
     const { memberId, amount, fund, notes, donationDate, date } = req.body;
     // SECURITY: Donor-supplied input — no enteredBy or other internal fields allowed
-    if (!memberId || !amount) {
-      return res.status(400).json({ error: "VALIDATION_FAILED", details: ["memberId and amount are required"] });
+    if (amount === undefined || amount === null) {
+      return res.status(400).json({ error: "VALIDATION_FAILED", details: ["amount is required"] });
     }
     if (typeof amount !== "number" || amount <= 0) {
       return res.status(400).json({ error: "INVALID_AMOUNT", details: ["Amount must be a positive number"] });
@@ -1268,11 +1291,12 @@ app.post(
     // Enforce max 2 decimal places for currency
     const numericAmount = parseFloat(amount.toFixed(2));
     const safeFund = (fund && typeof fund === "string" && fund.trim()) ? fund.trim() : "General";
+    const dbMemberId = (!memberId || memberId === "guest" || memberId === "null") ? null : memberId;
     try {
       const result = await pool.query(
         "INSERT INTO donations (member_id, amount, fund, notes, entered_by, donation_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         [
-          memberId,
+          dbMemberId,
           numericAmount,
           safeFund,
           notes || null,

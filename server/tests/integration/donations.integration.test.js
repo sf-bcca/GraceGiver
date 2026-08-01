@@ -70,6 +70,42 @@ describe('Donations API', () => {
       expect(Array.isArray(res.body.data)).toBe(true);
     });
 
+    it('should support donorFilter=guest and memberId=guest filter', async () => {
+      // First create a guest donation so we have guaranteed test data
+      const guestDonation = await authorizedRequest(adminToken)
+        .post('/api/donations')
+        .send({
+          amount: 50,
+          fund: 'General Fund',
+          notes: 'Test guest donation',
+          donationDate: new Date().toISOString()
+        });
+      
+      const res1 = await authorizedRequest(adminToken).get('/api/donations?donorFilter=guest');
+      expect(res1.status).toBe(200);
+      expect(Array.isArray(res1.body.data)).toBe(true);
+      expect(res1.body.data.length).toBeGreaterThan(0);
+      expect(res1.body.data.every((d) => d.memberId === null)).toBe(true);
+
+      const res2 = await authorizedRequest(adminToken).get('/api/donations?memberId=guest');
+      expect(res2.status).toBe(200);
+      expect(Array.isArray(res2.body.data)).toBe(true);
+      expect(res2.body.data.length).toBeGreaterThan(0);
+      expect(res2.body.data.every((d) => d.memberId === null)).toBe(true);
+
+      // Clean up test guest donation
+      if (guestDonation.body?.id) {
+        await authorizedRequest(adminToken).delete(`/api/donations/${guestDonation.body.id}`);
+      }
+    });
+
+    it('should support donorFilter=members filter', async () => {
+      const res = await authorizedRequest(adminToken).get('/api/donations?donorFilter=members');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.every((d) => d.memberId !== null)).toBe(true);
+    });
+
     it('should require authentication', async () => {
       const res = await api().get('/api/donations');
 

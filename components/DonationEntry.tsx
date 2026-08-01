@@ -36,6 +36,7 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [donorFilter, setDonorFilter] = useState<'all' | 'guest' | 'members'>('all');
   // Cache for members resolved from history to avoid repeated fetches
   const [resolvedMembers, setResolvedMembers] = useState<Record<string, Member>>({});
 
@@ -82,7 +83,8 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
   const loadHistory = async () => {
     setLoadingHistory(true);
     try {
-      const result = await fetchDonations(page, 10);
+      const filters = donorFilter !== 'all' ? { donorFilter } : undefined;
+      const result = await fetchDonations(page, 10, filters);
       setHistoryDonations(result.data);
       setTotalPages(result.pagination.totalPages);
 
@@ -114,7 +116,12 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
 
   useEffect(() => {
     loadHistory();
-  }, [page]);
+  }, [page, donorFilter]);
+
+  const handleDonorFilterChange = (filter: 'all' | 'guest' | 'members') => {
+    setDonorFilter(filter);
+    setPage(1);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -416,17 +423,44 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
       </div>
 
       <div className="xl:col-span-2 space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <History size={20} className="text-slate-400" />
-            Transaction History
-          </h3>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <History size={20} className="text-slate-400" />
+              Transaction History
+            </h3>
+            
+            <div className="inline-flex p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => handleDonorFilterChange('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${donorFilter === 'all' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                All Donors
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDonorFilterChange('members')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${donorFilter === 'members' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                Members
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDonorFilterChange('guest')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${donorFilter === 'guest' ? 'bg-indigo-600 text-white shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                ✨ Guests / Non-Members
+              </button>
+            </div>
+          </div>
+
           {totalPages > 0 && (
             <div className="flex gap-2">
                <button
                   disabled={page === 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50"
+                  className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-slate-50 transition-colors"
                >
                  Prev
                </button>
@@ -434,9 +468,9 @@ const DonationEntry: React.FC<DonationEntryProps> = ({ onAddDonation, members: i
                  Page {page} of {totalPages}
                </span>
                <button
-                  disabled={page === totalPages}
+                  disabled={page === totalPages || totalPages === 0}
                   onClick={() => setPage(p => p + 1)}
-                  className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50"
+                  className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-slate-50 transition-colors"
                >
                  Next
                </button>

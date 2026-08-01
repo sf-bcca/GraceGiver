@@ -224,11 +224,21 @@ export async function downloadMemberStatement(id: string, year: string) {
   return response.blob();
 }
 
-export async function fetchDonations(page = 1, limit = 50) {
+export async function fetchDonations(
+  page = 1,
+  limit = 50,
+  filters?: { memberId?: string; donorFilter?: string; fund?: string; startDate?: string; endDate?: string }
+) {
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
+  if (filters?.memberId) params.append("memberId", filters.memberId);
+  if (filters?.donorFilter) params.append("donorFilter", filters.donorFilter);
+  if (filters?.fund) params.append("fund", filters.fund);
+  if (filters?.startDate) params.append("startDate", filters.startDate);
+  if (filters?.endDate) params.append("endDate", filters.endDate);
+
   const response = await fetch(`${API_URL}/api/donations?${params}`, {
     headers: getAuthHeaders(),
   });
