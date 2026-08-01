@@ -15,15 +15,18 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Service Worker for PWA support
+// Unregister any legacy Service Worker and clear PWA cache to prevent stale assets
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('SW registered: ', registration);
-      })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
-      });
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
+if ('caches' in window) {
+  caches.keys().then((names) => {
+    for (const name of names) {
+      caches.delete(name);
+    }
   });
 }
