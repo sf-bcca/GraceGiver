@@ -43,18 +43,20 @@ class GraceAIService {
   async initialize(): Promise<void> {
     if (this.initialized) return;
     
-    const isAvailable = await graceWebGPUEngine.getState().isAvailable ?? 
-      await checkAvailability();
-    const isCached = isAvailable ? await isModelCached() : false;
-    const isReady = graceWebGPUEngine.getState().isReady;
-    
-    if (isAvailable && (isCached || isReady) && !graceWebGPUEngine.getState().errorMessage) {
+    // Server AI (OpenRouter) is the primary authoritative provider.
+    // WebGPU in-browser inference is only selected if the engine is explicitly loaded & ready.
+    const engineState = graceWebGPUEngine.getState();
+    if (engineState.isReady && engineState.modelLoaded && !engineState.errorMessage) {
       this.provider = "webgpu";
     } else {
       this.provider = "server";
     }
     
     this.initialized = true;
+  }
+
+  setProvider(provider: AIProvider): void {
+    this.provider = provider;
   }
 
   getProvider(): AIProvider {
