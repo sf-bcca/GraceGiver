@@ -124,6 +124,28 @@ Format the response as a clear, professional message.`;
   return result || 'Financial analysis is currently unavailable.';
 };
 
+/** Clean conversational preambles and meta-text from generated AI narrative. */
+const cleanNarrative = (text) => {
+  if (!text || typeof text !== 'string') return text;
+  
+  let cleaned = text.trim();
+  
+  // Remove wrapping quotes
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  
+  // Strip introductory meta phrases like "Here's a narrative...", "Certainly...", "Sure, ..."
+  cleaned = cleaned.replace(/^(?:Here's|Here is|Certainly|Sure|Below is|This is)[^:\n]*:\s*/i, '');
+  
+  // Re-strip wrapping quotes if present after removing meta phrase
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  return cleaned.trim();
+};
+
 /**
  * Generate personalized narrative for member annual statement — same contract as geminiService.generateMemberNarrative.
  */
@@ -139,7 +161,9 @@ const generateMemberNarrative = async (member, donations, year) => {
   const firstName = member?.firstName ?? 'a valued member';
   const lastName = member?.lastName ?? '';
 
-  const prompt = `Write a short, encouraging, and personalized narrative for a church member's annual contribution statement.
+  const systemPrompt = `You are a pastoral stewardship assistant writing official annual contribution statements. Output ONLY the clean pastoral narrative text itself. Never include introductory headers, conversational preambles, greetings to the developer, meta-commentary, markdown formatting, or quotes.`;
+
+  const prompt = `Write a short, encouraging narrative for a church member's annual contribution statement:
 
 Member Name: ${firstName} ${lastName}
 Year: ${year || new Date().getFullYear()}
@@ -149,13 +173,16 @@ Giving Breakdown:
 ${JSON.stringify(breakdown, null, 2)}
 
 Guidelines:
-- Tone: Grateful, spiritual and encouraging.
+- Tone: Grateful, pastoral and encouraging.
 - Length: 2-3 sentences max.
 - Mention specific funds they supported if significant.
-- Focus on the impact of their generosity.`;
+- Focus on the impact of their generosity.
+- CRITICAL: Output ONLY the thank-you narrative paragraph itself to be printed on the official statement. Never start with "Here is...", "Here's...", or any conversational introductory preamble.`;
 
-  const result = await generateAI(prompt);
-  return result || 'We appreciate your faithful support.';
+  const result = await generateAI(prompt, { systemPrompt });
+  const cleaned = cleanNarrative(result);
+  return cleaned || 'We appreciate your faithful support.';
 };
 
 module.exports = { getFinancialSummary, generateMemberNarrative, _setConfigForTest };
+
