@@ -42,33 +42,50 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
   const [activeProvider, setActiveProvider] = useState<"server">("server");
 
   useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
         await graceAIService.reset();
         await graceAIService.initialize();
-        
+
         const result = await api.fetchMemberStatement(memberId, year);
+        if (cancelled) return;
         setData(result);
-        
-        // Fetch narrative as well
-        fetchNarrative();
+
+        // Fetch narrative as well (single authoritative request)
+        await fetchNarrative(controller.signal);
       } catch (err: any) {
+        if (cancelled) return;
         setError(err.message || 'Failed to load statement');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchData();
+
+    // Abort any in-flight AI request when the effect re-runs or unmounts.
+    // React.StrictMode mounts->unmounts->remounts in dev, so this cancels the
+    // first invocation's narrative request and prevents a duplicate generation
+    // from overwriting (double AI call + double billing).
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [memberId, year]);
 
-  const fetchNarrative = async () => {
+  const fetchNarrative = async (signal?: AbortSignal) => {
     setLoadingNarrative(true);
     try {
-      const result = await graceAIService.generateMemberNarrative(memberId, year);
+      const result = await graceAIService.generateMemberNarrative(memberId, year, { signal });
+      if (signal?.aborted) return; // stale request - ignore
       setNarrative(result.narrative);
     } catch (err) {
+      // Ignore aborted requests (superseded effect run / year change)
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('Failed to generate narrative', err);
       setNarrative('Unable to load AI narrative at this time.');
     } finally {
@@ -176,7 +193,7 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
                       SERVER
                     </span>
                     <button 
-                      onClick={fetchNarrative}
+                      onClick={() => fetchNarrative()}
                       disabled={loadingNarrative}
                       className="p-1 text-amber-600 hover:bg-amber-200 rounded transition-colors disabled:opacity-50"
                       title="Regenerate Narrative"

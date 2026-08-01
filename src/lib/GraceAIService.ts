@@ -6,6 +6,7 @@ export interface AIGenerationOptions {
   onProgress?: (status: string) => void;
   onChunk?: (chunk: string) => void;
   maxTokens?: number;
+  signal?: AbortSignal;
 }
 
 export interface AIInsightData {
@@ -83,6 +84,7 @@ class GraceAIService {
           donorName: memberName,
           donations: donationData,
         }),
+        signal: _options.signal,
       });
 
       if (!response.ok) {
@@ -118,6 +120,7 @@ class GraceAIService {
       url.searchParams.set("year", year);
       const response = await fetch(url.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: _options.signal,
       });
 
       if (!response.ok) {
