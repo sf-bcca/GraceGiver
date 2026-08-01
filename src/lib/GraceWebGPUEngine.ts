@@ -187,3 +187,5 @@ class GraceWebGPUEngine {
 export const graceWebGPUEngine = new GraceWebGPUEngine();
 // Module-level exports for convenience:
 export const checkAvailability = GraceWebGPUEngine.checkAvailability;
+export const isModelCached = GraceWebGPUEngine.isModelCached;
+

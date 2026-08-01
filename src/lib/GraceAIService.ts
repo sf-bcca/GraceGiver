@@ -1,4 +1,4 @@
-import { graceWebGPUEngine, WebGPUEngineState, checkAvailability } from "./GraceWebGPUEngine";
+import { graceWebGPUEngine, WebGPUEngineState, checkAvailability, isModelCached } from "./GraceWebGPUEngine";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -43,10 +43,12 @@ class GraceAIService {
   async initialize(): Promise<void> {
     if (this.initialized) return;
     
-     const isAvailable = await graceWebGPUEngine.getState().isAvailable ?? 
-       await checkAvailability();
+    const isAvailable = await graceWebGPUEngine.getState().isAvailable ?? 
+      await checkAvailability();
+    const isCached = isAvailable ? await isModelCached() : false;
+    const isReady = graceWebGPUEngine.getState().isReady;
     
-    if (isAvailable && !graceWebGPUEngine.getState().errorMessage) {
+    if (isAvailable && (isCached || isReady) && !graceWebGPUEngine.getState().errorMessage) {
       this.provider = "webgpu";
     } else {
       this.provider = "server";
@@ -71,7 +73,13 @@ class GraceAIService {
     await this.initialize();
 
     if (this.provider === "webgpu") {
-      return await this.generateInsightWebGPU(donationData, memberName, options);
+      try {
+        return await this.generateInsightWebGPU(donationData, memberName, options);
+      } catch (err) {
+        console.warn("WebGPU insight generation failed, falling back to server:", err);
+        this.provider = "server";
+        return await this.generateInsightServer(donationData, memberName, options);
+      }
     }
 
     return await this.generateInsightServer(donationData, memberName, options);
@@ -102,8 +110,7 @@ class GraceAIService {
     memberName: string,
     options: AIGenerationOptions = {},
   ): Promise<AIInsightData> {
-    try {
-      const prompt = `You are a pastoral stewardship advisor. Analyze this parishioner's giving pattern and provide insights for their stewardship journey.
+    const prompt = `You are a pastoral stewardship advisor. Analyze this parishioner's giving pattern and provide insights for their stewardship journey.
 
 Member: ${escapePrompt(memberName)}
 
@@ -118,28 +125,24 @@ Provide a JSON response with these fields (no markdown, no code blocks):
   "recommendedFocus": ["focus-area-1", "focus-area-2"]
 }`;
 
-      let fullResponse = "";
-      await graceWebGPUEngine.generate(prompt, (chunk) => {
-        options.onChunk?.(chunk);
-        fullResponse += chunk;
-      }, options.maxTokens || 512);
+    let fullResponse = "";
+    await graceWebGPUEngine.generate(prompt, (chunk) => {
+      options.onChunk?.(chunk);
+      fullResponse += chunk;
+    }, options.maxTokens || 512);
 
-      // Parse JSON from the response
-      const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          ...parsed,
-          isClientGenerated: true,
-          provider: "webgpu",
-        };
-      }
-
-      throw new Error("Invalid model output");
-    } catch (err) {
-      console.warn("WebGPU insight generation failed, using fallback data", err);
-      return this.buildFallbackInsight(donationData, memberName, true, "webgpu");
+    // Parse JSON from the response
+    const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        ...parsed,
+        isClientGenerated: true,
+        provider: "webgpu",
+      };
     }
+
+    throw new Error("Invalid model output");
   }
 
   private async generateNarrativeWebGPU(
