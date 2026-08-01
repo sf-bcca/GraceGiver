@@ -1,7 +1,7 @@
 # Technology Stack
 
 ## Frontend
-- **Framework:** React 19 (Vite)
+- **Framework:** React 18 (Vite)
 - **Styling/UI:** Tailwind CSS & Lucide Icons
 - **State Management:** React Context (for Socket)
 - **Data Visualization:** Recharts

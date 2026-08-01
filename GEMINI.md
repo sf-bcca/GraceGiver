@@ -6,7 +6,7 @@ GraceGiver is a secure church management platform designed for donation tracking
 ## Architecture & Tech Stack
 
 ### Frontend
-*   **Framework:** React 19 (Vite)
+*   **Framework:** React 18 (Vite)
 *   **Language:** TypeScript
 *   **Styling:** CSS (likely Tailwind or standard CSS modules - check specific component usage)
 *   **Key Libraries:**

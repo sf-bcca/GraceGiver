@@ -1,13 +1,11 @@
-import { WebGPUEngineState } from "./GraceWebGPUEngine";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
-
 export interface AIGenerationOptions {
   onProgress?: (status: string) => void;
   onChunk?: (chunk: string) => void;
   maxTokens?: number;
   signal?: AbortSignal;
 }
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 export interface AIInsightData {
   narrative: string;
@@ -38,17 +36,6 @@ class GraceAIService {
 
   getProvider(): "server" {
     return "server";
-  }
-
-  getState(): WebGPUEngineState {
-    return {
-      isReady: true,
-      modelLoaded: false,
-      downloading: false,
-      downloadProgress: null,
-      errorMessage: null,
-      isAvailable: false,
-    };
   }
 
   async generateInsight(

@@ -35,7 +35,7 @@ This project defines a set of AI agent roles in `AGENTS.md` that govern how code
 - **Member Directory:** Comprehensive management of church members with contact details and giving history.
 - **Donation Entry:** Fast and secure recording of contributions across multiple funds (General, Building, Missions, etc.).
 - **Advanced Reporting:** Three-phased reporting suite including IRS-compliant PDF statements, CSV exports, operational health reports, and financial intelligence charts (powered by Recharts).
-- **AI Financial Insights:** Secure integration with Gemini AI for advanced narrative analysis of giving trends and financial health (backend-processed for security).
+- **AI Financial Insights:** Secure integration with OpenRouter AI for advanced narrative analysis of giving trends and financial health (backend-processed for security).
 
 - **Enterprise Security:**
   - 🔐 JWT-based authentication with configurable expiry
@@ -229,4 +229,4 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 - Inspired by the mission of [Mt. Herman A.M.E. Church](http://mthermaname.org).
 - Powered by [React](https://reactjs.org/), [Vite](https://vitejs.dev/), [Node.js](https://nodejs.org/), and [PostgreSQL](https://www.postgresql.org/).
-- AI insights driven by [Google Gemini SDK](https://ai.google.dev/).
+- AI insights driven by [OpenRouter](https://openrouter.ai/).
