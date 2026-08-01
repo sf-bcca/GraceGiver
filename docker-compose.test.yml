@@ -63,8 +63,9 @@ services:
       INITIAL_ADMIN_USERNAME: ""
       INITIAL_ADMIN_PASSWORD: ""
       
-      # AI endpoint (required even if offline in test mode)
-      GEMMA_ENDPOINT: http://localhost:8080/v1/chat/completions
+      # AI endpoint (OpenRouter — mocked in tests)
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemma-3-27b-it:free}
       
       # Node environment
       NODE_ENV: test

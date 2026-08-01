@@ -83,8 +83,8 @@ This project defines a set of AI agent roles in `AGENTS.md` that govern how code
    Required changes include (for full list see `.env.example`):
 
    ```env
-   # Gemini AI key (optional — AI features disabled without it)
-   VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   # OpenRouter AI key (optional — AI features disabled without it)
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
 
    # Database password (required)
    DB_PASSWORD=CHANGE_ME_use_strong_password_32chars_minimum

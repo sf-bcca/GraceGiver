@@ -15,7 +15,6 @@
     "test:e2e:debug": "npx playwright test --debug"
   },
   "dependencies": {
-    "@google/genai": "^1.34.0",
     "@mlc-ai/web-llm": "^0.2.84",
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.7",

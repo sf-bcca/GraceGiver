@@ -31,3 +31,7 @@ test-results/
 server/coverage/
 blob-report/
 
+# Local Tooling State
+.hermes/
+
+

@@ -1,6 +1,6 @@
 ---
 name: ai-stewardship-tuner
-description: Manages and refines Gemini AI prompts for GraceGiver financial narratives and stewardship insights. Use when editing AI prompts, testing narrative tone, or developing new AI features like GraceForecast.
+description: Manages and refines AI prompts (via OpenRouter) for GraceGiver financial narratives and stewardship insights. Use when editing AI prompts, testing narrative tone, or developing new AI features like GraceForecast.
 ---
 
 # ai-stewardship-tuner
@@ -10,13 +10,13 @@ This skill ensures that GraceGiver's AI insights remain accurate, professional, 
 ## Core Workflows
 
 ### 1. Refine Prompts
-When modifying `server/geminiService.js`, consult the [references/prompt_library.md](references/prompt_library.md) to maintain consistency. Ensure new prompts adhere to the [references/tone_guide.md](references/tone_guide.md).
+When modifying `server/openRouterService.js` (or the `server/geminiService.js` shim), consult the [references/prompt_library.md](references/prompt_library.md) to maintain consistency. Ensure new prompts adhere to the [references/tone_guide.md](references/tone_guide.md).
 
 ### 2. Test Prompt Changes
 Before committing changes to the AI service, run the local test script to verify the output:
 
 ```bash
-# Requires GEMINI_API_KEY in environment
+# Requires OPENROUTER_API_KEY in environment
 node conductor/ai-stewardship-tuner/scripts/test_prompts.cjs
 ```
 

@@ -1,101 +1,55 @@
-/**
- * Gemini Service Unit Tests
- */
+import { describe, it, expect, vi } from 'vitest';
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+describe('geminiService (OpenRouter delegation)', () => {
+  let geminiService;
 
-process.env.GEMMA_ENDPOINT = process.env.GEMMA_ENDPOINT || 'http://localhost:8080/v1/chat/completions';
-
-import { generateMemberNarrative, setGenAIInstance } from '../geminiService';
-
-describe('Gemini Service', () => {
-  let mockGenerateContent;
-  let mockFetch;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    process.env.GEMINI_API_KEY = 'test-api-key';
-    
-    mockGenerateContent = vi.fn();
-    const mockGenAI = {
-      models: {
-        generateContent: mockGenerateContent
-      }
-    };
-    
-    setGenAIInstance(mockGenAI);
-
-    // Mock global fetch for Gemma calls
-    mockFetch = vi.fn();
-    vi.stubGlobal('fetch', mockFetch);
+  beforeEach(async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key-for-vitest';
+    // Force fresh import each time via Node's module cache busting
+    const path = await import('path');
+    delete require.cache[require.resolve('../geminiService.js')];
+    geminiService = require('../geminiService.js');
   });
-  
+
   afterEach(() => {
-    delete process.env.GEMINI_API_KEY;
-    // Reset instance
-    setGenAIInstance(null);
-    vi.unstubAllGlobals();
+    delete process.env.OPENROUTER_API_KEY;
+    vi.restoreAllMocks();
   });
 
-  describe('generateMemberNarrative', () => {
-    const member = {
-      firstName: 'John',
-      lastName: 'Doe'
-    };
+  it('deprecated callGemma should throw', async () => {
+    await expect(geminiService.callGemma('test')).rejects.toThrow('no longer used');
+  });
 
-    const donations = [
-      { date: '2025-01-15', amount: 100, fund: 'Tithes' },
-      { date: '2025-06-20', amount: 50, fund: 'Missions' }
-    ];
+  it('deprecated callGemini should throw', async () => {
+    await expect(geminiService.callGemini('test')).rejects.toThrow('no longer used');
+  });
 
-    it('should generate a narrative when Gemma is successful', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          choices: [{ message: { content: 'Gemma says John is great.' } }]
-        })
-      });
-      
-      const result = await generateMemberNarrative(member, donations, 2025);
+  it('deprecated getAIClient should throw', () => {
+    expect(() => geminiService.getAIClient()).toThrow();
+  });
 
-      expect(result).toBe('Gemma says John is great.');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockGenerateContent).not.toHaveBeenCalled();
-    });
+  it('generateMemberNarrative delegates to openRouterService with default fallback', async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error('fail'));
+    global.fetch = mockFetch;
 
-    it('should fallback to Gemini when Gemma fails', async () => {
-      mockFetch.mockRejectedValue(new Error('Gemma connection failed'));
-      mockGenerateContent.mockResolvedValue({
-        text: 'John has been a faithful giver this year.'
-      });
+    const result = await geminiService.generateMemberNarrative(
+      { firstName: 'John', lastName: 'Doe' },
+      [{ date: '2025-01-15', amount: 100, fund: 'General' }],
+      2025
+    );
 
-      const result = await generateMemberNarrative(member, donations, 2025);
+    expect(result).toBe('We appreciate your faithful support.');
+  });
 
-      expect(result).toBe('John has been a faithful giver this year.');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
-    });
+  it('getFinancialSummary delegates to openRouterService with default fallback', async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error('fail'));
+    global.fetch = mockFetch;
 
-    it('should return default message when both engines fail', async () => {
-      mockFetch.mockRejectedValue(new Error('Gemma down'));
-      setGenAIInstance(null);
-      delete process.env.GEMINI_API_KEY;
-      delete process.env.API_KEY;
+    const result = await geminiService.getFinancialSummary(
+      [{ member_id: '1', amount: 100, fund: 'General' }],
+      []
+    );
 
-      const result = await generateMemberNarrative(member, donations, 2025);
-      
-      expect(result).toContain('We appreciate your faithful support.');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockGenerateContent).not.toHaveBeenCalled();
-    });
-
-    it('should handle API errors gracefully', async () => {
-      mockFetch.mockRejectedValue(new Error('Gemma down'));
-      mockGenerateContent.mockRejectedValue(new Error('API Error'));
-
-      const result = await generateMemberNarrative(member, donations, 2025);
-
-      expect(result).toContain('We appreciate your faithful support.');
-    });
+    expect(result).toBe('Financial analysis is currently unavailable.');
   });
 });

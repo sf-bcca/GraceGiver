@@ -2,8 +2,8 @@
 
 /**
  * AI Stewardship Tuner: Prompt Tester
- * Tests the Gemini prompts against local mock data.
- * Requires GEMINI_API_KEY in environment.
+ * Tests the AI prompts against local mock data via OpenRouter.
+ * Requires OPENROUTER_API_KEY in environment.
  */
 
 const { getFinancialSummary, generateMemberNarrative } = require('../../../server/geminiService');
@@ -30,8 +30,8 @@ async function testMemberNarrative() {
 }
 
 async function runTests() {
-  if (!process.env.GEMINI_API_KEY && !process.env.API_KEY) {
-    console.error('Error: GEMINI_API_KEY is not set.');
+  if (!process.env.OPENROUTER_API_KEY && !process.env.AI_API_KEY) {
+    console.error('Error: OPENROUTER_API_KEY is not set.');
     process.exit(1);
   }
 

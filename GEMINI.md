@@ -13,7 +13,7 @@ GraceGiver is a secure church management platform designed for donation tracking
     *   `recharts`: For financial charts.
     *   `lucide-react`: For icons.
     *   `socket.io-client`: For real-time features.
-    *   `@google/genai`: For AI integration.
+    *   AI features are handled server-side via OpenRouter (no frontend SDK).
 
 ### Backend (`/server`)
 *   **Framework:** Express.js
@@ -50,7 +50,7 @@ GraceGiver is a secure church management platform designed for donation tracking
     ```
 3.  **Environment Variables:**
     *   Copy `.env.example` to `.env`.
-    *   Configure `VITE_GEMINI_API_KEY`, `DB_PASSWORD`, `JWT_SECRET`, etc.
+    *   Configure `OPENROUTER_API_KEY`, `DB_PASSWORD`, `JWT_SECRET`, etc.
 
 ### Running the Application
 

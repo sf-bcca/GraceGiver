@@ -13,7 +13,7 @@
 - **Database:** PostgreSQL (via `pg`)
 - **Real-Time:** Socket.io with Redis Adapter
 - **Security:** JWT (jsonwebtoken), bcryptjs, express-rate-limit
-- **AI Integration:** Google Gemini SDK (@google/genai)
+- **AI Integration:** OpenRouter (OpenAI-compatible API via `server/openRouterService.js`)
 - **File Generation:** PDFKit (for IRS statements), CSV
 
 ## Infrastructure & Tooling

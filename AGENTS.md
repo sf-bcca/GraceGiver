@@ -18,7 +18,7 @@ Antigravity is the primary execution agent responsible for high-fidelity code im
   - Complex codebase navigation and semantic search.
   - **Custom Branding**: Implementation of the new GraceGiver logo and favicon system.
   - **Stewardship Intelligence**: AI-powered financial narrative analysis (**ai-stewardship-tuner**), retention engine (GraceForecast), and historical stewardship tracking.
-  - **Secure AI Integration**: Backend-only Gemini API handling for enhanced credential safety.
+  - **Secure AI Integration**: Backend-only OpenRouter API handling for enhanced credential safety.
 
 - **Interaction Protocols/APIs**
   - Directly interacts via the agentic toolset (file I/O, shell execution, browser automation).
@@ -270,7 +270,7 @@ RESTful endpoints provided by `server/index.js`. For complete documentation, see
   - `GET /api/stewardship/campaigns`: List active campaigns and progress.
   - `POST /api/stewardship/campaigns`: Create new stewardship goal.
 - **Intelligence & AI**:
-  - `POST /api/ai/stewardship-insight`: Secure backend Gemini analysis.
+  - `POST /api/ai/stewardship-insight`: Secure backend OpenRouter analysis.
   - `GET /api/donations/summary`: Real-time dashboard stats with historical growth metrics (MoM, WoW).
   - `GET /api/forecast/at-risk`: AI retention engine data.
 
