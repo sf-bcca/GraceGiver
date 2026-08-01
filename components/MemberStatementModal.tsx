@@ -199,7 +199,7 @@ const MemberStatementModal: React.FC<MemberStatementModalProps> = ({ memberId, o
                     <div className="h-2 w-2 bg-amber-400 rounded-full animate-bounce"></div>
                     <div className="h-2 w-2 bg-amber-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
                     <span className="text-xs font-medium italic">
-                      {activeProvider === 'webgpu' ? 'Local model is reflecting on their generosity...' : 'Gemini is reflecting on their generosity...'}
+                      {activeProvider === 'webgpu' ? 'Local model is reflecting on their generosity...' : 'Grace AI is reflecting on their generosity...'}
                     </span>
                   </div>
                 ) : (

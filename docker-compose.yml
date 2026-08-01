@@ -42,7 +42,7 @@ services:
       
       # AI Features (OpenRouter)
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemma-3-27b-it}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct}
       
       # Redis Config
       REDIS_URL: redis://redis:6379

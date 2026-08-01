@@ -6,7 +6,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
  */
 const config = {
   endpoint: process.env.OPENROUTER_API_ENDPOINT || 'https://openrouter.ai/api/v1/chat/completions',
-  model: process.env.OPENROUTER_MODEL || 'google/gemma-3-27b-it',
+  model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct',
   timeoutSeconds: parseInt(process.env.AI_TIMEOUT, 10) || 20,
 };
 
@@ -124,11 +124,15 @@ Format the response as a clear, professional message.`;
   return result || 'Financial analysis is currently unavailable.';
 };
 
-/** Clean conversational preambles and meta-text from generated AI narrative. */
+/** Clean conversational preambles, thinking tags, and meta-text from generated AI narrative. */
 const cleanNarrative = (text) => {
   if (!text || typeof text !== 'string') return text;
   
   let cleaned = text.trim();
+  
+  // Strip reasoning/thought tags emitted by chain-of-thought models
+  cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, '');
+  cleaned = cleaned.replace(/.*?<\/thought\|?>?/gi, '');
   
   // Remove wrapping quotes
   if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
