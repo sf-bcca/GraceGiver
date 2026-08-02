@@ -663,7 +663,7 @@ app.get(
 
     try {
       let queryText =
-        "SELECT d.id, m.first_name, m.last_name, m.email, d.amount, d.fund, d.donation_date, d.notes FROM donations d JOIN members m ON d.member_id = m.id";
+        "SELECT d.id, COALESCE(m.first_name, 'Guest') as first_name, COALESCE(m.last_name, 'Non-Member') as last_name, COALESCE(m.email, '') as email, d.amount, d.fund, d.donation_date, d.notes FROM donations d LEFT JOIN members m ON d.member_id = m.id";
       const params = [];
       const conditions = [];
       if (startDate && endDate) {

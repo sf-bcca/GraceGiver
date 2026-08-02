@@ -5,12 +5,15 @@ const generateBatchStatement = async (pool, year, res) => {
   // Fetch data first
   const query = `
     SELECT 
-      m.id as member_id, m.first_name, m.last_name, m.address, m.city, m.state, m.zip,
+      COALESCE(m.id, 'guest') as member_id, 
+      COALESCE(m.first_name, 'Guest') as first_name, 
+      COALESCE(m.last_name, 'Non-Member') as last_name, 
+      m.address, m.city, m.state, m.zip,
       d.id as donation_id, d.amount, d.fund, d.donation_date, d.notes
-    FROM members m
-    JOIN donations d ON m.id = d.member_id
+    FROM donations d
+    LEFT JOIN members m ON d.member_id = m.id
     WHERE extract(year from d.donation_date) = $1
-    ORDER BY m.last_name, m.first_name, d.donation_date
+    ORDER BY m.last_name NULLS LAST, m.first_name NULLS LAST, d.donation_date
   `;
 
   console.log(`Generating batch for year: ${year}`);
@@ -143,9 +146,9 @@ const exportTransactions = async (pool, year, res) => {
     const query = `
       SELECT 
         d.id, d.donation_date, d.amount, d.fund, d.notes, d.entered_by,
-        m.first_name, m.last_name, m.id as member_id
+        COALESCE(m.first_name, 'Guest') as first_name, COALESCE(m.last_name, 'Non-Member') as last_name, d.member_id
       FROM donations d
-      JOIN members m ON d.member_id = m.id
+      LEFT JOIN members m ON d.member_id = m.id
       WHERE extract(year from d.donation_date) = $1
       ORDER BY d.donation_date DESC
     `;
