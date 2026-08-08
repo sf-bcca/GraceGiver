@@ -248,9 +248,14 @@ Returns ministry opportunities that match the member's skills or interests.
 
 **`GET /api/donations`**
 
-| Auth     | Permission       | Query Params    |
-| -------- | ---------------- | --------------- |
-| Required | `donations:read` | `page`, `limit` |
+| Auth     | Permission       | Query Params                                                        |
+| -------- | ---------------- | ------------------------------------------------------------------- |
+| Required | `donations:read` | `page`, `limit`, `memberId`, `donorFilter`, `fund`, `startDate`, `endDate` |
+
+**Guest / non-member filtering:**
+- `memberId=guest` or `memberId=null` or `donorFilter=guest` → returns guest donations (`member_id IS NULL`)
+- `donorFilter=members` → returns member-linked donations only (`member_id IS NOT NULL`)
+- `memberId=<id>` → returns donations for a specific member
 
 ### Get Single Donation
 
@@ -292,6 +297,8 @@ Returns ministry opportunities that match the member's skills or interests.
   "enteredBy": "admin"
 }
 ```
+
+**Guest / non-member donation:** set `memberId` to `"guest"` (or `"null"`) to record anonymous giving — the donation is stored with `member_id = NULL`. `enteredBy` is ignored (server uses the authenticated user).
 
 ### Update Donation
 

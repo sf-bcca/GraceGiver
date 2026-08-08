@@ -176,7 +176,7 @@ This section details the concrete implementation of the core systems, serving as
 - **Security Features**:
   - Environment-based JWT secret (required in production)
   - Account lockout after 5 failed attempts
-  - Password policy enforcement (12+ chars, complexity requirements)
+  - Password policy enforcement (18+ chars, complexity requirements)
   - Password history tracking (prevents reuse of last 5 passwords)
 - **Flow**:
   1. Client POSTs credentials to `/api/login`.
@@ -212,8 +212,9 @@ The system uses PostgreSQL with the following core entities (`db/init.sql`):
 - **Roles**: Role definitions with JSON permissions array.
 - **Members**: Parishioner records.
   - Columns: `id` (text), `first_name` (text), `last_name` (text), `email` (text), `telephone` (text), `address` (text), `city` (text), `state` (text), `zip` (text), `family_id` (text), `skills` (text[]), `interests` (text[]), `joined_at` (timestamptz), `created_at` (timestamptz).
-- **Donations**: Financial records linked to Members.
-  - Columns: `id` (serial), `member_id` (text), `amount` (numeric), `fund` (text), `notes` (text), `entered_by` (text), `donation_date` (timestamptz).
+- **Donations**: Financial records linked to Members (or guest giving with no member).
+  - Columns: `id` (serial), `member_id` (text, nullable), `amount` (numeric), `fund` (text), `notes` (text), `entered_by` (text), `donation_date` (timestamptz).
+  - _Guest/Non-member giving_: `member_id` may be `NULL` — create a donation with `memberId` set to `"guest"` (or `"null"`) to record anonymous giving. Query with `memberId=guest` / `donorFilter=guest` to list guest donations, or `donorFilter=members` to list member-linked only. Guest donations are included in export reports and batch statements.
 - **Settings**: Global application settings for church info (`singleton_id` marks the single allowed row):
   - Columns: `singleton_id` (boolean), `name`, `address`, `phone`, `email`, `tax_id`.
 - **Export Logs**: Audit trail for data exports.
@@ -239,7 +240,7 @@ RESTful endpoints provided by `server/index.js`. For complete documentation, see
   - `GET /api/self/profile` — Get own member record (returns firstName, lastName, email, skills, interests, etc.).
   - `GET /api/self/donations` — Get own donation history (paginated with `data` + `pagination`).
   - `GET /api/self/statements` — Get years with donation records (returns array of integers).
-- **Donations**: `GET /api/donations` (Paginated), `POST`, `PUT /:id`, `DELETE /:id`.
+- **Donations**: `GET /api/donations` (Paginated, supports `memberId=guest|null` / `donorFilter=guest|members`), `POST` (set `memberId` to `"guest"`/`"null"` for non-member giving), `PUT /:id`, `DELETE /:id`.
 - **User Management** (admin+ only):
   - `GET /api/users`: List all users.
   - `POST /api/users`: Create new user.

@@ -43,7 +43,7 @@ All errors follow this structure:
   "error": "Password policy violation",
   "code": "POLICY_VIOLATION",
   "details": [
-    "Password must be at least 12 characters",
+    "Password must be at least 18 characters long",
     "Must contain uppercase letter",
     "Must contain lowercase letter",
     "Must contain a digit",
